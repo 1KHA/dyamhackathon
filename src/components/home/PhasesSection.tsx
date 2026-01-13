@@ -18,7 +18,7 @@ const PhasesSection = () => {
       title: 'بدء الهاكاثون',
       description: 'بدء أعمال الهاكاثون.',
       date: '19 يناير - 12:00 م',
-      time: ' من الساعة 12:00 م إلى الساعة 6:00 م',
+      time: ' من الساعة 12:00 إلى الساعة 6:00',
       icon: Code,
       color: 'from-teal-500 to-cyan-500'
     },
@@ -51,6 +51,7 @@ const PhasesSection = () => {
       title: 'إعلان الفائزين',
       description: 'إعلان الفائزين في الهاكاثون.',
       date: '20 يناير - 6:00 م',
+      time: 'من الساعة 12:00 م إلى الساعة 6:00 م',
       icon: Trophy,
       color: 'from-yellow-500 to-orange-500'
     }
@@ -140,7 +141,7 @@ const PhasesSection = () => {
                 </div>
 
                 {/* Timeline Dot */}
-                <div className="absolute left-1/2 transform -translate-x-1/2 w-4 h-4 bg-primary rounded-full cosmic-glow z-10"></div>
+                <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2 w-4 h-4 bg-primary rounded-full cosmic-glow z-10"></div>
               </div>
             ))}
           </div>
@@ -158,9 +159,9 @@ const PhasesSection = () => {
                   المركز الأول:
                 </h4>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground arabic-text text-right">
-                  <li>فرصة تدريب حقيقية للعمل في شركة ألفيرا</li>
-                  <li>حزم مدفوعة للذكاء الاصطناعي</li>
-                  <li>مكافأة مالية رمزية مع التدريب</li>
+                  <li>فرصة تدريب للعمل في شركة ألفيرا</li>
+                  <li>حزم مالية مدفوعة لبرامج الذكاء الاصطناعي</li>
+                  <li>مكافأة مالية مع التدريب</li>
                 </ul>
               </div>
               
@@ -169,8 +170,8 @@ const PhasesSection = () => {
                   المركز الثاني:
                 </h4>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground arabic-text text-right">
-                  <li>فرصة تدريب حقيقية للعمل في شركة ألفيرا</li>
-                  <li>حزم مدفوعة للذكاء الاصطناعي</li>
+                  <li>فرصة تدريب للعمل في شركة ألفيرا</li>
+                  <li>حزم مالية مدفوعة لبرامج الذكاء الاصطناعي</li>
                 </ul>
               </div>
             </div>
