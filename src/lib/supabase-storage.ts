@@ -1,13 +1,15 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Default bucket name - make sure this bucket exists in your Supabase project
-const DEFAULT_BUCKET = 'uploads';
+const DEFAULT_BUCKET = 'alvira_buk';
 
 // Lazy-initialize Supabase client only when needed
 function getSupabaseClient(): SupabaseClient {
   // Check for environment variables in various formats
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const s3AccessKeyId = process.env.S3_ACCESS_KEY_ID;
+  const s3SecretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
 
   if (!supabaseUrl) {
     throw new Error('Supabase URL is not defined in environment variables. Please set SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL.');
@@ -17,7 +19,24 @@ function getSupabaseClient(): SupabaseClient {
     throw new Error('Supabase service role key is not defined in environment variables. Please set SUPABASE_SERVICE_ROLE_KEY.');
   }
 
-  return createClient(supabaseUrl, supabaseKey);
+  // Create client with S3 credentials if available
+  const options: any = {
+    auth: {
+      persistSession: false,
+    }
+  };
+
+  // Only add S3 credentials if they are available
+  if (s3AccessKeyId && s3SecretAccessKey) {
+    options.global = {
+      headers: {
+        'x-s3-access-key': s3AccessKeyId,
+        'x-s3-secret-key': s3SecretAccessKey,
+      },
+    };
+  }
+
+  return createClient(supabaseUrl, supabaseKey, options);
 }
 
 /**
@@ -27,10 +46,91 @@ function getSupabaseClient(): SupabaseClient {
  * @param folder Optional folder path to organize files (e.g., 'teams', 'milestones')
  * @returns The URL of the uploaded file
  */
+/**
+ * Ensures that the bucket exists
+ */
+async function ensureBucketExists(): Promise<void> {
+  try {
+    const supabase = getSupabaseClient();
+    
+    // List buckets to check if our bucket exists
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error('Error listing buckets:', error);
+      return;
+    }
+    
+    // Check if our bucket exists
+    const bucketExists = buckets.some(bucket => bucket.name === DEFAULT_BUCKET);
+    
+    if (!bucketExists) {
+      // Create the bucket if it doesn't exist
+      const { error: createError } = await supabase.storage.createBucket(DEFAULT_BUCKET, {
+        public: true, // Make bucket public
+      });
+      
+      if (createError) {
+        console.error(`Error creating bucket ${DEFAULT_BUCKET}:`, createError);
+      } else {
+        console.log(`Created bucket ${DEFAULT_BUCKET}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error ensuring bucket exists:', error);
+  }
+}
+
+/**
+ * Ensures that a folder exists in the storage bucket
+ * @param folder The folder to ensure exists
+ */
+async function ensureFolderExists(folder: string): Promise<void> {
+  if (!folder) return; // No folder to create
+  
+  try {
+    // First ensure the bucket exists
+    await ensureBucketExists();
+    
+    const supabase = getSupabaseClient();
+    
+    // Check if folder exists
+    const { data, error } = await supabase.storage
+      .from(DEFAULT_BUCKET)
+      .list(folder);
+    
+    if (error) {
+      // If error is not "not found", throw it
+      if (error.message !== 'Bucket not found' && !error.message.includes('not found')) {
+        throw error;
+      }
+      
+      // Create an empty file in the folder to create it
+      // This is a common workaround since many storage systems don't have explicit "create folder" operations
+      await supabase.storage
+        .from(DEFAULT_BUCKET)
+        .upload(`${folder}/.folder`, new Blob([''], { type: 'text/plain' }), {
+          upsert: true
+        });
+    }
+  } catch (error) {
+    console.error(`Error ensuring folder ${folder} exists:`, error);
+    // Don't throw, just log - we'll let the upload handle any errors
+  }
+}
+
 export async function uploadToStorage(file: File | Buffer, filename: string, folder: string = ''): Promise<string> {
   try {
     // Initialize Supabase client when the function is called
     const supabase = getSupabaseClient();
+    
+    // Always ensure the bucket exists
+    await ensureBucketExists();
+    
+    // Ensure the folder exists if one is specified
+    if (folder) {
+      await ensureFolderExists(folder);
+    }
     
     // Create a path with folder if provided
     const path = folder ? `${folder}/${filename}` : filename;
@@ -81,6 +181,9 @@ export async function listStorageFiles(folder: string = '') {
     // Initialize Supabase client when the function is called
     const supabase = getSupabaseClient();
     
+    // Ensure the bucket exists
+    await ensureBucketExists();
+    
     const { data, error } = await supabase.storage
       .from(DEFAULT_BUCKET)
       .list(folder);
@@ -117,6 +220,9 @@ export async function deleteFromStorage(url: string) {
   try {
     // Initialize Supabase client when the function is called
     const supabase = getSupabaseClient();
+    
+    // Ensure the bucket exists
+    await ensureBucketExists();
     
     // Extract path from URL
     const path = extractPathFromUrl(url);
