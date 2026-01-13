@@ -2,27 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Arabic Fonts */
-@font-face {
-  font-family: 'Somar-Bold';
-  src: url('/fonts/ArbFONTS-Somar-Bold.otf') format('opentype');
-  font-weight: bold;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Somar-Medium';
-  src: url('/fonts/ArbFONTS-Somar-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Somar-Light';
-  src: url('/fonts/alfont_com_SomarGX.ttf') format('truetype');
-  font-weight: 300;
-  font-display: swap;
-}
+/* Saudi Hackathon Design System - Cosmic Theme with Arabic RTL Support */
 
 @layer base {
   :root {
@@ -81,43 +61,28 @@
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
+
     --sidebar-foreground: 240 5.3% 26.1%;
+
     --sidebar-primary: 240 5.9% 10%;
+
     --sidebar-primary-foreground: 0 0% 98%;
+
     --sidebar-accent: 240 4.8% 95.9%;
+
     --sidebar-accent-foreground: 240 5.9% 10%;
+
     --sidebar-border: 220 13% 91%;
+
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
+  /* Enhanced dark mode for cosmic theme */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --background: 210 40% 6%;
+    --primary-glow: 180 100% 60%;
+    --shadow-cosmic: 0 0 40px hsl(180, 100%, 40% / 0.4);
+    --shadow-glow: 0 0 25px hsl(180, 100%, 60% / 0.6);
   }
 }
 
@@ -182,7 +147,7 @@
 
   /* Arabic font optimization */
   .arabic-text {
-    font-family: 'Somar-Bold', 'Tajawal', 'Noto Sans Arabic', 'Arial', sans-serif;
+    font-family: 'Tajawal', 'Noto Sans Arabic', 'Arial', sans-serif;
     font-weight: 500;
     letter-spacing: 0.025em;
   }
@@ -296,179 +261,5 @@
 
   .hover-scale:hover {
     transform: scale(1.05);
-  }
-
-  /* Gradient utilities */
-  .bg-gradient-cosmic {
-    background: var(--gradient-cosmic);
-  }
-
-  .bg-gradient-teal {
-    background: var(--gradient-teal);
-  }
-
-  .bg-gradient-card {
-    background: var(--gradient-card);
-  }
-}
-
-/* RTL Support */
-html[dir="rtl"] {
-  text-align: right;
-}
-
-html[dir="rtl"] .ml-auto {
-  margin-left: 0;
-  margin-right: auto;
-}
-
-html[dir="rtl"] .mr-auto {
-  margin-right: 0;
-  margin-left: auto;
-}
-
-html[dir="rtl"] .ml-1 {
-  margin-left: 0;
-  margin-right: 0.25rem;
-}
-
-html[dir="rtl"] .ml-2 {
-  margin-left: 0;
-  margin-right: 0.5rem;
-}
-
-html[dir="rtl"] .ml-3 {
-  margin-left: 0;
-  margin-right: 0.75rem;
-}
-
-html[dir="rtl"] .ml-4 {
-  margin-left: 0;
-  margin-right: 1rem;
-}
-
-html[dir="rtl"] .mr-1 {
-  margin-right: 0;
-  margin-left: 0.25rem;
-}
-
-html[dir="rtl"] .mr-2 {
-  margin-right: 0;
-  margin-left: 0.5rem;
-}
-
-html[dir="rtl"] .mr-3 {
-  margin-right: 0;
-  margin-left: 0.75rem;
-}
-
-html[dir="rtl"] .mr-4 {
-  margin-right: 0;
-  margin-left: 1rem;
-}
-
-html[dir="rtl"] .pl-1 {
-  padding-left: 0;
-  padding-right: 0.25rem;
-}
-
-html[dir="rtl"] .pl-2 {
-  padding-left: 0;
-  padding-right: 0.5rem;
-}
-
-html[dir="rtl"] .pl-3 {
-  padding-left: 0;
-  padding-right: 0.75rem;
-}
-
-html[dir="rtl"] .pl-4 {
-  padding-left: 0;
-  padding-right: 1rem;
-}
-
-html[dir="rtl"] .pr-1 {
-  padding-right: 0;
-  padding-left: 0.25rem;
-}
-
-html[dir="rtl"] .pr-2 {
-  padding-right: 0;
-  padding-left: 0.5rem;
-}
-
-html[dir="rtl"] .pr-3 {
-  padding-right: 0;
-  padding-left: 0.75rem;
-}
-
-html[dir="rtl"] .pr-4 {
-  padding-right: 0;
-  padding-left: 1rem;
-}
-
-html[dir="rtl"] .pr-10 {
-  padding-right: 0;
-  padding-left: 2.5rem;
-}
-
-html[dir="rtl"] .right-0 {
-  right: auto;
-  left: 0;
-}
-
-html[dir="rtl"] .left-0 {
-  left: auto;
-  right: 0;
-}
-
-html[dir="rtl"] .right-3 {
-  right: auto;
-  left: 0.75rem;
-}
-
-html[dir="rtl"] .left-3 {
-  left: auto;
-  right: 0.75rem;
-}
-
-html[dir="rtl"] .right-4 {
-  right: auto;
-  left: 1rem;
-}
-
-html[dir="rtl"] .left-4 {
-  left: auto;
-  right: 1rem;
-}
-
-html[dir="rtl"] .rounded-r-none {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-  border-top-left-radius: var(--radius);
-  border-bottom-left-radius: var(--radius);
-}
-
-html[dir="rtl"] .rounded-l-none {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  border-top-right-radius: var(--radius);
-  border-bottom-right-radius: var(--radius);
-}
-
-/* Prevent horizontal scrolling */
-html, body {
-  overflow-x: hidden;
-}
-
-/* Mobile-only bottom image */
-.mobile-bottom-image {
-  display: none;
-}
-
-@media (max-width: 520px) {
-  .mobile-bottom-image {
-    display: block;
-    width: 100%;
   }
 }
