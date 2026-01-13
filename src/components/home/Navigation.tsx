@@ -21,8 +21,8 @@ const Navigation = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Image 
-              src="/alvira.png" 
-              alt="Alvira Tech" 
+              src="/wadi.png" 
+              alt="Wadi" 
               width={112}
               height={72}
               className="h-18 w-28 object-contain"
@@ -43,12 +43,16 @@ const Navigation = () => {
             ))}
           </div>
 
-          {/* Registration Button */}
+          {/* Registration Button (replaced with image) */}
           <div className="hidden lg:block">
             <Link href="/register-team">
-              <Button className="bg-gradient-teal hover-glow arabic-text font-bold text-lg px-6 py-3 rounded-lg">
-                التسجيل الآن
-              </Button>
+              <Image 
+                src="/alvira.png" 
+                alt="Register Now" 
+                width={100}
+                height={40}
+                className="h-10 object-contain hover:opacity-80 transition-opacity"
+              />
             </Link>
           </div>
 
@@ -79,9 +83,13 @@ const Navigation = () => {
                 </Button>
               ))}
               <Link href="/register-team">
-                <Button className="bg-gradient-teal hover-glow arabic-text font-semibold px-6 py-3 mt-4 w-full">
-                  التسجيل الآن
-                </Button>
+                <Image 
+                  src="/alvira.png" 
+                  alt="Register Now" 
+                  width={150}
+                  height={50}
+                  className="mt-4 mx-auto h-12 object-contain hover:opacity-80 transition-opacity"
+                />
               </Link>
             </div>
           </div>
