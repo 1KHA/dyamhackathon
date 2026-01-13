@@ -300,7 +300,7 @@ export default function RegisterTeamPage() {
   ) => (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
-        <Label htmlFor={`${prefix}-fullName`} className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+        <Label htmlFor={`${prefix}-fullName`} className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
           الاسم كاملًا
         </Label>
         <Input 
@@ -308,12 +308,12 @@ export default function RegisterTeamPage() {
           required 
           value={participant.fullName || ''} 
           onChange={(e) => updateFn('fullName', e.target.value)}
-          className={`h-11 border-2 ${participant.fullName && participant.fullName.trim() ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
+          className={`h-11 border-2 ${participant.fullName && participant.fullName.trim() ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
           style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
         />
       </div>
       <div>
-        <Label htmlFor={`${prefix}-contactNumber`} className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+        <Label htmlFor={`${prefix}-contactNumber`} className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
           رقم التواصل
         </Label>
         <Input 
@@ -326,13 +326,13 @@ export default function RegisterTeamPage() {
             updateFn('contactNumber', digitsOnly)
           }} 
           dir="ltr"
-          className={`h-11 border-2 ${participant.contactNumber && participant.contactNumber.length === 10 ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
+          className={`h-11 border-2 ${participant.contactNumber && participant.contactNumber.length === 10 ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
           style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
           placeholder="0501234567"
         />
       </div>
       <div>
-        <Label htmlFor={`${prefix}-email`} className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+        <Label htmlFor={`${prefix}-email`} className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
           البريد الإلكتروني
         </Label>
         <Input 
@@ -342,20 +342,21 @@ export default function RegisterTeamPage() {
           value={participant.email} 
           onChange={(e) => updateFn('email', e.target.value)} 
           dir="ltr"
-          className={`h-11 border-2 ${participant.email && participant.email.trim() && isValidEmail(participant.email) ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
+          className={`h-11 border-2 ${participant.email && participant.email.trim() && isValidEmail(participant.email) ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
           style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
           placeholder="example@email.com"
         />
       </div>
       <div>
-        <Label className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+        <Label className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
         جنس المتقدم
         </Label>
         <Select required onValueChange={(value) => updateFn('gender', value)} value={participant.gender}>
-          <SelectTrigger className={`h-11 border-2 ${participant.gender ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg text-right`} style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }} dir="rtl">
+          <SelectTrigger className={`h-11 border-2 ${participant.gender ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg text-right`} style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }} dir="rtl">
             <SelectValue placeholder="اختر الجنس..." />
           </SelectTrigger>
           <SelectContent className="text-right" dir="rtl">
+            <SelectItem value="male" className="text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>ذكر</SelectItem>
             <SelectItem value="female" className="text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>أنثى</SelectItem>
           </SelectContent>
         </Select>
@@ -365,14 +366,14 @@ export default function RegisterTeamPage() {
           id={`${prefix}-isUniversityStudent`} 
           checked={participant.isUniversityStudent} 
           onCheckedChange={(checked: boolean | 'indeterminate') => updateFn('isUniversityStudent', !!checked)}
-          className="border-[#620F10] data-[state=checked]:bg-[#620F10]"
+          className="border-[#183063] data-[state=checked]:bg-[#183063]"
         />
-        <Label htmlFor={`${prefix}-isUniversityStudent`} className="text-base cursor-pointer" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+        <Label htmlFor={`${prefix}-isUniversityStudent`} className="text-base cursor-pointer" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
           هل أنت طالب في الجامعة؟
         </Label>
       </div>
       <div>
-        <Label htmlFor={`${prefix}-universityMajor`} className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+        <Label htmlFor={`${prefix}-universityMajor`} className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
           اذكر تخصصك الجامعي
         </Label>
         <Input 
@@ -380,12 +381,12 @@ export default function RegisterTeamPage() {
           required 
           value={participant.universityMajor} 
           onChange={(e) => updateFn('universityMajor', e.target.value)}
-          className={`h-11 border-2 ${participant.universityMajor && participant.universityMajor.trim() ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
+          className={`h-11 border-2 ${participant.universityMajor && participant.universityMajor.trim() ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
           style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
         />
       </div>
       <div>
-        <Label htmlFor={`${prefix}-university`} className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+        <Label htmlFor={`${prefix}-university`} className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
           اذكر جامعتك
         </Label>
         <Input 
@@ -393,25 +394,27 @@ export default function RegisterTeamPage() {
           required 
           value={participant.university} 
           onChange={(e) => updateFn('university', e.target.value)}
-          className={`h-11 border-2 ${participant.university && participant.university.trim() ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
+          className={`h-11 border-2 ${participant.university && participant.university.trim() ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
           style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
         />
       </div>
       <div>
-        <Label htmlFor={`${prefix}-professionalField`} className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+        <Label htmlFor={`${prefix}-professionalField`} className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
           ماهو مجالك المهني؟
         </Label>
-        <Input 
-          id={`${prefix}-professionalField`} 
-          required 
-          value={participant.professionalField} 
-          onChange={(e) => updateFn('professionalField', e.target.value)}
-          className={`h-11 border-2 ${participant.professionalField && participant.professionalField.trim() ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
-          style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
-        />
+        <Select required onValueChange={(value) => updateFn('professionalField', value)} value={participant.professionalField}>
+          <SelectTrigger className={`h-11 border-2 ${participant.professionalField ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg text-right`} style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }} dir="rtl">
+            <SelectValue placeholder="اختر مجالك المهني..." />
+          </SelectTrigger>
+          <SelectContent className="text-right" dir="rtl">
+            <SelectItem value="ذكاء اصناعي" className="text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>ذكاء اصناعي</SelectItem>
+            <SelectItem value="علم البيانات" className="text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>علم البيانات</SelectItem>
+            <SelectItem value="برمجة" className="text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>برمجة</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
       <div>
-        <Label htmlFor={`${prefix}-city`} className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+        <Label htmlFor={`${prefix}-city`} className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
           المدينة
         </Label>
         <Input 
@@ -419,7 +422,7 @@ export default function RegisterTeamPage() {
           required 
           value={participant.city} 
           onChange={(e) => updateFn('city', e.target.value)}
-          className={`h-11 border-2 ${participant.city && participant.city.trim() ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
+          className={`h-11 border-2 ${participant.city && participant.city.trim() ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
           style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
         />
       </div>
@@ -428,10 +431,10 @@ export default function RegisterTeamPage() {
           id={`${prefix}-canAttendHackathon`} 
           checked={participant.canAttendHackathon} 
           onCheckedChange={(checked: boolean | 'indeterminate') => updateFn('canAttendHackathon', !!checked)}
-          className="border-[#620F10] data-[state=checked]:bg-[#620F10]"
+          className="border-[#183063] data-[state=checked]:bg-[#183063]"
         />
-        <Label htmlFor={`${prefix}-canAttendHackathon`} className="text-base cursor-pointer" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
-          هل تستطيع التواجد خلال فترة الهاكاثون في مقر - جامعة دار الحكمة؟
+        <Label htmlFor={`${prefix}-canAttendHackathon`} className="text-base cursor-pointer" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+          هل تستطيع التواجد خلال فترة الهاكاثون في مقر - وادي مكة؟
         </Label>
       </div>
     </div>
@@ -444,10 +447,10 @@ export default function RegisterTeamPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-12 mx-4 max-w-2xl w-full text-center shadow-2xl animate-in fade-in zoom-in duration-500">
             <div className="text-8xl mb-6">🎉</div>
-            <h1 className="text-5xl font-bold mb-6" style={{ color: '#620F10', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
+            <h1 className="text-5xl font-bold mb-6" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
               تم التسجيل في التحدي بنجاح
             </h1>
-            <p className="text-2xl mb-8" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+            <p className="text-2xl mb-8" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
               شكرًا لك على التسجيل! سيتم التواصل معك قريبًا
             </p>
             <div className="flex justify-center space-x-4 text-4xl">
@@ -466,32 +469,28 @@ export default function RegisterTeamPage() {
       {/* Main content with smooth fade in */}
       <div 
         className={`min-h-screen transition-opacity duration-500 ${contentVisible ? 'opacity-100' : 'opacity-0'} ${showCelebration ? 'pointer-events-none' : ''}`}
-        style={{ backgroundColor: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}
+        style={{ backgroundColor: '#183063', fontFamily: 'Somar-Medium, Arial, sans-serif' }}
       >
-      {/* Header Image Section */}
-      <div className="w-full">
-        <img src="/header.png" alt="Header" className="w-full h-auto" />
-      </div>
       
       {/* Form Section */}
       <div className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
         <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
           <CardHeader className="text-center pb-8 pt-10">
-            <CardTitle className="text-4xl font-bold mb-4" style={{ color: '#620F10', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
+            <CardTitle className="text-4xl font-bold mb-4" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
               نموذج تسجيل المشاركين
             </CardTitle>
-            <CardDescription className="text-xl" style={{ color: '#620F10', fontFamily: 'Somar-Light, Arial, sans-serif' }}>
+            <CardDescription className="text-xl" style={{ color: '#FF8D30', fontFamily: 'Somar-Light, Arial, sans-serif' }}>
               {REGISTRATION_CLOSED ? 'انتهى التسجيل في الهاكاثون' : 'سجل للمشاركة في الهاكاثون وكن جزءًا من التغيير'}
             </CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10">
             {REGISTRATION_CLOSED ? (
               <div className="text-center py-12">
-                <h2 className="text-5xl font-bold mb-6" style={{ color: '#620F10', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
+                <h2 className="text-5xl font-bold mb-6" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
                   انتهى التسجيل
                 </h2>
-                <p className="text-2xl mb-8" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                <p className="text-2xl mb-8" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                   نعتذر، لقد انتهت فترة التسجيل في الهاكاثون
                 </p>
               </div>
@@ -499,11 +498,11 @@ export default function RegisterTeamPage() {
               <form onSubmit={handleSubmit} className="space-y-8">
               {/* Registration Type Selection */}
               <div className="bg-gray-50/50 p-6 rounded-xl border-2 border-gray-100 space-y-6">
-                <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#620F10', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
+                <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
                   نوع المشاركة
                 </h3>
                 <div>
-                  <Label className="text-lg font-medium mb-4 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                  <Label className="text-lg font-medium mb-4 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                     هل ستشارك كفريق؟
                   </Label>
                   <RadioGroup 
@@ -512,15 +511,15 @@ export default function RegisterTeamPage() {
                     onValueChange={handleRegistrationTypeChange} 
                     className="flex flex-col sm:flex-row gap-6 mt-4"
                   >
-                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-[#620F10] transition-colors">
-                      <RadioGroupItem value="individual" id="individual" className="border-[#620F10]" />
-                      <Label htmlFor="individual" className="text-lg cursor-pointer" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-[#183063] transition-colors">
+                      <RadioGroupItem value="individual" id="individual" className="border-[#183063]" />
+                      <Label htmlFor="individual" className="text-lg cursor-pointer" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                         مشاركة فردية
                       </Label>
                     </div>
-                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-[#620F10] transition-colors">
-                      <RadioGroupItem value="team" id="team" className="border-[#620F10]" />
-                      <Label htmlFor="team" className="text-lg cursor-pointer" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                    <div className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg hover:border-[#183063] transition-colors">
+                      <RadioGroupItem value="team" id="team" className="border-[#183063]" />
+                      <Label htmlFor="team" className="text-lg cursor-pointer" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                         مشاركة كفريق
                       </Label>
                     </div>
@@ -531,11 +530,11 @@ export default function RegisterTeamPage() {
               {/* Hackathon Track Selection - Show for both individual and team */}
               {formState.registrationType && (
                 <div className="bg-gray-50/50 p-6 rounded-xl border-2 border-gray-100 space-y-6">
-                  <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#620F10', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
+                  <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
                     مسار الهاكاثون
                   </h3>
                   <div>
-                    <Label className="text-lg font-medium mb-4 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                    <Label className="text-lg font-medium mb-4 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                       أي مسار من مسارات الهاكاثون؟
                     </Label>
                     <Select 
@@ -543,18 +542,15 @@ export default function RegisterTeamPage() {
                       onValueChange={(value) => handleStateChange('hackathonTrack', value)} 
                       value={formState.hackathonTrack}
                     >
-                      <SelectTrigger className="h-12 text-lg border-2 border-gray-200 focus:border-[#620F10] text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }} dir="rtl">
+                      <SelectTrigger className="h-12 text-lg border-2 border-gray-200 focus:border-[#183063] text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }} dir="rtl">
                         <SelectValue placeholder="اختر المسار..." />
                       </SelectTrigger>
                       <SelectContent className="text-right" dir="rtl">
-                        <SelectItem value="إحياء اللغة العربية بحلول رقمية مبتكرة" className="text-lg py-3 text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>
-                          إحياء اللغة العربية بحلول رقمية مبتكرة
+                        <SelectItem value="النفايات الحضرية (البلدية والمنزلية)" className="text-lg py-3 text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>
+                          النفايات الحضرية (البلدية والمنزلية)
                         </SelectItem>
-                        <SelectItem value="تحسين جودة الحياة لكبار السن والمكفوفين" className="text-lg py-3 text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>
-                          تحسين جودة الحياة لكبار السن والمكفوفين
-                        </SelectItem>
-                        <SelectItem value="تطوير كفاءة العاملين بقطاع السياحة الدينية (الحج والعمرة)" className="text-lg py-3 text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>
-                          تطوير كفاءة العاملين بقطاع السياحة الدينية (الحج والعمرة)
+                        <SelectItem value="النفايات الصناعية" className="text-lg py-3 text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>
+                          النفايات الصناعية
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -565,12 +561,12 @@ export default function RegisterTeamPage() {
               {/* Team Information - Only show if team registration */}
               {formState.registrationType === 'team' && (
                 <div className="bg-gray-50/50 p-6 rounded-xl border-2 border-gray-100 space-y-6">
-                  <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#620F10', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
+                  <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
                     معلومات الفريق
                   </h3>
                   
                   <div>
-                    <Label htmlFor="team-name" className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                    <Label htmlFor="team-name" className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                       اسم الفريق
                     </Label>
                     <Input 
@@ -578,14 +574,14 @@ export default function RegisterTeamPage() {
                       required 
                       value={formState.teamName} 
                       onChange={(e) => handleStateChange('teamName', e.target.value)}
-                      className={`h-11 border-2 ${formState.teamName && formState.teamName.trim() ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
+                      className={`h-11 border-2 ${formState.teamName && formState.teamName.trim() ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
                       style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="idea-description" className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
-                      صف الفكرة
+                    <Label htmlFor="idea-description" className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                      أرفق روابط ال Github للفريق
                     </Label>
                     <Textarea 
                       id="idea-description" 
@@ -593,13 +589,13 @@ export default function RegisterTeamPage() {
                       value={formState.ideaDescription} 
                       onChange={(e) => handleStateChange('ideaDescription', e.target.value)} 
                       rows={4}
-                      className={`border-2 ${formState.ideaDescription && formState.ideaDescription.trim() ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg resize-none`}
+                      className={`border-2 ${formState.ideaDescription && formState.ideaDescription.trim() ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg resize-none`}
                       style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="hear-about-us" className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                    <Label htmlFor="hear-about-us" className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                       من أين سمعت عنا
                     </Label>
                     <Input 
@@ -607,17 +603,17 @@ export default function RegisterTeamPage() {
                       required 
                       value={formState.hearAboutUs || ''} 
                       onChange={(e) => handleStateChange('hearAboutUs', e.target.value)}
-                      className={`h-11 border-2 ${formState.hearAboutUs && formState.hearAboutUs.trim() ? 'border-gray-200 focus:border-[#620F10]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
+                      className={`h-11 border-2 ${formState.hearAboutUs && formState.hearAboutUs.trim() ? 'border-gray-200 focus:border-[#183063]' : 'border-red-300 focus:border-red-500'} rounded-lg`}
                       style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="member-count" className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                    <Label htmlFor="member-count" className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                       عدد أعضاء الفريق (شامل القائد)
                     </Label>
                     <Select value={String(formState.memberCount)} onValueChange={handleMemberCountChange}>
-                      <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-[#620F10] rounded-lg text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }} dir="rtl">
+                      <SelectTrigger className="h-11 border-2 border-gray-200 focus:border-[#183063] rounded-lg text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }} dir="rtl">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="text-right" dir="rtl">
@@ -629,17 +625,17 @@ export default function RegisterTeamPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="attachments-file" className="text-base font-medium mb-2 block" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                    <Label htmlFor="attachments-file" className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                       إضافة مرفقات (اختياري)
                     </Label>
                     <Input 
                       id="attachments-file" 
                       type="file" 
                       onChange={(e) => setAttachmentFile(e.target.files ? e.target.files[0] : null)}
-                      className="h-11 border-2 border-gray-200 focus:border-[#620F10] rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-[#620F10] file:text-white hover:file:bg-[#4a0c0d]"
+                      className="h-11 border-2 border-gray-200 focus:border-[#183063] rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-[#183063] file:text-white hover:file:bg-[#122347]"
                       style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}
                     />
-                    <p className="text-sm mt-2" style={{ color: '#620F10', fontFamily: 'Somar-Light, Arial, sans-serif' }}>
+                    <p className="text-sm mt-2" style={{ color: '#FF8D30', fontFamily: 'Somar-Light, Arial, sans-serif' }}>
                       ارفاق المتوفر من شعار، ملف تعريفي، الخ.
                     </p>
                   </div>
@@ -649,7 +645,7 @@ export default function RegisterTeamPage() {
               {/* Participant Information */}
               {formState.registrationType && (
                 <div className="bg-gray-50/50 p-6 rounded-xl border-2 border-gray-100 space-y-6">
-                  <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#620F10', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
+                  <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
                     {formState.registrationType === 'team' ? 'معلومات قائد الفريق' : 'معلوماتك الشخصية'}
                   </h3>
                   {renderParticipantFields(formState.leaderInfo, handleLeaderChange, 'leader')}
@@ -659,12 +655,12 @@ export default function RegisterTeamPage() {
               {/* Team Members Information - Only show if team registration */}
               {formState.registrationType === 'team' && formState.memberCount > 1 && (
                 <div className="bg-gray-50/50 p-6 rounded-xl border-2 border-gray-100 space-y-6">
-                  <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#620F10', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
+                  <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
                     معلومات أعضاء الفريق
                   </h3>
                   {formState.members.slice(0, formState.memberCount - 1).map((member: Participant, index: number) => (
                     <div key={index} className="bg-white p-6 border-2 border-gray-200 rounded-xl space-y-4 shadow-sm">
-                      <h4 className="font-bold text-xl mb-4" style={{ color: '#620F10', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
+                      <h4 className="font-bold text-xl mb-4" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
                         العضو {index + 1}
                       </h4>
                       {renderParticipantFields(member, (field, value) => handleMemberChange(index, field, value), `member-${index}`)}
@@ -680,9 +676,9 @@ export default function RegisterTeamPage() {
                     required 
                     checked={formState.agreeToTerms} 
                     onCheckedChange={(checked) => handleStateChange('agreeToTerms', !!checked)}
-                    className="border-[#620F10] data-[state=checked]:bg-[#620F10]"
+                    className="border-[#183063] data-[state=checked]:bg-[#183063]"
                   />
-                  <Label htmlFor="terms" className="text-lg cursor-pointer" style={{ color: '#620F10', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
+                  <Label htmlFor="terms" className="text-lg cursor-pointer" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
                     أوافق على الشروط والأحكام
                   </Label>
                 </div>
@@ -692,7 +688,7 @@ export default function RegisterTeamPage() {
                 type="submit" 
                 className="w-full text-xl py-4 font-bold rounded-xl transition-all duration-300 hover:shadow-lg disabled:opacity-50" 
                 style={{ 
-                  backgroundColor: '#620F10', 
+                  backgroundColor: '#183063', 
                   fontFamily: 'Somar-Bold, Arial, sans-serif',
                   border: 'none'
                 }}
@@ -707,18 +703,6 @@ export default function RegisterTeamPage() {
         </div>
       </div>
       
-      {/* Footer Image */}
-      <div className="w-full">
-        <picture>
-          <source media="(max-width: 520px)" srcSet="/mobfot.png" />
-          <img 
-            src="/footer.png" 
-            alt="Footer" 
-            className="w-full h-auto"
-            style={{ display: "block" }}
-          />
-        </picture>
-      </div>
       </div>
     </>
   )

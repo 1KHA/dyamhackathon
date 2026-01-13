@@ -54,8 +54,8 @@
     --muted: 220 8% 95%;
     --muted-foreground: 220 8% 45%;
 
-    /* Accent Colors - Using #06AC4B (Green) */
-    --accent: 147 93% 34%; /* #06AC4B - Green */
+    /* Accent Colors - Using #525661 (Gray) */
+    --accent: 220 8% 35%; /* #525661 - Gray */
     --accent-foreground: 0 0% 100%; /* White text on accent */
 
     /* Destructive Colors */
