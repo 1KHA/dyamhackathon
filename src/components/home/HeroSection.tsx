@@ -24,15 +24,15 @@ const HeroSection = () => {
       <div className="stars"></div>
       
       {/* Floating Elements */}
-      <div className="absolute top-20 right-10 w-2 h-2 bg-primary rounded-full animate-pulse-glow"></div>
+      <div className="absolute top-20 right-10 w-2 h-2 bg-orange rounded-full animate-pulse-glow"></div>
       <div className="absolute top-32 left-20 w-1 h-1 bg-primary-glow rounded-full animate-pulse-glow delay-500"></div>
-      <div className="absolute bottom-32 right-32 w-3 h-3 bg-primary rounded-full animate-pulse-glow delay-1000"></div>
+      <div className="absolute bottom-32 right-32 w-3 h-3 bg-orange rounded-full animate-pulse-glow delay-1000"></div>
       
       <div className="container mx-auto px-4 text-center">
         <div className="max-w-4xl mx-auto">
           {/* Main Title */}
           <div className="mb-6 animate-fade-in-up">
-            <h1 className="text-4xl md:text-6xl font-black text-primary arabic-text mb-4 leading-tight transform transition-all duration-1000 ease-out">
+            <h1 className="text-4xl md:text-6xl font-black text-orange arabic-text mb-4 leading-tight transform transition-all duration-1000 ease-out">
               هاكثون الابتكار لجائزة مايدة محي الدين ناظر للابتكار
             </h1>
             <div className="mb-6 animate-fade-in-up animation-delay-300">
@@ -40,7 +40,7 @@ const HeroSection = () => {
                 جامعة دار الحكمة – مدينة جدة
               </h2>
             </div>
-            <p className="text-lg text-primary font-semibold arabic-text mb-8 animate-fade-in-up animation-delay-500 transform transition-all duration-700 ease-out">
+            <p className="text-lg text-orange font-semibold arabic-text mb-8 animate-fade-in-up animation-delay-500 transform transition-all duration-700 ease-out">
               9-5 أكتوبر 2025
             </p>
           </div>

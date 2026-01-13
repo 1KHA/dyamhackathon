@@ -26,52 +26,55 @@
 
 @layer base {
   :root {
-    /* Saudi Hackathon Color Palette */
+    /* New Color Palette */
     --background: 0 0% 100%; /* White background */
-    --foreground: 0 74% 27%; /* #761814 - Dark text */
+    --foreground: 220 30% 24%; /* #183063 - Dark Blue text */
 
     /* Card Colors */
-    --card: 45 100% 97%; /* #fff2e9 - Light cream */
-    --card-foreground: 0 74% 27%; /* #761814 - Dark text */
+    --card: 0 0% 98%; /* Light background for cards */
+    --card-foreground: 220 30% 24%; /* #183063 - Dark Blue text */
 
     /* Popover Colors */
-    --popover: 45 100% 97%;
-    --popover-foreground: 0 74% 27%;
+    --popover: 0 0% 98%;
+    --popover-foreground: 220 30% 24%;
 
-    /* Primary Theme - Using #761814 (Dark Red/Brown) */
-    --primary: 0 74% 27%; /* #761814 */
+    /* Primary Theme - Using #183063 (Dark Blue) */
+    --primary: 220 30% 24%; /* #183063 - Dark Blue */
     --primary-foreground: 0 0% 100%; /* White text on primary */
-    --primary-glow: 0 74% 40%; /* Lighter version of primary */
+    --primary-glow: 220 30% 34%; /* Lighter version of primary */
+    --primary-dark: 220 30% 24%; /* #183063 - Dark Blue */
 
-    /* Secondary Colors - Using #f9d7a0 (Golden) */
-    --secondary: 45 85% 79%; /* #f9d7a0 */
-    --secondary-foreground: 0 74% 27%; /* #761814 */
+    /* Secondary Colors - Using #525661 (Gray) and #FF8D30 (Orange) */
+    --secondary: 220 8% 35%; /* #525661 - Gray */
+    --secondary-foreground: 0 0% 100%; /* White text on secondary */
+    --secondary-orange: 29 100% 59%; /* #FF8D30 - Orange */
+    --secondary-orange-foreground: 0 0% 100%; /* White text on orange */
 
     /* Muted Colors */
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 220 8% 95%;
+    --muted-foreground: 220 8% 45%;
 
-    /* Accent Colors - Using #83bbe5 (Light Blue) */
-    --accent: 207 65% 70%; /* #83bbe5 */
-    --accent-foreground: 0 74% 27%; /* #761814 */
+    /* Accent Colors - Using #06AC4B (Green) */
+    --accent: 147 93% 34%; /* #06AC4B - Green */
+    --accent-foreground: 0 0% 100%; /* White text on accent */
 
     /* Destructive Colors */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     /* Border and Input */
-    --border: 0 0% 85%;
-    --input: 0 0% 95%;
-    --ring: 0 74% 27%;
+    --border: 220 8% 85%;
+    --input: 220 8% 95%;
+    --ring: 220 30% 24%; /* #183063 - Dark Blue */
 
-    /* Saudi Hackathon Gradients */
-    --gradient-cosmic: linear-gradient(135deg, hsl(0, 0%, 100%) 0%, hsl(45, 100%, 98%) 50%, hsl(0, 0%, 100%) 100%);
-    --gradient-teal: linear-gradient(135deg, hsl(0, 74%, 27%) 0%, hsl(45, 85%, 79%) 100%); /* #761814 to #f9d7a0 */
-    --gradient-card: linear-gradient(135deg, hsl(45, 100%, 97%) 0%, hsl(45, 50%, 95%) 100%);
+    /* Minimal Gradients */
+    --gradient-cosmic: linear-gradient(135deg, hsl(0, 0%, 100%) 0%, hsl(0, 0%, 98%) 50%, hsl(0, 0%, 100%) 100%);
+    --gradient-teal: hsl(220, 30%, 24%); /* Solid #183063 blue */
+    --gradient-card: linear-gradient(135deg, hsl(0, 0%, 100%) 0%, hsl(0, 0%, 98%) 100%);
 
     /* Shadows and Effects */
-    --shadow-cosmic: 0 0 30px hsl(0, 74%, 27% / 0.3); /* #761814 glow */
-    --shadow-glow: 0 0 20px hsl(45, 85%, 79% / 0.5); /* #f9d7a0 glow */
+    --shadow-cosmic: 0 0 30px hsl(220, 30%, 24% / 0.3); /* #183063 glow */
+    --shadow-glow: 0 0 20px hsl(220, 30%, 24% / 0.5); /* #183063 glow */
     --shadow-card: 0 4px 20px hsl(0, 0%, 2% / 0.4);
 
     /* Animations */
@@ -156,7 +159,7 @@
     transform: translateY(-2px);
   }
 
-  /* Starry background animation */
+  /* Starry background animation - more subtle for white theme with blue tint */
   .stars {
     position: fixed;
     top: 0;
@@ -164,15 +167,16 @@
     width: 100%;
     height: 100%;
     pointer-events: none;
+    opacity: 0.3;
     background-image: 
-      radial-gradient(2px 2px at 20px 30px, hsl(45, 85%, 79%), transparent),
-      radial-gradient(2px 2px at 40px 70px, hsl(207, 65%, 70%), transparent),
-      radial-gradient(1px 1px at 90px 40px, hsl(45, 100%, 97%), transparent),
-      radial-gradient(1px 1px at 130px 80px, hsl(0, 74%, 40%), transparent),
-      radial-gradient(2px 2px at 160px 30px, hsl(207, 65%, 70%), transparent);
+      radial-gradient(2px 2px at 20px 30px, hsl(220, 30%, 80%), transparent),
+      radial-gradient(2px 2px at 40px 70px, hsl(220, 30%, 75%), transparent),
+      radial-gradient(1px 1px at 90px 40px, hsl(220, 30%, 85%), transparent),
+      radial-gradient(1px 1px at 130px 80px, hsl(220, 30%, 80%), transparent),
+      radial-gradient(2px 2px at 160px 30px, hsl(220, 30%, 85%), transparent);
     background-repeat: repeat;
     background-size: 200px 100px;
-    animation: sparkle 20s linear infinite;
+    animation: sparkle 30s linear infinite;
   }
 
   @keyframes sparkle {
@@ -309,6 +313,27 @@
 
   .bg-gradient-card {
     background: var(--gradient-card);
+  }
+
+  /* Orange accent utilities */
+  .text-orange {
+    color: #FF8D30;
+  }
+
+  .bg-orange {
+    background-color: #FF8D30;
+  }
+
+  .border-orange {
+    border-color: #FF8D30;
+  }
+
+  .hover-text-orange:hover {
+    color: #FF8D30;
+  }
+
+  .hover-bg-orange:hover {
+    background-color: rgba(255, 141, 48, 0.1);
   }
 }
 

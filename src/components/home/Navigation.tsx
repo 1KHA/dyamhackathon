@@ -26,11 +26,11 @@ const Navigation = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Image 
-              src="/hikma03.png" 
-              alt="هاكاثون" 
+              src="/alvira.png" 
+              alt="Alvira" 
               width={112}
               height={72}
-              className="h-18 w-28"
+              className="h-18 w-28 object-contain"
             />
           </div>
 
@@ -40,7 +40,7 @@ const Navigation = () => {
               <Button
                 key={item.name}
                 variant="ghost"
-                className="arabic-text text-sm hover:text-primary hover:bg-primary/10 transition-all duration-300"
+                className="arabic-text text-sm hover:text-orange hover-bg-orange transition-all duration-300"
                 asChild
               >
                 <a href={item.href}>{item.name}</a>
@@ -61,7 +61,7 @@ const Navigation = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden hover:bg-primary/10"
+            className="lg:hidden hover-bg-orange"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -76,7 +76,7 @@ const Navigation = () => {
                 <Button
                   key={item.name}
                   variant="ghost"
-                  className="arabic-text justify-start hover:text-primary hover:bg-primary/10"
+                  className="arabic-text justify-start hover:text-orange hover-bg-orange"
                   asChild
                   onClick={() => setIsMenuOpen(false)}
                 >

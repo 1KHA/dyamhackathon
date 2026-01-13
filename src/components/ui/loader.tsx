@@ -16,13 +16,14 @@ export default function Loader({ className = "", isVisible = true }: LoaderProps
     >
       <div className="flex flex-col items-center justify-center">
         <img
-          src="/hikma03.png"
+          src="/alvira.png"
           alt="Loading..."
           className="max-w-xs w-60 h-auto animate-pulse"
           style={{
             maxWidth: "240px",
             width: "60vw",
-            height: "auto"
+            height: "auto",
+            objectFit: "contain"
           }}
         />
       </div>

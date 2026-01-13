@@ -70,7 +70,7 @@ const CountdownTimer = () => {
 
   return (
     <div className="text-center mb-8">
-      <h3 className={`text-lg arabic-text text-muted-foreground mb-6 transition-all duration-500 ${
+      <h3 className={`text-lg arabic-text text-orange mb-6 transition-all duration-500 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}>
         الوقت المتبقي على إغلاق التسجيل
@@ -98,7 +98,7 @@ const CountdownTimer = () => {
                   />
                 ))}
               </div>
-              <div className="text-sm text-muted-foreground arabic-text">
+              <div className="text-sm text-orange arabic-text">
                 {unit.label}
               </div>
             </div>

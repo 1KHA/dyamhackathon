@@ -5,48 +5,47 @@ This document outlines the design system used for the Admin Hackathon Dashboard,
 ## Color Palette
 
 ### Primary Colors
-- **Blue**: 
-  - Primary: `#3b82f6` (blue-500)
-  - Light: `#eff6ff` (blue-50)
-  - Medium: `#bfdbfe` (blue-200)
-  - Dark: `#1e40af` (blue-800)
-  - Used for: Primary buttons, headers, important actions, and highlights
+- **Orange**: 
+  - Primary: `#FF8D30` (orange-500)
+  - Light: `#FFEAD9` (orange-50)
+  - Medium: `#FFBC85` (orange-200)
+  - Dark: `#E67A1F` (orange-800)
+  - Used for: Primary buttons, call-to-action elements, highlights, and important actions
+
+- **Dark Blue**:
+  - Primary: `#183063` (blue-900)
+  - Light: `#E6EBF4` (blue-50)
+  - Medium: `#8A9CC0` (blue-300)
+  - Dark: `#0F1D3D` (blue-950)
+  - Used for: Headers, text, navigation elements, and backgrounds
 
 ### Secondary Colors
+- **Gray**:
+  - Primary: `#525661` (gray-600)
+  - Light: `#F5F6F7` (gray-50)
+  - Medium: `#A9ACB3` (gray-300)
+  - Dark: `#383B44` (gray-800)
+  - Used for: Neutral elements, borders, secondary text, and disabled states
+
 - **Green**:
-  - Primary: `#22c55e` (green-500)
-  - Light: `#f0fdf4` (green-50)
-  - Medium: `#bbf7d0` (green-200)
-  - Dark: `#166534` (green-800)
-  - Used for: Success states, active status, positive metrics
+  - Primary: `#06AC4B` (green-600)
+  - Light: `#E6F7ED` (green-50)
+  - Medium: `#7DD9A1` (green-300)
+  - Dark: `#048A3C` (green-700)
+  - Used for: Success states, active status, positive metrics, and environmental themes
 
-- **Yellow**:
-  - Primary: `#eab308` (yellow-500)
-  - Light: `#fefce8` (yellow-50)
-  - Medium: `#fef08a` (yellow-200)
-  - Dark: `#854d0e` (yellow-800)
-  - Used for: Warnings, pending status, ratings
-
-- **Purple**:
-  - Primary: `#a855f7` (purple-500)
-  - Light: `#faf5ff` (purple-50)
-  - Medium: `#e9d5ff` (purple-200)
-  - Dark: `#6b21a8` (purple-800)
-  - Used for: Alternative highlights, availability status
-
+### Accent Colors
 - **Red**:
-  - Primary: `#ef4444` (red-500)
-  - Light: `#fee2e2` (red-100)
-  - Dark: `#991b1b` (red-800)
+  - Primary: `#EF4444` (red-500)
+  - Light: `#FEE2E2` (red-100)
+  - Dark: `#991B1B` (red-800)
   - Used for: Error states, destructive actions, unavailable status
 
-### Neutral Colors
-- **Gray**:
-  - Light: `#f9fafb` (gray-50)
-  - Medium Light: `#f3f4f6` (gray-100)
-  - Medium: `#9ca3af` (gray-400)
-  - Dark: `#374151` (gray-700)
-  - Used for: Text, borders, backgrounds, disabled states
+- **Yellow**:
+  - Primary: `#F59E0B` (yellow-500)
+  - Light: `#FEF3C7` (yellow-100)
+  - Dark: `#B45309` (yellow-800)
+  - Used for: Warnings, pending status, ratings
 
 ## Typography
 
@@ -80,15 +79,21 @@ This document outlines the design system used for the Admin Hackathon Dashboard,
 
 ### Buttons
 - **Primary Action Button**:
-  - Blue background: `bg-blue-600`
-  - Hover state: `hover:bg-blue-700`
+  - Orange background: `bg-orange-500` (#FF8D30)
+  - Hover state: `hover:bg-orange-600`
   - Rounded corners: `rounded-full`
   - Icon + text layout with gap: `flex items-center gap-1`
 
 - **Secondary/Outline Button**:
-  - Transparent background with colored border: `border-blue-200`
-  - Colored text: `text-blue-600`
-  - Hover state: `hover:bg-blue-50`
+  - Transparent background with colored border: `border-gray-300`
+  - Colored text: `text-gray-600` (#525661)
+  - Hover state: `hover:bg-gray-50`
+  - Rounded corners: `rounded-full`
+  - Icon + text layout with gap: `flex items-center gap-1`
+
+- **Success Button**:
+  - Green background: `bg-green-600` (#06AC4B)
+  - Hover state: `hover:bg-green-700`
   - Rounded corners: `rounded-full`
   - Icon + text layout with gap: `flex items-center gap-1`
 
@@ -98,8 +103,8 @@ This document outlines the design system used for the Admin Hackathon Dashboard,
 
 ### Tables
 - **Table Header**:
-  - Light blue background: `bg-blue-50`
-  - Consistent hover state: `hover:bg-blue-50`
+  - Light orange background: `bg-orange-50`
+  - Consistent hover state: `hover:bg-orange-50`
 
 - **Table Rows**:
   - Hover effect: `hover:bg-gray-50 transition-colors duration-150`
@@ -114,21 +119,24 @@ This document outlines the design system used for the Admin Hackathon Dashboard,
 - **Search Input**:
   - Rounded full: `rounded-full`
   - Icon positioning: Absolute positioning with transform
-  - Border color: `border-blue-100`
-  - Focus state: `focus:border-blue-300`
+  - Border color: `border-orange-100`
+  - Focus state: `focus:border-orange-300`
   - Right padding for icon: `pr-10`
 
 - **Select Dropdowns**:
   - Rounded full: `rounded-full`
-  - Consistent border colors with inputs
+  - Border color: `border-gray-200`
+  - Focus state: `focus:border-orange-300`
   - Appropriate width based on content
 
 ### Badges
 - **Status Badges**:
   - Color-coded by status:
-    - Active: Green (`bg-green-100 text-green-800`)
-    - Pending: Yellow (`bg-yellow-100 text-yellow-800`)
-    - Inactive: Gray (`bg-gray-100 text-gray-800`)
+    - Active: Green (`bg-green-100 text-green-700`) (#06AC4B)
+    - Pending: Orange (`bg-orange-100 text-orange-700`) (#FF8D30)
+    - Inactive: Gray (`bg-gray-100 text-gray-700`) (#525661)
+    - Warning: Yellow (`bg-yellow-100 text-yellow-700`)
+    - Error: Red (`bg-red-100 text-red-700`)
   - Compact and rounded by default
 
 ### Dialogs

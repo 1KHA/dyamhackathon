@@ -78,7 +78,7 @@ const PhasesSection = () => {
     <section id="phases" className="py-20 relative" ref={sectionRef}>
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-primary arabic-text mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-orange arabic-text mb-6">
             الجدول الزمني
           </h2>
           <p className="text-xl text-muted-foreground arabic-text mb-8">
@@ -112,10 +112,10 @@ const PhasesSection = () => {
                         <phase.icon className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-lg font-bold text-foreground arabic-text">
+                        <h3 className="text-lg font-bold text-orange arabic-text">
                           {phase.title}
                         </h3>
-                        <p className="text-sm text-primary font-semibold">
+                        <p className="text-sm text-orange font-semibold">
                           {phase.date}
                         </p>
                       </div>
@@ -145,7 +145,7 @@ const PhasesSection = () => {
         {/* Call to Action */}
         <div className="text-center mt-16">
           <Card className="bg-gradient-card border-border/50 cosmic-glow p-8 max-w-2xl mx-auto">
-            <h3 className="text-2xl font-bold text-primary arabic-text mb-4">
+            <h3 className="text-2xl font-bold text-orange arabic-text mb-4">
               هل أنت مستعد للرحلة؟
             </h3>
             <p className="text-muted-foreground arabic-text mb-6">

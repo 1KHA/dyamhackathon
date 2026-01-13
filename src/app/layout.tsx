@@ -8,7 +8,7 @@ import { Analytics } from "@vercel/analytics/next";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://dar-alhekma.dyam.dev'),
+  metadataBase: new URL('https://visionthon.dyam.dev'),
   title: "هاكثون الابتكار لجائزة مايدة محيي الدين ناظر للابتكار",
   description: "تحدي يجمع طلبة الجامعات لتشجيع الابتكار وتطوير حلول مستدامة، يوفر هاكاثون الابتكار لجائزة مايدة محي الدين ناظر فرصة لاكتشاف وتوظيف الابتكار الجامعي والعمل ضمن فرق تنافسية لتقديم حلول مبتكرة تعزز الاستدامة وجودة الحياة.",
   keywords: [
@@ -40,14 +40,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: "جائزة مايدة محي الدين ناظر للابتكار 3",
     description: "هاكاثون الابتكار في جامعة دار الحكمة: تحدي يجمع طلبة الجامعات لاستكشاف وتوظيف الابتكارات الجامعية وتطوير حلول مبتكرة تسهم في تعزيز الاستدامة وجودة الحياة",
-    url: "https://dar-alhekma.dyam.dev/",
+    url: "https://visionthon.dyam.dev/",
     siteName: "جائزة مايدة محي الدين ناظر للابتكار 3",
     images: [
       {
-        url: "/main.png",
+        url: "/alvira.png",
         width: 1200,
         height: 630,
-        alt: "جائزة مايدة محي الدين ناظر للابتكار 3 - هاكاثون الابتكار في جامعة دار الحكمة"
+        alt: "Alvira - هاكاثون الابتكار في جامعة دار الحكمة"
       }
     ],
     locale: "ar_SA",
@@ -57,14 +57,14 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "جائزة مايدة محي الدين ناظر للابتكار 3",
     description: "هاكاثون الابتكار في جامعة دار الحكمة",
-    images: ["/main.png"],
+    images: ["/alvira.png"],
     creator: "@DAHUniversity"
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: "/alvira.png",
   },
   alternates: {
-    canonical: "https://dar-alhekma.dyam.dev/",
+    canonical: "https://visionthon.dyam.dev/",
   }
 };
 
