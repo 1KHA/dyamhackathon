@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://visionthon.dyam.dev'),
-  title: "هاكثون الابتكار لجائزة مايدة محيي الدين ناظر للابتكار",
+  title: "هاكاثون فيجنثون VISIONTHON",
   description: "تحدي يجمع طلبة الجامعات لتشجيع الابتكار وتطوير حلول مستدامة، يوفر هاكاثون الابتكار لجائزة مايدة محي الدين ناظر فرصة لاكتشاف وتوظيف الابتكار الجامعي والعمل ضمن فرق تنافسية لتقديم حلول مبتكرة تعزز الاستدامة وجودة الحياة.",
   keywords: [
     "جائزة مايدة محي الدين ناظر للابتكار 3",
@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "جائزة مايدة محي الدين ناظر للابتكار 3",
+    title: "هاكاثون فيجنثون VISIONTHON",
     description: "هاكاثون الابتكار في جامعة دار الحكمة: تحدي يجمع طلبة الجامعات لاستكشاف وتوظيف الابتكارات الجامعية وتطوير حلول مبتكرة تسهم في تعزيز الاستدامة وجودة الحياة",
     url: "https://visionthon.dyam.dev/",
     siteName: "جائزة مايدة محي الدين ناظر للابتكار 3",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "جائزة مايدة محي الدين ناظر للابتكار 3",
+    title: "هاكاثون فيجنثون VISIONTHON",
     description: "هاكاثون الابتكار في جامعة دار الحكمة",
     images: ["/alvira.png"],
     creator: "@DAHUniversity"
