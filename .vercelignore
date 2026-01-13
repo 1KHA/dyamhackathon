@@ -1,0 +1,2 @@
+# Ignore the newlandpage directory during Vercel deployment
+newlandpage/
