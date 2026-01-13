@@ -160,7 +160,7 @@ const PhasesSection = () => {
                 </h4>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground arabic-text text-right">
                   <li>فرصة تدريب للعمل في شركة ألفيرا</li>
-                  <li>حزم مالية مدفوعة لبرامج الذكاء الاصطناعي</li>
+                  <li>حزم مدفوعة لبرامج الذكاء الاصطناعي</li>
                   <li>مكافأة مالية مع التدريب</li>
                 </ul>
               </div>
@@ -171,7 +171,7 @@ const PhasesSection = () => {
                 </h4>
                 <ul className="list-disc list-inside space-y-1 text-muted-foreground arabic-text text-right">
                   <li>فرصة تدريب للعمل في شركة ألفيرا</li>
-                  <li>حزم مالية مدفوعة لبرامج الذكاء الاصطناعي</li>
+                  <li>حزم مدفوعة لبرامج الذكاء الاصطناعي</li>
                 </ul>
               </div>
             </div>

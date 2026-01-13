@@ -37,11 +37,11 @@ const HeroSection = () => {
             </h1>
             <div className="mb-6 animate-fade-in-up animation-delay-300">
               <h2 className="text-xl md:text-2xl font-bold text-foreground arabic-text transform transition-all duration-800 ease-out">
-                برعاية إلفيرا تك و وادي مكة
+                برعاية إلفيرا تك و شركة وادي مكة للتقنية
               </h2>
             </div>
             <p className="text-lg text-orange font-semibold arabic-text mb-8 animate-fade-in-up animation-delay-500 transform transition-all duration-700 ease-out">
-              13 - 17 يناير 2026
+              19 - 20 يناير 2026
             </p>
           </div>
 

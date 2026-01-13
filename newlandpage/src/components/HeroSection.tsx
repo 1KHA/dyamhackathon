@@ -61,7 +61,7 @@ const HeroSection = () => {
           {/* Description */}
           <div className="max-w-3xl mx-auto animate-fade-in-up animation-delay-1100">
             <p className="text-lg text-muted-foreground arabic-text leading-relaxed transform transition-all duration-600 ease-out">
-              تحدي يجمع طلبة الجامعات لتشجيع الابتكار وتطوير حلول مستدامة، يوفر هاكاثون الابتكار لجائزة مايدة محي الدين ناظر 
+              تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة، يوفر هاكاثون الابتكار لجائزة مايدة محي الدين ناظر 
               فرصة لاكتشاف وتوظيف الابتكار الجامعي والعمل ضمن فرق تنافسية لتقديم حلول مبتكرة تعزز الاستدامة وجودة الحياة.
             </p>
           </div>

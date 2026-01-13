@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL('https://visionthon.dyam.dev'),
   title: "هاكاثون فيجنثون VISIONTHON",
-  description: "هاكاثون فيجنثون VISIONTHON - تحدي يجمع طلبة الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
+  description: "هاكاثون فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
   keywords: [
     "هاكاثون فيجنثون VISIONTHON"
   ],
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "هاكاثون فيجنثون VISIONTHON",
-    description: "هاكاثون فيجنثون VISIONTHON - تحدي يجمع طلبة الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
+    description: "هاكاثون فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
     url: "https://visionthon.dyam.dev/",
     siteName: "هاكاثون فيجنثون VISIONTHON",
     images: [
