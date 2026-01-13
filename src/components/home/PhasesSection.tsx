@@ -18,6 +18,7 @@ const PhasesSection = () => {
       title: 'بدء الهاكاثون',
       description: 'بدء أعمال الهاكاثون.',
       date: '19 يناير - 12:00 م',
+      time: ' من الساعة 12:00 م إلى الساعة 6:00 م',
       icon: Code,
       color: 'from-teal-500 to-cyan-500'
     },
@@ -117,6 +118,9 @@ const PhasesSection = () => {
                         </h3>
                         <p className="text-sm text-orange font-semibold">
                           {phase.date}
+                        </p>
+                        <p className="text-sm text-orange font-semibold">
+                          {phase.time}
                         </p>
                       </div>
                     </div>
