@@ -48,8 +48,8 @@ const initialFormState = {
   hearAboutUs: '',
   agreeToTerms: false,
   leaderInfo: initialParticipantState,
-  members: Array(2).fill(null).map(() => ({ ...initialParticipantState })),
-  memberCount: 3, // Default to 3 members (leader + 2)
+  members: Array(1).fill(null).map(() => ({ ...initialParticipantState })),
+  memberCount: 2, // Default to 2 members (leader + 1)
 }
 
 type FormState = typeof initialFormState;
@@ -415,7 +415,7 @@ export default function RegisterTeamPage() {
       </div>
       <div>
         <Label htmlFor={`${prefix}-city`} className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
-          المدينة
+          أدخل رابط الGithub 
         </Label>
         <Input 
           id={`${prefix}-city`} 
@@ -581,7 +581,7 @@ export default function RegisterTeamPage() {
 
                   <div>
                     <Label htmlFor="idea-description" className="text-base font-medium mb-2 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
-                      أرفق روابط ال Github للفريق
+                     نبذة عن الفريق
                     </Label>
                     <Textarea 
                       id="idea-description" 
@@ -617,9 +617,8 @@ export default function RegisterTeamPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="text-right" dir="rtl">
+                        <SelectItem value="2" className="text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>2 أعضاء</SelectItem>
                         <SelectItem value="3" className="text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>3 أعضاء</SelectItem>
-                        <SelectItem value="4" className="text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>4 أعضاء</SelectItem>
-                        <SelectItem value="5" className="text-right" style={{ fontFamily: 'Somar-Light, Arial, sans-serif' }}>5 أعضاء</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

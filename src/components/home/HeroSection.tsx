@@ -41,7 +41,7 @@ const HeroSection = () => {
               </h2>
             </div>
             <p className="text-lg text-orange font-semibold arabic-text mb-8 animate-fade-in-up animation-delay-500 transform transition-all duration-700 ease-out">
-              13 - 20 يناير 2026
+              13 - 17 يناير 2026
             </p>
           </div>
 

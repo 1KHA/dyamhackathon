@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from "react";
+import Image from "next/image";
 import Navigation from "@/components/home/Navigation";
 import HeroSection from "@/components/home/HeroSection";
 import AboutSection from "@/components/home/AboutSection";
@@ -92,6 +93,15 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="py-12 border-t border-border/50">
         <div className="container mx-auto px-4 text-center">
+          <div className="flex justify-center mb-6">
+            <Image 
+              src="/wadi.png" 
+              alt="وادي مكة" 
+              width={150} 
+              height={60} 
+              className="mx-auto"
+            />
+          </div>
           <p className="text-muted-foreground arabic-text mb-2">
             © 2026 هاكاثون فيجنثون "VISIONTHON" - جميع الحقوق محفوظة
           </p>

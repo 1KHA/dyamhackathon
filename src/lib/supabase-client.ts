@@ -11,6 +11,75 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
+ * Ensures that the bucket exists
+ */
+async function ensureBucketExists(): Promise<void> {
+  try {
+    // List buckets to check if our bucket exists
+    const { data: buckets, error } = await supabase.storage.listBuckets();
+    
+    if (error) {
+      console.error('Error listing buckets:', error);
+      return;
+    }
+    
+    // Check if our bucket exists
+    const bucketExists = buckets.some(bucket => bucket.name === 'alvira_buk');
+    
+    if (!bucketExists) {
+      // Create the bucket if it doesn't exist
+      const { error: createError } = await supabase.storage.createBucket('alvira_buk', {
+        public: true, // Make bucket public
+      });
+      
+      if (createError) {
+        console.error(`Error creating bucket alvira_buk:`, createError);
+      } else {
+        console.log(`Created bucket alvira_buk`);
+      }
+    }
+  } catch (error) {
+    console.error('Error ensuring bucket exists:', error);
+  }
+}
+
+/**
+ * Ensures that a folder exists in the storage bucket
+ * @param folder The folder to ensure exists
+ */
+async function ensureFolderExists(folder: string): Promise<void> {
+  if (!folder) return; // No folder to create
+  
+  try {
+    // First ensure the bucket exists
+    await ensureBucketExists();
+    
+    // Check if folder exists
+    const { data, error } = await supabase.storage
+      .from('alvira_buk')
+      .list(folder);
+    
+    if (error) {
+      // If error is not "not found", throw it
+      if (error.message !== 'Bucket not found' && !error.message.includes('not found')) {
+        throw error;
+      }
+      
+      // Create an empty file in the folder to create it
+      // This is a common workaround since many storage systems don't have explicit "create folder" operations
+      await supabase.storage
+        .from('alvira_buk')
+        .upload(`${folder}/.folder`, new Blob([''], { type: 'text/plain' }), {
+          upsert: true
+        });
+    }
+  } catch (error) {
+    console.error(`Error ensuring folder ${folder} exists:`, error);
+    // Don't throw, just log - we'll let the upload handle any errors
+  }
+}
+
+/**
  * Upload a file directly to Supabase Storage from the browser
  * @param file The file to upload
  * @param folder The folder to upload to (e.g., 'milestones')
@@ -21,6 +90,9 @@ export async function uploadFileToSupabase(
   folder: string = 'milestones'
 ): Promise<{ filePath: string; publicUrl: string }> {
   try {
+    // Ensure the folder exists
+    await ensureFolderExists(folder);
+    
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
@@ -30,7 +102,7 @@ export async function uploadFileToSupabase(
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('uploads')
+      .from('alvira_buk')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false
@@ -43,7 +115,7 @@ export async function uploadFileToSupabase(
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('uploads')
+      .from('alvira_buk')
       .getPublicUrl(filePath);
 
     return {
@@ -62,8 +134,11 @@ export async function uploadFileToSupabase(
  */
 export async function deleteFileFromSupabase(filePath: string): Promise<void> {
   try {
+    // Ensure the bucket exists
+    await ensureBucketExists();
+    
     const { error } = await supabase.storage
-      .from('uploads')
+      .from('alvira_buk')
       .remove([filePath]);
 
     if (error) {

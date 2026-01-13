@@ -142,17 +142,34 @@ const PhasesSection = () => {
           </div>
         </div>
 
-        {/* Call to Action */}
+        {/* Prizes Section */}
         <div className="text-center mt-16">
           <Card className="bg-gradient-card border-border/50 cosmic-glow p-8 max-w-2xl mx-auto">
-            <h3 className="text-2xl font-bold text-orange arabic-text mb-4">
+            <h3 className="text-2xl font-bold text-orange arabic-text mb-6">
               الجوائز
             </h3>
-            <p className="text-muted-foreground arabic-text mb-6">
-              المركز الأول: فرصة تدريب حقيقية للعمل في شركة ألفيرا، حزم مدفوعة للذكاء الاصطناعي، ومكافأة مالية رمزية مع التدريب
-              <br />
-              المركز الثاني: فرصة تدريب حقيقية للعمل في شركة ألفيرا، حزم مدفوعة للذكاء الاصطناعي
-            </p>
+            <div className="space-y-4">
+              <div className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 p-4 rounded-lg border border-orange-500/20">
+                <h4 className="text-xl font-bold text-orange arabic-text mb-2">
+                  المركز الأول:
+                </h4>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground arabic-text text-right">
+                  <li>فرصة تدريب حقيقية للعمل في شركة ألفيرا</li>
+                  <li>حزم مدفوعة للذكاء الاصطناعي</li>
+                  <li>مكافأة مالية رمزية مع التدريب</li>
+                </ul>
+              </div>
+              
+              <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 p-4 rounded-lg border border-blue-500/20">
+                <h4 className="text-xl font-bold text-orange arabic-text mb-2">
+                  المركز الثاني:
+                </h4>
+                <ul className="list-disc list-inside space-y-1 text-muted-foreground arabic-text text-right">
+                  <li>فرصة تدريب حقيقية للعمل في شركة ألفيرا</li>
+                  <li>حزم مدفوعة للذكاء الاصطناعي</li>
+                </ul>
+              </div>
+            </div>
           </Card>
         </div>
       </div>
