@@ -54,24 +54,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-cosmic">
-      {/* SEO Content - Hidden but readable by search engines */}
-      <div style={{ 
-        position: "absolute", 
-        left: "-9999px", 
-        width: "1px", 
-        height: "1px", 
-        overflow: "hidden" 
-      }}>
-        <h1>هاكاثون فيجنثون VISIONTHON</h1>
-        <h2>هاكاثون متخصص في الرؤية الحاسوبية والذكاء الاصطناعي</h2>
-        <p>
-          هاكاثون فيجنثون VISIONTHON
-        </p>
-        <p>
-          هاكاثون متخصص في الرؤية الحاسوبية (Computer Vision) والشبكات العصبية الالتفافية (CNN) ومحولات الرؤية (Vision Transformers) ونماذج اللغة والرؤية (Vision Language Models).
-          يهدف إلى استكشاف المواهب وتوظيفها لبرنامج تدريب مدفوع الأجر، وعمل نماذج أولية لحلول الرؤية الحاسوبية لتصنيف النفايات.
-        </p>
-      </div>
+
 
       <Navigation />
       <main>

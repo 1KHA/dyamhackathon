@@ -18,7 +18,7 @@ const PhasesSection = () => {
       title: 'بدء الهاكاثون',
       description: 'بدء أعمال الهاكاثون.',
       date: '19 يناير - 12:00 م',
-      time: ' من الساعة 12:00 إلى الساعة 6:00',
+      time: ' من  12:00 إلى  6:00م',
       icon: Code,
       color: 'from-teal-500 to-cyan-500'
     },
