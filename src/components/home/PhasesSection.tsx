@@ -7,49 +7,49 @@ const PhasesSection = () => {
   const phases = [
     {
       number: 1,
-      title: 'التسجيل',
+      title: 'التسجيل والترشيح',
       description: 'فتح باب التسجيل للمشاركين في الهاكاثون.',
-      date: '31 أغسطس',
+      date: '13 - 18 يناير',
       icon: FileText,
       color: 'from-blue-500 to-cyan-500'
     },
     {
       number: 2,
-      title: 'الترشيح',
-      description: 'مرحلة تقييم الطلبات واختيار المرشحين المؤهلين.',
-      date: '14 سبتمبر',
-      icon: Users,
-      color: 'from-purple-500 to-pink-500'
+      title: 'بدء الهاكاثون',
+      description: 'بدء أعمال الهاكاثون.',
+      date: '19 يناير - 12:00 م',
+      icon: Code,
+      color: 'from-teal-500 to-cyan-500'
     },
     {
       number: 3,
-      title: 'بدء ورش العمل حضوريًا',
-      description: 'انطلاق ورش العمل التدريبية والتحضيرية للمشاركين.',
-      date: '5-6 أكتوبر',
+      title: 'ورشة العمل التقنية',
+      description: 'التركيز على هياكل الرؤية الحاسوبية، استقاء البيانات، والإثراء.',
+      date: '19 يناير - 1:00 م',
       icon: Presentation,
       color: 'from-green-500 to-emerald-500'
     },
     {
       number: 4,
-      title: 'التوجيه والإرشاد افتراضيًا',
-      description: 'جلسات التوجيه والإرشاد عبر الإنترنت لدعم الفرق.',
-      date: '7-8 أكتوبر',
+      title: 'ورشة عمل الأعمال',
+      description: 'التركيز على عرض الأفكار التقنية، والعائد على الاستثمار لإدارة النفايات، وريادة الأعمال.',
+      date: '19 يناير - 2:00 م',
+      icon: Users,
+      color: 'from-purple-500 to-pink-500'
+    },
+    {
+      number: 5,
+      title: 'الموعد النهائي لتسليم الملفات',
+      description: 'تسليم الروابط + شرائح العرض.',
+      date: '20 يناير - 2:00 م',
       icon: Award,
       color: 'from-orange-500 to-red-500'
     },
     {
-      number: 5,
-      title: 'التحكيم حضوريًا',
-      description: 'مرحلة التحكيم النهائية وتقييم المشاريع المقدمة.',
-      date: '9 أكتوبر',
-      icon: Code,
-      color: 'from-teal-500 to-cyan-500'
-    },
-    {
       number: 6,
-      title: 'الحفل الختامي حضوريًا',
-      description: 'إعلان النتائج وتكريم الفائزين في الحفل الختامي.',
-      date: '9 أكتوبر',
+      title: 'إعلان الفائزين',
+      description: 'إعلان الفائزين في الهاكاثون.',
+      date: '20 يناير - 6:00 م',
       icon: Trophy,
       color: 'from-yellow-500 to-orange-500'
     }
@@ -82,12 +82,12 @@ const PhasesSection = () => {
             الجدول الزمني
           </h2>
           <p className="text-xl text-muted-foreground arabic-text mb-8">
-            رحلــة الابتـكــار خطـــوة بخطــوة
+            جدول أعمال هاكاثون فيجنثون
           </p>
           <div className="w-24 h-1 bg-gradient-teal mx-auto mb-8"></div>
           <p className="text-lg text-muted-foreground arabic-text max-w-3xl mx-auto leading-relaxed">
-            يمر هاكاثون الابتكار لجائزة مايدة محيي الدين ناظر للابتكار بعدة مراحل لضمان تطوير أفضل الحلول المبتكرة 
-            واختيار الفائزين بناءً على معايير دقيقة.
+            يمتد هاكاثون فيجنثون على مدار يومين مليئين بالتعلم والابتكار والتحدي، حيث يعمل المشاركون على تطوير حلول 
+            الرؤية الحاسوبية لتصنيف النفايات باستخدام تقنيات الذكاء الاصطناعي المتقدمة.
           </p>
         </div>
 
@@ -146,10 +146,12 @@ const PhasesSection = () => {
         <div className="text-center mt-16">
           <Card className="bg-gradient-card border-border/50 cosmic-glow p-8 max-w-2xl mx-auto">
             <h3 className="text-2xl font-bold text-orange arabic-text mb-4">
-              هل أنت مستعد للرحلة؟
+              الجوائز
             </h3>
             <p className="text-muted-foreground arabic-text mb-6">
-              ابدأ رحلتك في عالم الابتكار والتقنية من خلال التسجيل الآن
+              المركز الأول: فرصة تدريب حقيقية للعمل في شركة ألفيرا، حزم مدفوعة للذكاء الاصطناعي، ومكافأة مالية رمزية مع التدريب
+              <br />
+              المركز الثاني: فرصة تدريب حقيقية للعمل في شركة ألفيرا، حزم مدفوعة للذكاء الاصطناعي
             </p>
           </Card>
         </div>

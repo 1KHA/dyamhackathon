@@ -33,15 +33,15 @@ const HeroSection = () => {
           {/* Main Title */}
           <div className="mb-6 animate-fade-in-up">
             <h1 className="text-4xl md:text-6xl font-black text-orange arabic-text mb-4 leading-tight transform transition-all duration-1000 ease-out">
-              هاكثون الابتكار لجائزة مايدة محي الدين ناظر للابتكار
+              هاكاثون فيجنثون "VISIONTHON"
             </h1>
             <div className="mb-6 animate-fade-in-up animation-delay-300">
               <h2 className="text-xl md:text-2xl font-bold text-foreground arabic-text transform transition-all duration-800 ease-out">
-                جامعة دار الحكمة – مدينة جدة
+                برعاية إلفيرا تك و وادي مكة
               </h2>
             </div>
             <p className="text-lg text-orange font-semibold arabic-text mb-8 animate-fade-in-up animation-delay-500 transform transition-all duration-700 ease-out">
-              9-5 أكتوبر 2025
+              19-20 يناير 2026
             </p>
           </div>
 
@@ -66,8 +66,8 @@ const HeroSection = () => {
           {/* Description */}
           <div className="max-w-3xl mx-auto animate-fade-in-up animation-delay-1100">
             <p className="text-lg text-muted-foreground arabic-text leading-relaxed transform transition-all duration-600 ease-out">
-              تحدي يجمع طلبة الجامعات لتشجيع الابتكار وتطوير حلول مستدامة، يوفر هاكاثون الابتكار لجائزة مايدة محي الدين ناظر 
-              فرصة لاكتشاف وتوظيف الابتكار الجامعي والعمل ضمن فرق تنافسية لتقديم حلول مبتكرة تعزز الاستدامة وجودة الحياة.
+              هاكاثون متخصص في الرؤية الحاسوبية (Computer Vision) والشبكات العصبية الالتفافية (CNN) ومحولات الرؤية (Vision Transformers) ونماذج اللغة والرؤية (Vision Language Models). 
+              يهدف إلى استكشاف المواهب وتوظيفها لبرنامج تدريب مدفوع الأجر، وعمل نماذج أولية لحلول الرؤية الحاسوبية لتصنيف النفايات.
             </p>
           </div>
         </div>

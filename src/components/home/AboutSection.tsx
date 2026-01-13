@@ -9,18 +9,13 @@ const AboutSection = () => {
   const features = [
     {
       icon: Brain,
-      title: 'إحياء اللغة العربية',
-      description: 'بحلول رقمية مبتكرة'
+      title: 'النفايات الحضرية (البلدية والمنزلية)',
+      description: 'تحديد المواد المنزلية القابلة لإعادة التدوير (زجاجات البولي إيثيلين تيرفثالات، علب الألومنيوم، الكرتون، الزجاج)'
     },
     {
       icon: Users,
-      title: 'تحسين جودة الحياة',
-      description: 'لكبار السن والمكفوفين'
-    },
-    {
-      icon: Lightbulb,
-      title: 'تعزيز كفاءة العاملين',
-      description: 'في قطاع السياحة الدينية (الحج والعمرة)'
+      title: 'النفايات الصناعية',
+      description: 'تحديد المواد الصناعية ذات القيمة العالية (لوحات الدوائر، الأسلاك النحاسية، الخرسانة، الخردة المعدنية)'
     }
   ];
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -53,7 +48,7 @@ const AboutSection = () => {
         </div>
 
         {/* Features Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-2 gap-6">
           {features.map((feature, index) => {
             let delayClass = '';
             if (isVisible) {
@@ -87,10 +82,10 @@ const AboutSection = () => {
         <div className="text-center mt-16">
           <Card className={`bg-gradient-card border-border/50 cosmic-glow p-8 max-w-2xl mx-auto${isVisible ? ' animate-fade-in-up animation-delay-1100' : ''}`}>
             <h3 className="text-2xl font-bold text-orange arabic-text mb-4">
-              انضم الآن إلى النسخة الثالثة
+              "الرؤية من خلال النفايات: مستقبل الذكاء الاصطناعي في إدارة النفايات"
             </h3>
             <p className="text-muted-foreground arabic-text mb-6">
-              حيث يلتقي الإبداع بالتقنية لبناء مستقبل مشرق!
+              انضم إلى هاكاثون فيجنثون واكتشف فرص التدريب المدفوع في شركة إلفيرا تك!
             </p>
             <Link href="/register-team">
               <Button className="bg-gradient-teal hover-glow arabic-text font-semibold px-8">

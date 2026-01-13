@@ -28,8 +28,8 @@ const CountdownTimer = () => {
   }, []);
 
   useEffect(() => {
-    // Set target date to September 14, 2025
-    const targetDate = new Date('2025-09-14T23:59:59');
+    // Set target date to January 19, 2026
+    const targetDate = new Date('2026-01-19T12:00:00');
 
     const updateCountdown = () => {
       const now = new Date();
@@ -73,7 +73,7 @@ const CountdownTimer = () => {
       <h3 className={`text-lg arabic-text text-orange mb-6 transition-all duration-500 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}>
-        الوقت المتبقي على إغلاق التسجيل
+        الوقت المتبقي لبدء الهاكاثون
       </h3>
       <div className="flex justify-center gap-4 flex-wrap">
         {timeUnits.map((unit, index) => (

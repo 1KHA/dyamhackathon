@@ -10,13 +10,8 @@ const Navigation = () => {
 
   const navItems = [
     { name: 'الرئيسية', href: '#home' },
-    { name: 'عن الهاكاثون', href: '#about' },
-    { name: 'المراحل', href: '#phases' },
-    { name: 'الجوائز', href: '#prizes' },
-    { name: 'التحديات', href: '#challenges' },
-    { name: 'الشروط', href: '#terms' },
-    { name: 'مراكز الهاكاثون', href: '#centers' },
-    { name: 'تواصل معنا', href: '#contact' }
+    { name: 'مسارات التحدي', href: '#about' },
+    { name: 'الجدول الزمني', href: '#phases' }
   ];
 
   return (
@@ -27,7 +22,7 @@ const Navigation = () => {
           <div className="flex items-center">
             <Image 
               src="/alvira.png" 
-              alt="Alvira" 
+              alt="Alvira Tech" 
               width={112}
               height={72}
               className="h-18 w-28 object-contain"
@@ -40,7 +35,7 @@ const Navigation = () => {
               <Button
                 key={item.name}
                 variant="ghost"
-                className="arabic-text text-sm hover:text-orange hover-bg-orange transition-all duration-300"
+                className="arabic-text text-sm hover:text-orange transition-all duration-300"
                 asChild
               >
                 <a href={item.href}>{item.name}</a>
@@ -61,7 +56,7 @@ const Navigation = () => {
           <Button
             variant="ghost"
             size="icon"
-            className="lg:hidden hover-bg-orange"
+            className="lg:hidden"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -76,7 +71,7 @@ const Navigation = () => {
                 <Button
                   key={item.name}
                   variant="ghost"
-                  className="arabic-text justify-start hover:text-orange hover-bg-orange"
+                  className="arabic-text justify-start hover:text-orange"
                   asChild
                   onClick={() => setIsMenuOpen(false)}
                 >
