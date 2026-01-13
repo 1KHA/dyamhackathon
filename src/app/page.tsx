@@ -12,16 +12,16 @@ export default function HomePage() {
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "Event",
-      "name": "جائزة مايدة محي الدين ناظر للابتكار 3",
-      "description": "تحدي يجمع طلبة الجامعات لاستكشاف وتوظيف الابتكارات الجامعية، توفر جائزة مايـدة محي الديـــن ناظـــر للابتكــــار هاكاثون الابتكار فرصة للعمل ضمن فرق تنافسية على تطوير حلول مبتكرة تسهم في تعزيز الاستدامة وجودة الحيـاة",
+      "name": "هاكاثون فيجنثون VISIONTHON",
+      "description": "هاكاثون فيجنثون VISIONTHON",
       "organizer": {
         "@type": "Organization",
-        "name": "جامعة دار الحكمة",
-        "url": "https://dah.edu.sa"
+        "name": "هاكاثون فيجنثون VISIONTHON",
+        "url": "https://visionthon.dyam.dev"
       },
       "location": {
         "@type": "Place",
-        "name": "جامعة دار الحكمة",
+        "name": "هاكاثون فيجنثون VISIONTHON",
         "address": {
           "@type": "PostalAddress",
           "addressLocality": "جدة",
@@ -29,19 +29,11 @@ export default function HomePage() {
         }
       },
       "keywords": [
-        "جائزة مايدة محي الدين ناظر للابتكار 3",
-        "جائزة مايدة محي الدين ناظر للابتكار",
-        "جائزة مايدة",
-        "هاكاثون الابتكار",
-        "دار الحكمة",
-        "جامعة دار الحكمة",
-        "تحدي يجمع طلبة الجامعات لاستكشاف وتوظيف الابتكارات الجامعية",
-        "الاستدامة",
-        "جودة الحياة"
+        "هاكاثون فيجنثون VISIONTHON"
       ],
       "eventStatus": "https://schema.org/EventScheduled",
       "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-      "url": "https://dar-alhekma.dyam.dev/"
+      "url": "https://visionthon.dyam.dev/"
     };
 
     const script = document.createElement('script');
@@ -53,7 +45,7 @@ export default function HomePage() {
       // Cleanup: remove the script when component unmounts
       const scripts = document.head.querySelectorAll('script[type="application/ld+json"]');
       scripts.forEach(s => {
-        if (s.textContent?.includes('جائزة مايدة محي الدين ناظر للابتكار 3')) {
+        if (s.textContent?.includes('هاكاثون فيجنثون VISIONTHON')) {
           document.head.removeChild(s);
         }
       });
@@ -70,16 +62,14 @@ export default function HomePage() {
         height: "1px", 
         overflow: "hidden" 
       }}>
-        <h1>جائزة مايدة محي الدين ناظر للابتكار 3</h1>
-        <h2>هاكاثون الابتكار في جامعة دار الحكمة</h2>
+        <h1>هاكاثون فيجنثون VISIONTHON</h1>
+        <h2>هاكاثون متخصص في الرؤية الحاسوبية والذكاء الاصطناعي</h2>
         <p>
-          تحدي يجمع طلبة الجامعات لاستكشاف وتوظيف الابتكارات الجامعية، توفر جائزة مايـدة محي الديـــن ناظـــر للابتكــــار 
-          هاكاثون الابتكار فرصة للعمل ضمن فرق تنافسية على تطوير حلول مبتكرة تسهم في تعزيز الاستدامة وجودة الحيـاة 
-          في جامعة دار الحكمة. انضم إلى هاكاثون الابتكار واكتشف قدراتك في الابتكار والتطوير.
+          هاكاثون فيجنثون VISIONTHON
         </p>
         <p>
-          دار الحكمة تستضيف جائزة مايدة محي الدين ناظر للابتكار 3، حيث يلتقي الطلاب المبدعون من مختلف الجامعات 
-          للمشاركة في تحدي الابتكار وتطوير حلول مستدامة تخدم المجتمع وتحسن جودة الحياة.
+          هاكاثون متخصص في الرؤية الحاسوبية (Computer Vision) والشبكات العصبية الالتفافية (CNN) ومحولات الرؤية (Vision Transformers) ونماذج اللغة والرؤية (Vision Language Models).
+          يهدف إلى استكشاف المواهب وتوظيفها لبرنامج تدريب مدفوع الأجر، وعمل نماذج أولية لحلول الرؤية الحاسوبية لتصنيف النفايات.
         </p>
       </div>
 
