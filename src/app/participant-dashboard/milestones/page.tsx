@@ -10,7 +10,7 @@ import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { uploadFileToSupabase } from "@/lib/supabase-client";
+import { uploadToStorage } from "@/lib/supabase-storage";
 import { MAX_FILE_SIZE_MB } from "@/lib/constants";
 
 // Define the Milestone type
@@ -165,8 +165,16 @@ export default function ParticipantMilestonesPage() {
         message: "جاري رفع الملف..."
       });
 
-      const { filePath, publicUrl } = await uploadFileToSupabase(
+      // Generate unique filename
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 15);
+      const fileExt = selectedFile.name.split('.').pop();
+      const fileName = `${timestamp}_${randomString}.${fileExt}`;
+      
+      // Upload using the service role key to bypass RLS policies
+      const publicUrl = await uploadToStorage(
         selectedFile,
+        fileName,
         'milestones'
       );
 

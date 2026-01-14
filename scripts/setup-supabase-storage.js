@@ -9,22 +9,32 @@ const { loadEnv } = require('./load-env');
 // Load environment variables from .env file
 loadEnv();
 
-const BUCKET_NAME = 'uploads';
+// Debug: Print available environment variables related to Supabase
+console.log('Available Supabase environment variables:');
+Object.keys(process.env).filter(key => key.includes('SUPABASE')).forEach(key => {
+  console.log(`- ${key}: ${key.includes('KEY') ? '***' : process.env[key]}`);
+});
+
+const BUCKET_NAME = 'alvira_buk';
 const REQUIRED_FOLDERS = ['milestones', 'teams'];
 
 async function setupSupabaseStorage() {
   console.log('Setting up Supabase storage buckets...');
 
-  // Validate environment variables
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in the .env file');
+  // Validate environment variables - check both naming conventions
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('Error: Supabase URL and service role key must be set in the .env file');
+    console.error('Expected variables: SUPABASE_URL/NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY');
     process.exit(1);
   }
 
   // Initialize Supabase client with service role key for admin privileges
   const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
+    supabaseUrl,
+    serviceRoleKey
   );
 
   try {
