@@ -28,8 +28,8 @@ const CountdownTimer = () => {
   }, []);
 
   useEffect(() => {
-    // Set target date to January 17, 2026
-    const targetDate = new Date('2026-01-17T12:00:00');
+    // Set target date to June 18, 2026 at 9 PM
+    const targetDate = new Date('2026-01-18T21:00:00');
 
     const updateCountdown = () => {
       const now = new Date();
