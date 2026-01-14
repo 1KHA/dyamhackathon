@@ -16,7 +16,7 @@ const PhasesSection = () => {
     {
       number: 2,
       title: 'بدء أعمال الهاكاثون',
-      description: 'بدء أعمال الهاكاثون.',
+      description: '',
       date: '19 يناير - 12:00 م',
       time: ' من  12:00 إلى  6:00م',
       icon: Code,
