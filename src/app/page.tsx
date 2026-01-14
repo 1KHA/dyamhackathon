@@ -75,10 +75,10 @@ export default function HomePage() {
               className="mx-auto"
             />
           </div>
-          <p className="text-muted-foreground arabic-text mb-2">
+          <p className="text-lg text-muted-foreground arabic-text mb-2">
             © 2026 هاكاثون فيجنثون "VISIONTHON" - جميع الحقوق محفوظة
           </p>
-          <p className="text-muted-foreground">
+          <p className="text-lg text-muted-foreground">
             hackathon@elvirasa.com
           </p>
         </div>

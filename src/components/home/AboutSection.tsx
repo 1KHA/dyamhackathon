@@ -41,7 +41,7 @@ const AboutSection = () => {
     <section id="about" className="py-20 relative" ref={sectionRef}>
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className={`text-4xl md:text-5xl font-bold text-orange arabic-text mb-6${isVisible ? ' animate-fade-in-up' : ''}`}>
+          <h2 className={`text-5xl md:text-6xl font-bold text-orange arabic-text mb-6${isVisible ? ' animate-fade-in-up' : ''}`}>
             مسارات التحدي
           </h2>
           <div className={`w-24 h-1 bg-gradient-teal mx-auto mb-8${isVisible ? ' animate-fade-in-up animation-delay-300' : ''}`}></div>
@@ -67,10 +67,10 @@ const AboutSection = () => {
                 <div className="w-16 h-16 bg-gradient-teal rounded-full flex items-center justify-center mx-auto mb-4 cosmic-glow">
                   <feature.icon className="w-8 h-8 text-primary-foreground" />
                 </div>
-                <h4 className="text-lg font-bold text-orange arabic-text mb-3">
+                <h3 className="text-xl font-bold text-orange arabic-text mb-3">
                   {feature.title}
-                </h4>
-                <p className="text-muted-foreground arabic-text text-sm leading-relaxed">
+                </h3>
+                <p className="text-muted-foreground arabic-text text-base leading-relaxed">
                   {feature.description}
                 </p>
               </Card>
@@ -81,10 +81,10 @@ const AboutSection = () => {
         {/* Call to Action */}
         <div className="text-center mt-16">
           <Card className={`bg-gradient-card border-border/50 cosmic-glow p-8 max-w-2xl mx-auto${isVisible ? ' animate-fade-in-up animation-delay-1100' : ''}`}>
-            <h3 className="text-2xl font-bold text-orange arabic-text mb-4">
+            <h3 className="text-3xl font-bold text-orange arabic-text mb-4">
               "الرؤية من خلال النفايات: مستقبل الذكاء الاصطناعي في إدارة النفايات"
             </h3>
-            <p className="text-muted-foreground arabic-text mb-6">
+            <p className="text-xl text-muted-foreground arabic-text mb-6">
               انضم إلى هاكاثون فيجنثون واكتشف فرص التدريب المدفوع في شركة إلفيرا تك!
             </p>
             <Link href="/register-team">

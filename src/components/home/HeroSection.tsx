@@ -32,15 +32,15 @@ const HeroSection = () => {
         <div className="max-w-4xl mx-auto">
           {/* Main Title */}
           <div className="mb-6 animate-fade-in-up">
-            <h1 className="text-4xl md:text-6xl font-black text-orange arabic-text mb-4 leading-tight transform transition-all duration-1000 ease-out">
+            <h1 className="text-5xl md:text-7xl font-black text-orange arabic-text mb-4 leading-tight transform transition-all duration-1000 ease-out">
               هاكاثون فيجنثون "VISIONTHON"
             </h1>
             <div className="mb-6 animate-fade-in-up animation-delay-300">
-              <h2 className="text-xl md:text-2xl font-bold text-foreground arabic-text transform transition-all duration-800 ease-out">
+              <h2 className="text-2xl md:text-3xl font-bold text-foreground arabic-text transform transition-all duration-800 ease-out">
                 برعاية إلفيرا تك و شركة وادي مكة للتقنية
               </h2>
             </div>
-            <p className="text-lg text-orange font-semibold arabic-text mb-8 animate-fade-in-up animation-delay-500 transform transition-all duration-700 ease-out">
+            <p className="text-xl text-orange font-semibold arabic-text mb-8 animate-fade-in-up animation-delay-500 transform transition-all duration-700 ease-out">
               19 - 20 يناير 2026
             </p>
           </div>
@@ -65,7 +65,7 @@ const HeroSection = () => {
 
           {/* Description */}
           <div className="max-w-3xl mx-auto animate-fade-in-up animation-delay-1100">
-            <p className="text-lg text-muted-foreground arabic-text leading-relaxed transform transition-all duration-600 ease-out">
+            <p className="text-xl text-muted-foreground arabic-text leading-relaxed transform transition-all duration-600 ease-out">
               هاكاثون متخصص في الرؤية الحاسوبية (Computer Vision) والشبكات العصبية الالتفافية (CNN) ومحولات الرؤية (Vision Transformers) ونماذج اللغة والرؤية (Vision Language Models). 
               يهدف إلى استكشاف المواهب وتوظيفها لبرنامج تدريب مدفوع الأجر، وعمل نماذج أولية لحلول الرؤية الحاسوبية لتصنيف النفايات.
             </p>

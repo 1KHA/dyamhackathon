@@ -80,14 +80,14 @@ const PhasesSection = () => {
     <section id="phases" className="py-20 relative" ref={sectionRef}>
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-orange arabic-text mb-6">
+          <h2 className="text-5xl md:text-6xl font-bold text-orange arabic-text mb-6">
             الجدول الزمني
           </h2>
-          <p className="text-xl text-muted-foreground arabic-text mb-8">
+          <p className="text-2xl text-muted-foreground arabic-text mb-8">
             جدول أعمال هاكاثون فيجنثون
           </p>
           <div className="w-24 h-1 bg-gradient-teal mx-auto mb-8"></div>
-          <p className="text-lg text-muted-foreground arabic-text max-w-3xl mx-auto leading-relaxed">
+          <p className="text-xl text-muted-foreground arabic-text max-w-3xl mx-auto leading-relaxed">
             يمتد هاكاثون فيجنثون على مدار يومين مليئين بالتعلم والابتكار والتحدي، حيث يعمل المشاركون على تطوير حلول 
             الرؤية الحاسوبية لتصنيف النفايات باستخدام تقنيات الذكاء الاصطناعي المتقدمة.
           </p>
@@ -114,20 +114,20 @@ const PhasesSection = () => {
                         <phase.icon className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="text-lg font-bold text-orange arabic-text">
+                        <h3 className="text-xl font-bold text-orange arabic-text">
                           {phase.title}
                         </h3>
-                        <p className="text-sm text-orange font-semibold">
+                        <p className="text-base text-orange font-semibold">
                           {phase.date}
                         </p>
-                        <p className="text-sm text-orange font-semibold">
+                        <p className="text-base text-orange font-semibold">
                           {phase.time}
                         </p>
                       </div>
                     </div>
 
                     {/* Description */}
-                    <p className="text-muted-foreground arabic-text leading-relaxed">
+                    <p className="text-lg text-muted-foreground arabic-text leading-relaxed">
                       {phase.description}
                     </p>
 
@@ -150,15 +150,15 @@ const PhasesSection = () => {
         {/* Prizes Section */}
         <div className="text-center mt-16">
           <Card className="bg-gradient-card border-border/50 cosmic-glow p-8 max-w-2xl mx-auto">
-            <h3 className="text-2xl font-bold text-orange arabic-text mb-6">
+            <h3 className="text-3xl font-bold text-orange arabic-text mb-6">
               الجوائز
             </h3>
             <div className="space-y-4">
               <div className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 p-4 rounded-lg border border-orange-500/20">
-                <h4 className="text-xl font-bold text-orange arabic-text mb-2">
+                <h3 className="text-2xl font-bold text-orange arabic-text mb-2">
                   المركز الأول:
-                </h4>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground arabic-text text-right">
+                </h3>
+                <ul className="list-disc list-inside space-y-1 text-lg text-muted-foreground arabic-text text-right">
                   <li>فرصة تدريب للعمل في شركة ألفيرا</li>
                   <li>حزم مدفوعة لبرامج الذكاء الاصطناعي</li>
                   <li>مكافأة مالية مع التدريب</li>
@@ -166,10 +166,10 @@ const PhasesSection = () => {
               </div>
               
               <div className="bg-gradient-to-r from-blue-500/10 to-cyan-500/10 p-4 rounded-lg border border-blue-500/20">
-                <h4 className="text-xl font-bold text-orange arabic-text mb-2">
+                <h3 className="text-2xl font-bold text-orange arabic-text mb-2">
                   المركز الثاني:
-                </h4>
-                <ul className="list-disc list-inside space-y-1 text-muted-foreground arabic-text text-right">
+                </h3>
+                <ul className="list-disc list-inside space-y-1 text-lg text-muted-foreground arabic-text text-right">
                   <li>فرصة تدريب للعمل في شركة ألفيرا</li>
                   <li>حزم مدفوعة لبرامج الذكاء الاصطناعي</li>
                 </ul>

@@ -35,7 +35,7 @@ const Navigation = () => {
               <Button
                 key={item.name}
                 variant="ghost"
-                className="arabic-text text-sm hover:text-orange transition-all duration-300"
+                className="arabic-text text-base hover:text-orange transition-all duration-300"
                 asChild
               >
                 <a href={item.href}>{item.name}</a>
@@ -75,7 +75,7 @@ const Navigation = () => {
                 <Button
                   key={item.name}
                   variant="ghost"
-                  className="arabic-text justify-start hover:text-orange"
+                  className="arabic-text text-lg justify-start hover:text-orange"
                   asChild
                   onClick={() => setIsMenuOpen(false)}
                 >
