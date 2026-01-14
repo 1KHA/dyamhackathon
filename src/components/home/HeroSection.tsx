@@ -58,7 +58,7 @@ const HeroSection = () => {
                 className="bg-gradient-teal hover-glow arabic-text font-bold text-lg px-8 py-6 rounded-lg transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-lg"
               >
                 <ArrowLeft className="w-5 h-5 mr-2 transition-transform duration-300 group-hover:translate-x-1" />
-                التسجيل الآن
+                سجل الآن
               </Button>
             </Link>
           </div>

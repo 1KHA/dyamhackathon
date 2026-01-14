@@ -9,13 +9,13 @@ const PhasesSection = () => {
       number: 1,
       title: 'التسجيل والترشيح',
       description: 'فتح باب التسجيل للمشاركين في الهاكاثون.',
-      date: '13 - 17 يناير',
+      date: '13 - 18 يناير',
       icon: FileText,
       color: 'from-blue-500 to-cyan-500'
     },
     {
       number: 2,
-      title: 'بدء الهاكاثون',
+      title: 'بدء أعمال الهاكاثون',
       description: 'بدء أعمال الهاكاثون.',
       date: '19 يناير - 12:00 م',
       time: ' من  12:00 إلى  6:00م',
@@ -24,7 +24,7 @@ const PhasesSection = () => {
     },
     {
       number: 3,
-      title: 'ورشة العمل التقنية',
+      title: 'ورشة العمل التقنية: Mastering Computer Vision',
       description: 'التركيز على هياكل الرؤية الحاسوبية، استقاء البيانات، والإثراء.',
       date: '19 يناير - 1:00 م',
       icon: Presentation,
@@ -32,7 +32,7 @@ const PhasesSection = () => {
     },
     {
       number: 4,
-      title: 'ورشة عمل الأعمال',
+      title: 'ورشة عمل: Startup 101',
       description: 'التركيز على عرض الأفكار التقنية، والعائد على الاستثمار لإدارة النفايات، وريادة الأعمال.',
       date: '19 يناير - 2:00 م',
       icon: Users,
@@ -161,7 +161,7 @@ const PhasesSection = () => {
                 <ul className="list-disc list-inside space-y-1 text-lg text-muted-foreground arabic-text text-right">
                   <li>فرصة تدريب للعمل في شركة ألفيرا</li>
                   <li>حزم مدفوعة لبرامج الذكاء الاصطناعي</li>
-                  <li>مكافأة مالية مع التدريب</li>
+                  <li>مكافأة مالية </li>
                 </ul>
               </div>
               

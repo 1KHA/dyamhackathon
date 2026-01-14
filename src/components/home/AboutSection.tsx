@@ -15,7 +15,7 @@ const AboutSection = () => {
     {
       icon: Users,
       title: 'النفايات الصناعية (النفايات الإلكترونية ومخلفات البناء) ',
-      description: 'تحديد المواد الصناعية ذات القيمة العالية (لوحات الدوائر، الأسلاك النحاسية، الخرسانة، الخردة المعدنية)'
+      description: 'تحديد المواد الصناعية ذات القيمة العالية (لوحات الدوائر، الأسلاك النحاسية، الخرسانة، المعادن)'
     }
   ];
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -82,7 +82,7 @@ const AboutSection = () => {
         <div className="text-center mt-16">
           <Card className={`bg-gradient-card border-border/50 cosmic-glow p-8 max-w-2xl mx-auto${isVisible ? ' animate-fade-in-up animation-delay-1100' : ''}`}>
             <h3 className="text-3xl font-bold text-orange arabic-text mb-4">
-              "الرؤية من خلال النفايات: مستقبل الذكاء الاصطناعي في إدارة النفايات"
+              "الرؤية من خلال : مستقبل الذكاء الاصطناعي في إدارة النفايات"
             </h3>
             <p className="text-xl text-muted-foreground arabic-text mb-6">
               انضم إلى هاكاثون فيجنثون واكتشف فرص التدريب المدفوع في شركة إلفيرا تك!
