@@ -65,8 +65,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Required team fields are missing.' }, { status: 400 })
       }
       
-      if (!members || members.length < 2 || members.length > 4) {
-        return NextResponse.json({ error: 'A team must have between 3 and 5 members total (including leader).' }, { status: 400 })
+      if (!members || members.length < 1 || members.length > 2) {
+        return NextResponse.json({ error: 'A team must have between 2 and 3 members total (including leader).' }, { status: 400 })
       }
     }
 
