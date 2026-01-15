@@ -73,7 +73,7 @@ const CountdownTimer = () => {
       <h3 className={`text-lg arabic-text text-orange mb-6 transition-all duration-500 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}>
-        الوقت المتبقي لإغلاق التسجيل في الهاكاثون
+        الوقت المتبقي لإغلاق التسجيل في التحدي
       </h3>
       <div className="flex justify-center gap-4 flex-wrap">
         {timeUnits.map((unit, index) => (

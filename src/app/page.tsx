@@ -12,11 +12,11 @@ export default function HomePage() {
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "Event",
-      "name": "هاكاثون فيجنثون VISIONTHON",
-      "description": "هاكاثون فيجنثون VISIONTHON",
+      "name": "تحدي فيجنثون VISIONTHON",
+      "description": "تحدي فيجنثون VISIONTHON",
       "organizer": {
         "@type": "Organization",
-        "name": "هاكاثون فيجنثون VISIONTHON",
+        "name": "تحدي فيجنثون VISIONTHON",
         "url": "https://visionthon.dyam.dev"
       },
       "location": {

@@ -33,7 +33,7 @@ const HeroSection = () => {
           {/* Main Title */}
           <div className="mb-6 animate-fade-in-up">
             <h1 className="text-5xl md:text-7xl font-black text-orange arabic-text mb-4 leading-tight transform transition-all duration-1000 ease-out">
-              هاكاثون فيجنثون "VISIONTHON"
+              تحدي فيجنثون "VISIONTHON"
             </h1>
             <div className="mb-6 animate-fade-in-up animation-delay-300">
               <h2 className="text-2xl md:text-3xl font-bold text-foreground arabic-text transform transition-all duration-800 ease-out">

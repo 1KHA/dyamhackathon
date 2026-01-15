@@ -61,7 +61,7 @@ const HeroSection = () => {
           {/* Description */}
           <div className="max-w-3xl mx-auto animate-fade-in-up animation-delay-1100">
             <p className="text-lg text-muted-foreground arabic-text leading-relaxed transform transition-all duration-600 ease-out">
-              هاكاثون فيجنثون VISIONTHON
+              تحدي فيجنثون VISIONTHON
             </p>
           </div>
         </div>

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     maximumScale: 1,
     userScalable: false
   },
-  title: "هاكاثون فيجنثون VISIONTHON",
+  title: "تحدي فيجنثون VISIONTHON",
   description: "هاكاثون فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
   keywords: [
     "هاكاثون فيجنثون VISIONTHON"

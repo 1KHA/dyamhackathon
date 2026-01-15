@@ -8,14 +8,14 @@ const PhasesSection = () => {
     {
       number: 1,
       title: 'التسجيل والترشيح',
-      description: 'فتح باب التسجيل للمشاركين في الهاكاثون.',
+      description: 'فتح باب التسجيل للمشاركين في التحدي.',
       date: '13 - 18 يناير',
       icon: FileText,
       color: 'from-blue-500 to-cyan-500'
     },
     {
       number: 2,
-      title: 'بدء أعمال الهاكاثون',
+      title: 'بدء أعمال التحدي',
       description: '',
       date: '19 يناير - 12:00 م',
       time: ' من  12:00 إلى  6:00م',

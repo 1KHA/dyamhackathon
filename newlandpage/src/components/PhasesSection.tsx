@@ -7,7 +7,7 @@ const PhasesSection = () => {
     {
       number: 1,
       title: 'التسجيل',
-      description: 'فتح باب التسجيل للمشاركين في الهاكاثون.',
+      description: 'فتح باب التسجيل للمشاركين في التحدي.',
       date: '31 أغسطس',
       icon: FileText,
       color: 'from-blue-500 to-cyan-500'
