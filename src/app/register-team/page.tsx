@@ -434,7 +434,7 @@ export default function RegisterTeamPage() {
           className="border-[#183063] data-[state=checked]:bg-[#183063]"
         />
         <Label htmlFor={`${prefix}-canAttendHackathon`} className="text-base cursor-pointer" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
-          هل تستطيع التواجد خلال فترة الهاكاثون في مقر - وادي مكة؟
+          هل تستطيع التواجد خلال فترة التحدي في مقر - وادي مكة؟
         </Label>
       </div>
     </div>
@@ -481,7 +481,7 @@ export default function RegisterTeamPage() {
               نموذج تسجيل المشاركين
             </CardTitle>
             <CardDescription className="text-xl" style={{ color: '#FF8D30', fontFamily: 'Somar-Light, Arial, sans-serif' }}>
-              {REGISTRATION_CLOSED ? 'انتهى التسجيل في الهاكاثون' : 'سجل للمشاركة في التحدي وكن جزءًا من التغيير'}
+              {REGISTRATION_CLOSED ? 'انتهى التسجيل في التحدي' : 'سجل للمشاركة في التحدي وكن جزءًا من التغيير'}
             </CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10">
@@ -491,7 +491,7 @@ export default function RegisterTeamPage() {
                   انتهى التسجيل
                 </h2>
                 <p className="text-2xl mb-8" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
-                  نعتذر، لقد انتهت فترة التسجيل في الهاكاثون
+                  نعتذر، لقد انتهت فترة التسجيل في التحدي
                 </p>
               </div>
             ) : (
@@ -531,11 +531,11 @@ export default function RegisterTeamPage() {
               {formState.registrationType && (
                 <div className="bg-gray-50/50 p-6 rounded-xl border-2 border-gray-100 space-y-6">
                   <h3 className="text-2xl font-bold pb-3 border-b-2 border-gray-200" style={{ color: '#183063', fontFamily: 'Somar-Bold, Arial, sans-serif' }}>
-                    مسار الهاكاثون
+                    مسار التحدي
                   </h3>
                   <div>
                     <Label className="text-lg font-medium mb-4 block" style={{ color: '#FF8D30', fontFamily: 'Somar-Medium, Arial, sans-serif' }}>
-                      أي مسار من مسارات الهاكاثون؟
+                      أي مسار من مسارات التحدي
                     </Label>
                     <Select 
                       required 
