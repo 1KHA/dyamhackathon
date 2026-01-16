@@ -37,7 +37,7 @@ const HeroSection = () => {
             </h1>
             <div className="mb-6 animate-fade-in-up animation-delay-300">
               <h2 className="text-2xl md:text-3xl font-bold text-foreground arabic-text transform transition-all duration-800 ease-out">
-                بتنظيم شركة وادي مكة للتقنية و إلفيرا تك
+                
               </h2>
             </div>
             <p className="text-xl text-orange font-semibold arabic-text mb-8 animate-fade-in-up animation-delay-500 transform transition-all duration-700 ease-out">
@@ -66,8 +66,7 @@ const HeroSection = () => {
           {/* Description */}
           <div className="max-w-3xl mx-auto animate-fade-in-up animation-delay-1100">
             <p className="text-xl text-muted-foreground arabic-text leading-relaxed transform transition-all duration-600 ease-out">
-              هاكاثون متخصص في الرؤية الحاسوبية (Computer Vision) والشبكات العصبية الالتفافية (CNN) ومحولات الرؤية (Vision Transformers) ونماذج اللغة والرؤية (Vision Language Models). 
-              يهدف إلى استكشاف المواهب وتوظيفها لبرنامج تدريب  وعمل نماذج أولية لحلول الرؤية الحاسوبية لتصنيف النفايات.
+            تحدي تقني ضمن نطاق الرؤية الحاسوبية يفتح المجال أمام المواهب التقنية للمشاركة في تطوير حلول ذكية لتحديات واقعية تواجه شركة الڤيرا المختصة بتقنيات إدارة النفايات لتعزيز القطاع البيئي
             </p>
           </div>
         </div>

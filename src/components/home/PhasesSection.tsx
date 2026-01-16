@@ -9,7 +9,7 @@ const PhasesSection = () => {
       number: 1,
       title: 'التسجيل والترشيح',
       description: 'فتح باب التسجيل للمشاركين في التحدي.',
-      date: '13 - 18 يناير',
+      date: '15 - 18 يناير',
       icon: FileText,
       color: 'from-blue-500 to-cyan-500'
     },
@@ -49,7 +49,7 @@ const PhasesSection = () => {
     {
       number: 6,
       title: 'إعلان الفائزين',
-      description: 'إعلان الفائزين في الهاكاثون.',
+      description: 'إعلان الفائزين في التحدي.',
       date: '20 يناير - 6:00 م',
       time: 'من الساعة 12:00 م إلى الساعة 6:00 م',
       icon: Trophy,
@@ -84,11 +84,11 @@ const PhasesSection = () => {
             الجدول الزمني
           </h2>
           <p className="text-2xl text-muted-foreground arabic-text mb-8">
-            جدول أعمال هاكاثون فيجنثون
+            جدول أعمال تحدي فيجنثون
           </p>
           <div className="w-24 h-1 bg-gradient-teal mx-auto mb-8"></div>
           <p className="text-xl text-muted-foreground arabic-text max-w-3xl mx-auto leading-relaxed">
-            يمتد هاكاثون فيجنثون على مدار يومين مليئين بالتعلم والابتكار والتحدي، حيث يعمل المشاركون على تطوير حلول 
+            يمتد تحدي فيجنثون على مدار يومين مليئين بالتعلم والابتكار والتحدي، حيث يعمل المشاركون على تطوير حلول 
             الرؤية الحاسوبية لتصنيف النفايات باستخدام تقنيات الذكاء الاصطناعي المتقدمة.
           </p>
         </div>

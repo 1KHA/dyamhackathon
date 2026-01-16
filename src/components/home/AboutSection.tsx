@@ -85,7 +85,7 @@ const AboutSection = () => {
               "الرؤية من خلال مستقبل الذكاء الاصطناعي في إدارة النفايات"
             </h3>
             <p className="text-xl text-muted-foreground arabic-text mb-6">
-              انضم إلى هاكاثون فيجنثون واكتشف فرص التدريب  في شركة إلفيرا تك!
+              انضم إلى تحدي فيجنثون واكتشف فرص التدريب  في شركة إلفيرا تك!
             </p>
             <Link href="/register-team">
               <Button className="bg-gradient-teal hover-glow arabic-text font-semibold px-8">

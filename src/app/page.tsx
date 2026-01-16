@@ -21,7 +21,7 @@ export default function HomePage() {
       },
       "location": {
         "@type": "Place",
-        "name": "هاكاثون فيجنثون VISIONTHON",
+        "name": "تحدي فيجنثون VISIONTHON",
         "address": {
           "@type": "PostalAddress",
           "addressLocality": "جدة",
@@ -76,7 +76,7 @@ export default function HomePage() {
             />
           </div>
           <p className="text-lg text-muted-foreground arabic-text mb-2">
-            © 2026 هاكاثون فيجنثون "VISIONTHON" - جميع الحقوق محفوظة
+            © 2026 تحدي فيجنثون "VISIONTHON" - جميع الحقوق محفوظة
           </p>
           <p className="text-lg text-muted-foreground">
             hackathon@elvirasa.com
