@@ -29,7 +29,7 @@ export default function HomePage() {
         }
       },
       "keywords": [
-        "هاكاثون فيجنثون VISIONTHON"
+        "تحدي فيجنثون VISIONTHON"
       ],
       "eventStatus": "https://schema.org/EventScheduled",
       "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
@@ -45,7 +45,7 @@ export default function HomePage() {
       // Cleanup: remove the script when component unmounts
       const scripts = document.head.querySelectorAll('script[type="application/ld+json"]');
       scripts.forEach(s => {
-        if (s.textContent?.includes('هاكاثون فيجنثون VISIONTHON')) {
+        if (s.textContent?.includes('تحدي فيجنثون VISIONTHON')) {
           document.head.removeChild(s);
         }
       });

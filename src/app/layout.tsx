@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   title: "تحدي فيجنثون VISIONTHON",
   description: "تحدي فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
   keywords: [
-    "هاكاثون فيجنثون VISIONTHON"
+    "تحدي فيجنثون VISIONTHON"
   ],
   authors: [{ name: "جامعة دار الحكمة" }],
   creator: "جامعة دار الحكمة",
@@ -35,16 +35,16 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "هاكاثون فيجنثون VISIONTHON",
-    description: "هاكاثون فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
+    title: "تحدي فيجنثون VISIONTHON",
+    description: "تحدي فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
     url: "https://visionthon.dyam.dev/",
-    siteName: "هاكاثون فيجنثون VISIONTHON",
+    siteName: "تحدي فيجنثون VISIONTHON",
     images: [
       {
         url: "/alvira.png",
         width: 1200,
         height: 630,
-        alt: "هاكاثون فيجنثون VISIONTHON"
+        alt: "تحدي فيجنثون VISIONTHON"
       }
     ],
     locale: "ar_SA",
