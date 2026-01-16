@@ -161,7 +161,7 @@ const PhasesSection = () => {
                 <ul className="list-disc list-inside space-y-1 text-lg text-muted-foreground arabic-text text-right">
                   <li>فرصة تدريب للعمل في شركة ألفيرا</li>
                   <li>حزم مدفوعة لبرامج الذكاء الاصطناعي</li>
-                  <li>مكافأة مالية </li>
+                  <li>مكافأة مالية مع التدريب</li>
                 </ul>
               </div>
               

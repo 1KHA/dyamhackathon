@@ -481,7 +481,7 @@ export default function RegisterTeamPage() {
               نموذج تسجيل المشاركين
             </CardTitle>
             <CardDescription className="text-xl" style={{ color: '#FF8D30', fontFamily: 'Somar-Light, Arial, sans-serif' }}>
-              {REGISTRATION_CLOSED ? 'انتهى التسجيل في الهاكاثون' : 'سجل للمشاركة في الهاكاثون وكن جزءًا من التغيير'}
+              {REGISTRATION_CLOSED ? 'انتهى التسجيل في الهاكاثون' : 'سجل للمشاركة في التحدي وكن جزءًا من التغيير'}
             </CardDescription>
           </CardHeader>
           <CardContent className="px-10 pb-10">
