@@ -5,7 +5,7 @@ import Sidebar from "../../../components/participant/Sidebar";
 import TopBar from "../../../components/participant/TopBar";
 import ParticipantRouteGuard from "@/components/auth/ParticipantRouteGuard";
 import { SidebarProvider, useSidebar } from "@/contexts/sidebar-context";
-import { Home, Users, Flag, Award, Star, Book, Calendar } from "lucide-react";
+import { Home, Users, Flag, Award, Star, Book, Calendar, QrCode } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -20,6 +20,7 @@ function MobileNavigation() {
     { name: "التسليمات", href: "/participant-dashboard/milestones", icon: Star },
     { name: "الموجهون", href: "/participant-dashboard/mentors", icon: Book },
     { name: "الفعاليات", href: "/participant-dashboard/events", icon: Calendar },
+    { name: "بطاقتي", href: "/participant-dashboard/badge", icon: QrCode },
   ];
 
   return (

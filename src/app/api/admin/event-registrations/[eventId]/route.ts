@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { PrismaClient } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/notification-auth";
+
+const UNAUTHORIZED = () =>
+  NextResponse.json({ error: "غير مصرح. هذه الخدمة متاحة للمسؤولين فقط." }, { status: 401 });
 
 // Define types for the registration data
 type ParticipantData = {
@@ -29,6 +34,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { eventId: string } }
 ) {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const { eventId } = params;
     
@@ -104,6 +110,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { eventId: string } }
 ) {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const { eventId } = params;
     const { registrationId, status } = await request.json();
@@ -179,6 +186,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { eventId: string } }
 ) {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const { eventId } = params;
     const { registrationId } = await request.json();

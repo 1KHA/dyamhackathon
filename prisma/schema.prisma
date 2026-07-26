@@ -52,6 +52,7 @@ model Participant {
   
   // Core fields
   email                String                @unique
+  badgeCode            String?               @unique // QR badge token, lazy-generated (DYAM-XXXXXXXXXXXX)
   university           String?               // اذكر جامعتك
   isLeader             Boolean               @default(false)
   passwordHash         String?
@@ -64,6 +65,7 @@ model Participant {
   submissions          MilestoneSubmission[]
   eventRegistrations   EventRegistration[]
   sentJoinRequests     TeamJoinRequest[]
+  attendanceRecords    AttendanceRecord[]
   
   // DEPRECATED FIELDS - Keep for backward compatibility
   firstName            String?
@@ -275,4 +277,20 @@ model Broadcast {
   createdAt         DateTime @default(now())
 
   @@index([createdAt])
+}
+
+model AttendanceRecord {
+  id            String      @id @default(cuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id])
+  eventId       String?     // null = general venue check-in
+  checkinDate   String?     // YYYY-MM-DD (Asia/Riyadh), set only for general check-ins
+  scannedBy     String      // admin id
+  method        String      // scan, manual
+  createdAt     DateTime    @default(now())
+
+  @@unique([participantId, eventId]) // NULLs distinct: only constrains event rows
+  @@unique([participantId, checkinDate]) // NULLs distinct: only constrains general rows
+  @@index([eventId])
+  @@index([checkinDate])
 }

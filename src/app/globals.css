@@ -497,3 +497,37 @@ html, body {
     width: 100%;
   }
 }
+
+/* ============================================================
+   Print rules — participant badge (بطاقتي)
+   Hides all app chrome and isolates #print-badge on the page.
+   ============================================================ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  #print-badge,
+  #print-badge * {
+    visibility: visible;
+  }
+
+  #print-badge {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: 90mm;
+    height: fit-content;
+    box-shadow: none !important;
+    border-width: 1px !important;
+  }
+
+  body {
+    background: #ffffff !important;
+  }
+
+  @page {
+    size: A6 portrait;
+    margin: 5mm;
+  }
+}

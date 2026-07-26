@@ -239,6 +239,15 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       actionUrl: '/participant-dashboard/mentors',
     }),
     def({
+      key: 'attendanceRecorded',
+      label: 'تأكيد تسجيل الحضور',
+      category: 'participant',
+      variables: ['eventTitle'],
+      type: 'success',
+      dashboardTitle: 'تم تسجيل حضورك',
+      dashboardMessage: 'تم تسجيل حضورك بنجاح في: {{eventTitle}}',
+    }),
+    def({
       key: 'teamJoinRequest',
       label: 'طلب انضمام لفريق (لقائد الفريق)',
       category: 'participant',

@@ -4,7 +4,7 @@ import { useMemo, useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion } from "framer-motion"
-import { Home, Users, Flag, Award, Star, Book, Calendar, ChevronLeft, ChevronRight } from "lucide-react"
+import { Home, Users, Flag, Award, Star, Book, Calendar, QrCode, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { usePermissions } from "@/hooks/usePermissions"
@@ -50,10 +50,16 @@ const navItems = [
     icon: Book,
     permission: { category: 'mentorship', action: 'view' }
   },
-  { 
-    name: "الفعاليات", 
-    href: "/participant-dashboard/events", 
+  {
+    name: "الفعاليات",
+    href: "/participant-dashboard/events",
     icon: Calendar,
+    permission: { category: 'events', action: 'view' }
+  },
+  {
+    name: "بطاقتي",
+    href: "/participant-dashboard/badge",
+    icon: QrCode,
     permission: { category: 'events', action: 'view' }
   }
 ]
