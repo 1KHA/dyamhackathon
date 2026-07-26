@@ -1,10 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { getNotifications } from "@/lib/notifications";
+import { verifyToken } from "@/lib/notification-auth";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
+    // Admins only — this endpoint exposes platform-wide statistics
+    const token = cookies().get('token')?.value;
+    const claims = verifyToken(token);
+
+    if (!claims || claims.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' },
+        { status: 401 }
+      );
+    }
+
+    // The admin login route signs the id as `id`, not `adminId`
+    const adminId = claims.adminId || claims.id;
+
+    if (!adminId) {
+      return NextResponse.json(
+        { error: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' },
+        { status: 401 }
+      );
+    }
+
     // Get total participants count
     const totalParticipants = await prisma.participant.count();
 
@@ -86,13 +110,13 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Get recent notifications
-    const recentNotifications = await prisma.notification.findMany({
-      take: 5,
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    // Get recent notifications — scoped to the signed-in admin, so the activity
+    // feed cannot surface participants' or mentors' notifications
+    const { notifications: recentNotifications } = await getNotifications(
+      'admin',
+      adminId,
+      { limit: 5 }
+    );
 
     // Get upcoming events
     const upcomingEventsList = await prisma.event.findMany({

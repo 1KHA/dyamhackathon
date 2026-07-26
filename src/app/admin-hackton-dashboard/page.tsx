@@ -86,7 +86,9 @@ export default function DashboardPage() {
     const fetchDashboardStats = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/admin/dashboard/stats");
+        const response = await fetch("/api/admin/dashboard/stats", {
+          credentials: "include",
+        });
         
         if (!response.ok) {
           throw new Error("Failed to fetch dashboard statistics");

@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import jwt from 'jsonwebtoken';
 import { markNotificationAsRead } from '@/lib/notifications';
+import { resolveRecipientFromToken } from '@/lib/notification-auth';
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-interface JWTPayload {
-  participantId?: string;
-  mentorId?: string;
-  adminId?: string;
-  isLeader?: boolean;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +15,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
+    const recipient = resolveRecipientFromToken(token);
+
+    if (!recipient) {
+      return NextResponse.json({ error: 'نوع المستخدم غير صحيح' }, { status: 400 });
+    }
+
     const body = await request.json();
     const { notificationId } = body;
 
@@ -32,7 +28,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'معرف الإشعار مطلوب' }, { status: 400 });
     }
 
-    await markNotificationAsRead(notificationId);
+    // Scoped to the caller: a notification belonging to someone else is a
+    // silent no-op, so the response reveals nothing about which IDs exist.
+    await markNotificationAsRead(
+      notificationId,
+      recipient.recipientType,
+      recipient.recipientId
+    );
 
     return NextResponse.json({ success: true });
 

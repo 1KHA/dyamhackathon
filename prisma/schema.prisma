@@ -195,6 +195,9 @@ model Notification {
   actionUrl         String?   // Optional URL for clickable notifications
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
+
+  @@index([recipientType, recipientId, createdAt])
+  @@index([recipientType, recipientId, isRead])
 }
 
 model TeamJoinRequest {

@@ -25,6 +25,7 @@ const navItems = [
   { name: "الفرق", href: "/admin-hackton-dashboard/teams", icon: UserCheck },
   { name: "المرشدون", href: "/admin-hackton-dashboard/mentors", icon: BookOpen },
   { name: "التسليمات", href: "/admin-hackton-dashboard/milestones", icon: Flag },
+  { name: "الإشعارات", href: "/admin-hackton-dashboard/notifications", icon: Bell },
 ];
 
 export default function AdminHacktonSidebar() {

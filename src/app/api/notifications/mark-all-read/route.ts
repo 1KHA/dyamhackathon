@@ -1,19 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import jwt from 'jsonwebtoken';
 import { markAllNotificationsAsRead } from '@/lib/notifications';
+import { resolveRecipientFromToken } from '@/lib/notification-auth';
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-
-interface JWTPayload {
-  participantId?: string;
-  mentorId?: string;
-  adminId?: string;
-  isLeader?: boolean;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,26 +15,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET) as JWTPayload;
-    
-    // Determine user type and ID
-    let recipientType: string;
-    let recipientId: string;
+    // Determine user type and ID from the token claims
+    const recipient = resolveRecipientFromToken(token);
 
-    if (decoded.participantId) {
-      recipientType = 'participant';
-      recipientId = decoded.participantId;
-    } else if (decoded.mentorId) {
-      recipientType = 'mentor';
-      recipientId = decoded.mentorId;
-    } else if (decoded.adminId) {
-      recipientType = 'admin';
-      recipientId = decoded.adminId;
-    } else {
+    if (!recipient) {
       return NextResponse.json({ error: 'نوع المستخدم غير صحيح' }, { status: 400 });
     }
 
-    await markAllNotificationsAsRead(recipientType, recipientId);
+    await markAllNotificationsAsRead(recipient.recipientType, recipient.recipientId);
 
     return NextResponse.json({ success: true });
 

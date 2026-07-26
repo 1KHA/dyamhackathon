@@ -30,6 +30,13 @@ interface NotificationDropdownProps {
   className?: string;
 }
 
+// Each role's dashboard has its own notifications route
+const NOTIFICATIONS_PAGE: Record<NotificationDropdownProps['userType'], string> = {
+  admin: '/admin-hackton-dashboard/notifications',
+  participant: '/participant-dashboard/notifications',
+  mentor: '/mentor-dashboard/notifications',
+};
+
 export default function NotificationDropdown({ userType, className }: NotificationDropdownProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -242,7 +249,7 @@ export default function NotificationDropdown({ userType, className }: Notificati
                 className="w-full text-xs"
                 onClick={() => {
                   setIsOpen(false);
-                  // Navigate to notifications page when implemented
+                  window.location.href = NOTIFICATIONS_PAGE[userType];
                 }}
               >
                 عرض جميع الإشعارات

@@ -97,11 +97,23 @@ export async function getUnreadNotificationCount(
 }
 
 /**
- * Mark a notification as read
+ * Mark a notification as read.
+ *
+ * Scoped to the owning recipient so one user cannot mark another user's
+ * notification as read. `updateMany` is deliberate: a non-matching id updates
+ * zero rows instead of throwing, so a foreign id is a silent no-op.
  */
-export async function markNotificationAsRead(notificationId: string): Promise<void> {
-  await prisma.notification.update({
-    where: { id: notificationId },
+export async function markNotificationAsRead(
+  notificationId: string,
+  recipientType: string,
+  recipientId: string
+): Promise<void> {
+  await prisma.notification.updateMany({
+    where: {
+      id: notificationId,
+      recipientType,
+      recipientId,
+    },
     data: { isRead: true },
   });
 }
@@ -162,9 +174,11 @@ export const NotificationTemplates = {
     type: "info" as const,
   }),
 
+  // Note: there is no mentor self-application flow in the platform — mentors
+  // are created by an admin — so this describes an addition, not a request.
   newMentorRegistration: (mentorName: string) => ({
-    title: "طلب انضمام مرشد جديد",
-    message: `تقدم ${mentorName} بطلب ليصبح مرشداً`,
+    title: "مرشد جديد تمت إضافته",
+    message: `تم إضافة مرشد جديد: ${mentorName} بواسطة المشرف`,
     type: "info" as const,
     actionUrl: "/admin-hackton-dashboard/mentors",
   }),

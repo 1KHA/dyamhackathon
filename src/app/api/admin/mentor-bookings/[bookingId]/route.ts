@@ -2,6 +2,81 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
+import { createNotification, NotificationTemplates } from '@/lib/notifications';
+
+// Full participant + mentor context needed to describe a booking in a notification
+const bookingWithPeople = {
+  participant: {
+    select: {
+      id: true,
+      firstName: true,
+      secondName: true,
+      familyName: true,
+      email: true,
+      phoneNumber: true,
+    },
+  },
+  availability: {
+    include: {
+      mentor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          specialty: true,
+        },
+      },
+    },
+  },
+} as const;
+
+function formatBookingDateTime(startTime: Date) {
+  return new Date(startTime).toLocaleString('ar-SA', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/**
+ * Tell the mentor their session was cancelled. Best-effort: a notification
+ * failure must never fail the cancellation itself.
+ */
+async function notifyMentorOfCancellation(booking: {
+  id: string;
+  participant: { firstName: string | null; secondName: string | null; familyName: string | null };
+  availability: { startTime: Date; mentor: { id: string } };
+}) {
+  try {
+    const participantName = [
+      booking.participant.firstName,
+      booking.participant.secondName,
+      booking.participant.familyName,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || 'مشارك';
+
+    const dateTime = formatBookingDateTime(booking.availability.startTime);
+    const template = NotificationTemplates.bookingCancellation(participantName, dateTime);
+
+    await createNotification({
+      title: template.title,
+      message: template.message,
+      type: template.type,
+      recipientType: 'mentor',
+      recipientId: booking.availability.mentor.id,
+      relatedEntityType: 'booking',
+      relatedEntityId: booking.id,
+      actionUrl: '/mentor-dashboard/sessions',
+    });
+  } catch (notificationError) {
+    console.error('Error creating booking cancellation notification:', notificationError);
+    // Don't fail the cancellation if notification fails
+  }
+}
 
 // Helper to check admin auth
 async function isAdmin(request: NextRequest) {
@@ -33,34 +108,22 @@ export async function PATCH(request: NextRequest, { params }: { params: { bookin
     if (body.status) dataToUpdate.status = body.status;
     if (body.availabilityId) dataToUpdate.availabilityId = body.availabilityId;
 
+    // Read the prior status so re-saving an already-cancelled booking does not
+    // notify the mentor a second time
+    const previous = await prisma.mentorBooking.findUnique({
+      where: { id: bookingId },
+      select: { status: true },
+    });
+
     const updated = await prisma.mentorBooking.update({
       where: { id: bookingId },
       data: dataToUpdate,
-      include: {
-        participant: {
-          select: {
-            id: true,
-            firstName: true,
-            secondName: true,
-            familyName: true,
-            email: true,
-            phoneNumber: true,
-          },
-        },
-        availability: {
-          include: {
-            mentor: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                specialty: true,
-              },
-            },
-          },
-        },
-      },
+      include: bookingWithPeople,
     });
+
+    if (updated.status === 'cancelled' && previous?.status !== 'cancelled') {
+      await notifyMentorOfCancellation(updated);
+    }
 
     // Format response
     return NextResponse.json({
@@ -104,9 +167,21 @@ export async function DELETE(request: NextRequest, { params }: { params: { booki
   }
 
   try {
+    // Load the booking before deleting it — afterwards the mentor and
+    // participant details needed for the notification are gone
+    const booking = await prisma.mentorBooking.findUnique({
+      where: { id: bookingId },
+      include: bookingWithPeople,
+    });
+
     await prisma.mentorBooking.delete({
       where: { id: bookingId },
     });
+
+    if (booking && booking.status !== 'cancelled') {
+      await notifyMentorOfCancellation(booking);
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting mentor booking:', error);
