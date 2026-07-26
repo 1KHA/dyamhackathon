@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
-import { createNotification, notifyAllAdmins, NotificationTemplates } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notify'
 import jwt from 'jsonwebtoken'
 
 export const dynamic = 'force-dynamic';
@@ -83,17 +83,13 @@ export async function POST(request: NextRequest) {
 
     // Create notification for admins about new participant
     try {
-      // Use a direct notification since there's no specific template for individual participants
-      await notifyAllAdmins(
-        "مشارك جديد تمت إضافته",
-        `تم إضافة مشارك جديد: ${participantData.fullName} بواسطة المشرف`,
-        "info",
-        {
-          relatedEntityType: 'participant',
-          relatedEntityId: participant.id,
-          actionUrl: "/admin-hackton-dashboard/participants",
-        }
-      );
+      await dispatchNotification({
+        templateKey: 'participantCreated',
+        variables: { participantName: participantData.fullName },
+        audience: { kind: 'admins' },
+        relatedEntityType: 'participant',
+        relatedEntityId: participant.id,
+      });
     } catch (notificationError) {
       console.error('Error creating notification:', notificationError);
       // Don't fail the registration if notification fails

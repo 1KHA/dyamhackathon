@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
-import { createNotification, NotificationTemplates } from '@/lib/notifications';
+import { dispatchNotification } from '@/lib/notify';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -156,28 +156,21 @@ export async function POST(request: NextRequest) {
       });
 
       // Notify the mentor about the new booking request
-      const mentorNotificationTemplate = NotificationTemplates.newBookingRequest(participantName, dateTime);
-      await createNotification({
-        title: mentorNotificationTemplate.title,
-        message: mentorNotificationTemplate.message,
-        type: mentorNotificationTemplate.type,
-        recipientType: 'mentor',
-        recipientId: booking.availability.mentor.id,
+      await dispatchNotification({
+        templateKey: 'newBookingRequest',
+        variables: { participantName, dateTime },
+        audience: { kind: 'mentor', id: booking.availability.mentor.id },
         relatedEntityType: 'booking',
         relatedEntityId: booking.id,
-        actionUrl: mentorNotificationTemplate.actionUrl,
       });
 
-      // Create a booking confirmation notification for the participant
-      await createNotification({
-        title: 'تأكيد حجز الجلسة',
-        message: `تم تأكيد حجز جلستك مع ${booking.availability.mentor.name} في ${dateTime}`,
-        type: 'success',
-        recipientType: 'participant',
-        recipientId: participant.id,
+      // Booking confirmation for the participant
+      await dispatchNotification({
+        templateKey: 'bookingConfirmation',
+        variables: { mentorName: booking.availability.mentor.name, dateTime },
+        audience: { kind: 'participant', id: participant.id },
         relatedEntityType: 'booking',
         relatedEntityId: booking.id,
-        actionUrl: '/participant-dashboard/mentors',
       });
     } catch (notificationError) {
       console.error('Error creating booking notifications:', notificationError);

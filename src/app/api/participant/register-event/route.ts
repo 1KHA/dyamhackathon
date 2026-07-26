@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
-import { createNotification, notifyAllAdmins, NotificationTemplates } from '@/lib/notifications';
+import { dispatchNotification } from '@/lib/notify';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -138,44 +138,36 @@ export async function POST(request: NextRequest) {
     // Create notifications after successful registration
     try {
       // Notify participant with confirmation
-      const confirmationTemplate = NotificationTemplates.eventRegistrationConfirmation(event.title);
-      await createNotification({
-        ...confirmationTemplate,
-        recipientType: 'participant',
-        recipientId: participant.id,
+      await dispatchNotification({
+        templateKey: 'eventRegistrationConfirmation',
+        variables: { eventTitle: event.title },
+        audience: { kind: 'participant', id: participant.id },
         relatedEntityType: 'event',
         relatedEntityId: eventId,
       });
 
       // Notify admins about new registration
       const participantName = `${participant.firstName} ${participant.familyName}`;
-      const adminTemplate = NotificationTemplates.newEventRegistration(participantName, event.title);
-      await notifyAllAdmins(
-        adminTemplate.title,
-        adminTemplate.message,
-        adminTemplate.type,
-        {
-          relatedEntityType: 'event',
-          relatedEntityId: eventId,
-        }
-      );
+      await dispatchNotification({
+        templateKey: 'newEventRegistration',
+        variables: { participantName, eventTitle: event.title },
+        audience: { kind: 'admins' },
+        relatedEntityType: 'event',
+        relatedEntityId: eventId,
+      });
 
       // Check if event is approaching capacity (80% full) and warn admins
       const currentRegistrations = event.registrations.length + 1; // +1 for the new registration
       const capacityPercentage = (currentRegistrations / event.capacity) * 100;
       
       if (capacityPercentage >= 80) {
-        const warningTemplate = NotificationTemplates.eventCapacityWarning(event.title);
-        await notifyAllAdmins(
-          warningTemplate.title,
-          warningTemplate.message,
-          warningTemplate.type,
-          {
-            relatedEntityType: 'event',
-            relatedEntityId: eventId,
-            actionUrl: warningTemplate.actionUrl,
-          }
-        );
+        await dispatchNotification({
+          templateKey: 'eventCapacityWarning',
+          variables: { eventTitle: event.title },
+          audience: { kind: 'admins' },
+          relatedEntityType: 'event',
+          relatedEntityId: eventId,
+        });
       }
     } catch (notificationError) {
       console.error('Error creating event registration notifications:', notificationError);

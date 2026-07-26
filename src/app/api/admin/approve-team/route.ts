@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
-import { notifyTeamMembers, NotificationTemplates } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notify'
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
@@ -70,18 +70,13 @@ export async function POST(request: NextRequest) {
 
     // Create notification for team members about approval
     try {
-      const template = NotificationTemplates.teamApproval(team.teamName || 'فريقك');
-      await notifyTeamMembers(
-        teamId,
-        template.title,
-        template.message,
-        template.type,
-        {
-          relatedEntityType: 'team',
-          relatedEntityId: teamId,
-          actionUrl: template.actionUrl,
-        }
-      );
+      await dispatchNotification({
+        templateKey: 'teamApproval',
+        variables: { teamName: team.teamName || 'فريقك' },
+        audience: { kind: 'team', teamId },
+        relatedEntityType: 'team',
+        relatedEntityId: teamId,
+      });
     } catch (notificationError) {
       console.error('Error creating approval notification:', notificationError);
       // Don't fail the approval if notification fails

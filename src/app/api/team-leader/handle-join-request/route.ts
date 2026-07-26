@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
-import { createNotification } from '@/lib/notifications';
+import { dispatchNotification } from '@/lib/notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,15 +137,12 @@ export async function POST(request: NextRequest) {
       const participantName = joinRequest.fullName || 
         `${joinRequest.firstName} ${joinRequest.secondName} ${joinRequest.familyName}`.trim();
 
-      await createNotification({
-        title: 'تم قبول طلب الانضمام!',
-        message: `تهانينا! تم قبولك في فريق ${joinRequest.teamName}`,
-        type: 'success',
-        recipientType: 'participant',
-        recipientId: joinRequest.participantId,
+      await dispatchNotification({
+        templateKey: 'joinRequestAccepted',
+        variables: { teamName: joinRequest.teamName || '' },
+        audience: { kind: 'participant', id: joinRequest.participantId },
         relatedEntityType: 'team',
         relatedEntityId: joinRequest.teamId,
-        actionUrl: '/participant-dashboard/team'
       });
 
       return NextResponse.json({ 
@@ -162,14 +159,12 @@ export async function POST(request: NextRequest) {
       `;
 
       // Send notification to the rejected participant
-      await createNotification({
-        title: 'لم يتم قبول طلب الانضمام',
-        message: `لم يتم قبولك في فريق ${joinRequest.teamName}`,
-        type: 'info',
-        recipientType: 'participant',
-        recipientId: joinRequest.participantId,
+      await dispatchNotification({
+        templateKey: 'joinRequestRejected',
+        variables: { teamName: joinRequest.teamName || '' },
+        audience: { kind: 'participant', id: joinRequest.participantId },
         relatedEntityType: 'team',
-        relatedEntityId: joinRequest.teamId
+        relatedEntityId: joinRequest.teamId,
       });
 
       return NextResponse.json({ 

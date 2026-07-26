@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
-import { createNotification, NotificationTemplates } from "@/lib/notifications";
+import { dispatchNotification } from "@/lib/notify";
+import { requireAdmin } from "@/lib/notification-auth";
+
+const UNAUTHORIZED = () =>
+  NextResponse.json({ error: "غير مصرح. هذه الخدمة متاحة للمسؤولين فقط." }, { status: 401 });
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
@@ -22,6 +27,7 @@ type MilestoneFromDB = {
 
 // POST /api/admin/milestones - Create a new milestone
 export async function POST(request: NextRequest) {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const body = await request.json();
     const { title, description, dueDate, status, requirements } = body;
@@ -66,36 +72,14 @@ export async function POST(request: NextRequest) {
     // Create notifications for all participants about the new milestone
     // Use a non-blocking approach to avoid Vercel timeout
     try {
-      const template = NotificationTemplates.newMilestoneAvailable(title);
-      
-      // Get all participants to notify them
-      const participants = await prisma.participant.findMany({
-        select: { id: true },
+      // Bulk fan-out to every participant (BCC-batched on the email side)
+      await dispatchNotification({
+        templateKey: 'newMilestoneAvailable',
+        variables: { milestoneTitle: title },
+        audience: { kind: 'allParticipants' },
+        relatedEntityType: 'milestone',
+        relatedEntityId: id,
       });
-
-      if (participants.length > 0) {
-        console.log(`Creating notifications for ${participants.length} participants`);
-        
-        // Prepare notification data for all participants at once
-        const notificationsData = participants.map(participant => ({
-          title: template.title,
-          message: template.message,
-          type: template.type,
-          recipientType: "participant",
-          recipientId: participant.id,
-          relatedEntityType: 'milestone',
-          relatedEntityId: id,
-          actionUrl: template.actionUrl,
-        }));
-
-        // Use createMany for a single batch insert instead of individual awaits
-        // This is much faster than creating notifications one by one
-        await prisma.notification.createMany({
-          data: notificationsData,
-        });
-        
-        console.log(`Successfully created ${participants.length} notifications`);
-      }
     } catch (notificationError) {
       console.error('Error creating milestone creation notifications:', notificationError);
       // Don't fail the milestone creation if notification fails
@@ -119,6 +103,7 @@ export async function POST(request: NextRequest) {
 
 // PUT /api/admin/milestones - Update a milestone
 export async function PUT(request: NextRequest) {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const body = await request.json();
     const { id, title, description, dueDate, status, requirements } = body;
@@ -184,6 +169,7 @@ export async function PUT(request: NextRequest) {
 
 // DELETE /api/admin/milestones - Delete a milestone
 export async function DELETE(request: NextRequest) {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const body = await request.json();
     const { id } = body;

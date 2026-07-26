@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
-import { createNotification } from '@/lib/notifications';
+import { dispatchNotification } from '@/lib/notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,15 +112,12 @@ export async function POST(request: NextRequest) {
         `${currentParticipant.firstName} ${currentParticipant.secondName} ${currentParticipant.familyName}`.trim();
       
       // Send notification to team leader
-      await createNotification({
-        title: 'طلب انضمام جديد للفريق',
-        message: `${participantName} يريد الانضمام لفريق ${targetTeam.teamName}`,
-        type: 'info',
-        recipientType: 'participant',
-        recipientId: teamLeader.id,
+      await dispatchNotification({
+        templateKey: 'teamJoinRequest',
+        variables: { participantName, teamName: targetTeam.teamName || '' },
+        audience: { kind: 'participant', id: teamLeader.id },
         relatedEntityType: 'team',
         relatedEntityId: teamId,
-        actionUrl: '/participant-dashboard/join-requests'
       });
     }
 

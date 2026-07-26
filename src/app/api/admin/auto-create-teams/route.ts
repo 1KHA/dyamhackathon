@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { PrismaClient } from '@prisma/client'
-import { notifyAllAdmins, NotificationTemplates } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notify'
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
@@ -84,17 +84,13 @@ export async function POST(request: NextRequest) {
 
     // Create notification for admins about new team formation
     try {
-      const template = NotificationTemplates.newTeamRegistration(result.teamName);
-      await notifyAllAdmins(
-        template.title,
-        template.message,
-        template.type,
-        {
-          relatedEntityType: 'team',
-          relatedEntityId: result.teamId,
-          actionUrl: template.actionUrl,
-        }
-      );
+      await dispatchNotification({
+        templateKey: 'newTeamRegistration',
+        variables: { teamName: result.teamName },
+        audience: { kind: 'admins' },
+        relatedEntityType: 'team',
+        relatedEntityId: result.teamId,
+      });
     } catch (notificationError) {
       console.error('Error creating notification:', notificationError);
       // Don't fail the team creation if notification fails

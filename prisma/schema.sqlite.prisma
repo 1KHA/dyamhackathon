@@ -192,6 +192,7 @@ model Notification {
   relatedEntityType String?   // team, event, milestone, mentor, participant
   relatedEntityId   String?   // ID of related entity
   actionUrl         String?   // Optional URL for clickable notifications
+  emailStatus       String?   // null = no email attempted, sent, failed
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -212,4 +213,65 @@ model TeamJoinRequest {
   team          Team        @relation(fields: [teamId], references: [id])
   
   @@unique([participantId, teamId]) // Prevent duplicate requests
+}
+
+model EmailSettings {
+  id              String   @id @default(cuid())
+  host            String   @default("")
+  port            Int      @default(587)
+  secure          Boolean  @default(false)
+  username        String   @default("")
+  password        String   @default("") // AES-256-GCM encrypted, "enc:v1:" prefix
+  fromEmail       String   @default("")
+  fromName        String   @default("")
+  adminInboxEmail String   @default("") // shared inbox for admin-facing notifications
+  enabled         Boolean  @default(false) // master switch
+  updatedAt       DateTime @updatedAt
+}
+
+model NotificationTemplate {
+  key              String   @id // e.g. "teamApproval"
+  label            String   // Arabic display name
+  category         String   // admin, participant, mentor
+  dashboardTitle   String
+  dashboardMessage String
+  emailSubject     String
+  emailBody        String   // plain text with {{vars}}, rendered into RTL HTML shell
+  emailEnabled     Boolean  @default(true)
+  actionUrl        String?  // null = use code default
+  variables        String   // JSON array of allowed placeholder names
+  updatedAt        DateTime @updatedAt
+}
+
+model EmailLog {
+  id             String   @id @default(cuid())
+  templateKey    String?
+  broadcastId    String?
+  toEmail        String   // single recipient, or a summary for BCC batches
+  recipientCount Int      @default(1)
+  subject        String
+  status         String   // sent, failed
+  error          String?
+  messageId      String?  // nodemailer message id
+  createdAt      DateTime @default(now())
+
+  @@index([templateKey, createdAt])
+  @@index([broadcastId])
+  @@index([createdAt])
+}
+
+model Broadcast {
+  id                String   @id @default(cuid())
+  title             String
+  body              String
+  emailSubject      String?
+  channels          String   // JSON array: ["dashboard","email"]
+  audience          String   // JSON audience descriptor
+  notificationCount Int      @default(0)
+  emailSentCount    Int      @default(0)
+  emailFailedCount  Int      @default(0)
+  createdBy         String   // admin id
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
 }

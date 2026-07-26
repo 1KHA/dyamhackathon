@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
-import { createNotification, notifyAllAdmins, NotificationTemplates } from '@/lib/notifications';
+import { dispatchNotification } from '@/lib/notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,17 +57,13 @@ export async function POST(request: Request) {
 
     // Notify admins that a new mentor was added
     try {
-      const template = NotificationTemplates.newMentorRegistration(newMentor.name);
-      await notifyAllAdmins(
-        template.title,
-        template.message,
-        template.type,
-        {
-          relatedEntityType: 'mentor',
-          relatedEntityId: newMentor.id,
-          actionUrl: template.actionUrl,
-        }
-      );
+      await dispatchNotification({
+        templateKey: 'newMentorRegistration',
+        variables: { mentorName: newMentor.name },
+        audience: { kind: 'admins' },
+        relatedEntityType: 'mentor',
+        relatedEntityId: newMentor.id,
+      });
     } catch (notificationError) {
       console.error('Error creating mentor registration notification:', notificationError);
       // Don't fail the creation if notification fails
@@ -114,16 +110,11 @@ export async function PUT(request: Request) {
     // Notify the mentor only when they have just been approved
     if (existingMentor && existingMentor.status !== 'active' && updatedMentor.status === 'active') {
       try {
-        const template = NotificationTemplates.mentorProfileApproval();
-        await createNotification({
-          title: template.title,
-          message: template.message,
-          type: template.type,
-          recipientType: 'mentor',
-          recipientId: updatedMentor.id,
+        await dispatchNotification({
+          templateKey: 'mentorProfileApproval',
+          audience: { kind: 'mentor', id: updatedMentor.id },
           relatedEntityType: 'mentor',
           relatedEntityId: updatedMentor.id,
-          actionUrl: template.actionUrl,
         });
       } catch (notificationError) {
         console.error('Error creating mentor approval notification:', notificationError);

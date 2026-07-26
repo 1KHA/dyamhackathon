@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
-import { createNotification } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notify'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
@@ -79,15 +79,11 @@ export async function POST(request: NextRequest) {
     })
 
     // Create notification for the participant
-    await createNotification({
-      title: 'تم قبول طلبك!',
-      message: `تم قبول طلب مشاركتك في الهاكاثون. يمكنك الآن تسجيل الدخول إلى حسابك.`,
-      type: 'success',
-      recipientType: 'participant',
-      recipientId: participantId,
+    await dispatchNotification({
+      templateKey: 'participantApproval',
+      audience: { kind: 'participant', id: participantId },
       relatedEntityType: 'participant',
       relatedEntityId: participantId,
-      actionUrl: '/participant-dashboard'
     })
 
     return NextResponse.json({

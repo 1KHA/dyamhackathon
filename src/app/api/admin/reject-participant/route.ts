@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
-import { createNotification } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notify'
 import jwt from 'jsonwebtoken'
 
 export const dynamic = 'force-dynamic';
@@ -66,14 +66,11 @@ export async function POST(request: NextRequest) {
     })
 
     // Create notification for the participant
-    await createNotification({
-      title: 'تم رفض طلبك',
-      message: 'نأسف لإبلاغك أنه تم رفض طلب مشاركتك في الهاكاثون. يمكنك التواصل معنا للمزيد من المعلومات.',
-      type: 'error',
-      recipientType: 'participant',
-      recipientId: participantId,
+    await dispatchNotification({
+      templateKey: 'participantRejection',
+      audience: { kind: 'participant', id: participantId },
       relatedEntityType: 'participant',
-      relatedEntityId: participantId
+      relatedEntityId: participantId,
     })
 
     return NextResponse.json({

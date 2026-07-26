@@ -76,3 +76,14 @@ export function resolveRecipient(claims: TokenClaims | null): Recipient | null {
 export function resolveRecipientFromToken(token: string | undefined): Recipient | null {
   return resolveRecipient(verifyToken(token));
 }
+
+/**
+ * Admin gate for API routes: returns the admin's id, or null when the token is
+ * missing, invalid, or not an admin. The admin login route signs the id as
+ * `id` (no `adminId` claim), hence the fallback chain.
+ */
+export function requireAdmin(token: string | undefined): string | null {
+  const claims = verifyToken(token);
+  if (!claims || claims.role !== 'admin') return null;
+  return claims.adminId || claims.id || null;
+}

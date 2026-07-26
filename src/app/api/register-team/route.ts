@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { PrismaClient } from '@prisma/client'
-import { notifyAllAdmins, NotificationTemplates } from '@/lib/notifications'
+import { dispatchNotification } from '@/lib/notify'
 import { uploadToStorage } from '@/lib/supabase-storage'
 import { MAX_FILE_SIZE, MAX_FILE_SIZE_MB } from '@/lib/constants'
 
@@ -191,17 +191,13 @@ export async function POST(request: NextRequest) {
 
     // Create notification for admins about new registration
     try {
-      const template = NotificationTemplates.newTeamRegistration(result.teamName);
-      await notifyAllAdmins(
-        template.title,
-        template.message,
-        template.type,
-        {
-          relatedEntityType: isTeamRegistration ? 'team' : 'participant',
-          relatedEntityId: result.teamId || undefined,
-          actionUrl: template.actionUrl,
-        }
-      );
+      await dispatchNotification({
+        templateKey: 'newTeamRegistration',
+        variables: { teamName: result.teamName },
+        audience: { kind: 'admins' },
+        relatedEntityType: isTeamRegistration ? 'team' : 'participant',
+        relatedEntityId: result.teamId || undefined,
+      });
     } catch (notificationError) {
       console.error('Error creating notification:', notificationError);
       // Don't fail the registration if notification fails

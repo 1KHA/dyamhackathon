@@ -14,6 +14,7 @@ interface Notification {
   type: string;
   isRead: boolean;
   actionUrl?: string | null;
+  emailStatus?: string | null; // null = no email attempted, 'sent' | 'failed'
   createdAt: string;
 }
 
@@ -210,11 +211,23 @@ export default function NotificationsList() {
 
                     <p className="text-sm text-muted-foreground mb-1">{notification.message}</p>
 
-                    <p className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(notification.createdAt), {
-                        addSuffix: true,
-                        locale: ar,
-                      })}
+                    <p className="text-xs text-muted-foreground flex items-center gap-2">
+                      <span>
+                        {formatDistanceToNow(new Date(notification.createdAt), {
+                          addSuffix: true,
+                          locale: ar,
+                        })}
+                      </span>
+                      {notification.emailStatus === "sent" && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
+                          ✉ تم إرسال بريد
+                        </span>
+                      )}
+                      {notification.emailStatus === "failed" && (
+                        <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700">
+                          ✉ فشل إرسال البريد
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>

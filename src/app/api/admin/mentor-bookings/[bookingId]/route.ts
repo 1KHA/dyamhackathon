@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
-import { createNotification, NotificationTemplates } from '@/lib/notifications';
+import { dispatchNotification } from '@/lib/notify';
 
 // Full participant + mentor context needed to describe a booking in a notification
 const bookingWithPeople = {
@@ -60,17 +60,13 @@ async function notifyMentorOfCancellation(booking: {
       .trim() || 'مشارك';
 
     const dateTime = formatBookingDateTime(booking.availability.startTime);
-    const template = NotificationTemplates.bookingCancellation(participantName, dateTime);
 
-    await createNotification({
-      title: template.title,
-      message: template.message,
-      type: template.type,
-      recipientType: 'mentor',
-      recipientId: booking.availability.mentor.id,
+    await dispatchNotification({
+      templateKey: 'bookingCancellation',
+      variables: { participantName, dateTime },
+      audience: { kind: 'mentor', id: booking.availability.mentor.id },
       relatedEntityType: 'booking',
       relatedEntityId: booking.id,
-      actionUrl: '/mentor-dashboard/sessions',
     });
   } catch (notificationError) {
     console.error('Error creating booking cancellation notification:', notificationError);
