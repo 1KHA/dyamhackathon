@@ -86,16 +86,29 @@ const navItems = [
   }
 ]
 
+// Pages that are not implemented yet (no route exists -> 404).
+// Their nav items stay defined above so they can be re-enabled easily
+// once the corresponding pages are built.
+const HIDDEN_HREFS = new Set([
+  "/mentor-dashboard/startups",
+  "/mentor-dashboard/feedback",
+  "/mentor-dashboard/resources",
+  "/mentor-dashboard/discussions",
+  "/mentor-dashboard/reports",
+  "/mentor-dashboard/community",
+])
+
 export default function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const pathname = usePathname()
   const { hasPermission, loading } = usePermissions()
 
-  // Filter navigation items based on permissions
+  // Filter navigation items based on permissions and hide unimplemented pages
   const filteredNavItems = useMemo(() => {
     if (loading) return []
     
     return navItems.filter(item => {
+      if (HIDDEN_HREFS.has(item.href)) return false
       if (!item.permission) return true
       return hasPermission(item.permission)
     })
