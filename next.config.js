@@ -2,6 +2,9 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  // Self-contained server bundle for the Docker image (see Dockerfile).
+  // Vercel deploys are unaffected by this setting.
+  output: 'standalone',
   // Landing page hidden for now — send the root route to /login
   async redirects() {
     return [
