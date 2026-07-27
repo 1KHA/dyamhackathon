@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/notification-auth';
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 
 /**
  * This route lives under /api/admin/ but in practice is called by the
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
     const updatedParticipant = await prisma.participant.update({
       where: { id },
       data: dataToUpdate,
+      select: PARTICIPANT_PUBLIC_FIELDS,
     });
 
     return NextResponse.json(updatedParticipant);

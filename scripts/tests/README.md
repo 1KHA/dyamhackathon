@@ -1,0 +1,69 @@
+# Test suites
+
+Standalone node scripts, not a framework (none is installed in this repo —
+see `mdfiles/09-testing-and-qa.md`). Each script drives real HTTP requests
+against a running server and asserts against the actual Postgres database
+using Prisma directly. Every script creates its own fixtures and deletes them
+in a `finally` block, so the database is unchanged after a run.
+
+## Prerequisites
+
+- The local Docker Postgres running (`alvira-postgres`) with all migrations
+  applied (`npx prisma migrate deploy`).
+- Mailpit running for the email suites (`docker run -d --name alvira-mailpit
+  -p 1025:1025 -p 8025:8025 axllent/mailpit`).
+- A production build served locally — **not** `next dev`. The dev server was
+  found to hang under the load these suites generate; every suite here is
+  written and verified against `next start`.
+
+```bash
+npm run build
+npx next start -p 3002
+```
+
+## Running
+
+Run everything and get a combined total:
+
+```bash
+JWT_SECRET=$(grep '^JWT_SECRET' .env | sed 's/^JWT_SECRET=//' | tr -d '"\r') \
+VERIFY_BASE_URL=http://localhost:3002 \
+node scripts/tests/run-all.js
+```
+
+Or run one suite at a time the same way, substituting the filename.
+
+## What each suite covers
+
+| Suite | Assertions | Scope |
+|---|---|---|
+| `verify-notifications.js` | 19 | Notification API auth, recipient resolution, IDOR, stats scoping, seed gate |
+| `verify-mentor-flows.js` | 15 | Mentor creation/approval notifications, booking cancellation, duplicate suppression |
+| `e2e-notifications.js` | 37 | Team registration → approval → event registration → capacity warning → milestone → join requests → booking; cross-role isolation; pagination |
+| `e2e-milestone.js` | 15 | Milestone submission + review notifications, duplicate rejection, whole-team notification |
+| `e2e-phase1.js` | 24 | SMTP settings CRUD, encryption at rest, test button → Mailpit |
+| `e2e-phase2.js` | 21 | Notification template editing, placeholder validation, reset-to-default |
+| `e2e-phase3.js` | 30 | Live email delivery per flow, BCC batching, HTML escaping, SMTP-down isolation |
+| `e2e-phase4.js` | 26 | Broadcast channel × audience combinations, history |
+| `e2e-att-1.js` | 10 | QR badge issuance, format, persistence, role restriction |
+| `e2e-att-2.js` | 29 | Attendance scan outcomes, general check-in, stats, undo |
+| `e2e-golden-path.js` | 43 | Full user journey through real HTTP, including the actual `/api/login` flow |
+| `e2e-admin-auth-fix.js` | 58 | Every previously-open admin route now requires auth; `passwordHash` absent from every response body (`mentors`, `teams`, `update-participant`, `update-team`); ownership logic on `update-participant` |
+
+**Total: 327 assertions.**
+
+## History
+
+These suites were originally written and run from an ephemeral session
+scratchpad and never committed — a review from a later session correctly
+flagged that the cited "323 assertions" couldn't be found or re-run anywhere
+in the repo. They are copied here for exactly that reason: so results are
+reproducible by anyone, not just re-describable in a chat transcript.
+
+That same review also caught a real bug the original `e2e-admin-auth-fix.js`
+run had missed: `update-participant`'s mass-assignment fix blocked
+`passwordHash` from being *written*, but the route still returned the *entire*
+updated row — hash included — because the Prisma `update()` call had no
+`select`. The suite here includes the assertion that would have caught it
+(and now does): checking the response *body*, not just the database, for the
+sentinel hash value.

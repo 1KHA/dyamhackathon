@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 
 export async function POST(req: Request) {
   if (!requireAdmin(cookies().get('token')?.value)) {
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
     // First, check if the team exists
     const team = await prisma.team.findUnique({
       where: { id: teamId },
-      include: { participants: true }
+      include: { participants: { select: PARTICIPANT_PUBLIC_FIELDS } }
     });
 
     if (!team) {
@@ -81,7 +82,7 @@ export async function POST(req: Request) {
       const updatedTeam = await tx.team.update({
         where: { id: teamId },
         data: dataToUpdate,
-        include: { participants: true }
+        include: { participants: { select: PARTICIPANT_PUBLIC_FIELDS } }
       });
 
       // If changing leader, update participant records
@@ -101,7 +102,7 @@ export async function POST(req: Request) {
         // Refresh the team data to include updated participants
         return await tx.team.findUnique({
           where: { id: teamId },
-          include: { participants: true }
+          include: { participants: { select: PARTICIPANT_PUBLIC_FIELDS } }
         });
       }
 
