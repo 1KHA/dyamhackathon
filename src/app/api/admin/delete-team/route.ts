@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/notification-auth';
 
 export async function POST(request: NextRequest) {
+  if (!requireAdmin(cookies().get('token')?.value)) {
+    return NextResponse.json({ error: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' }, { status: 401 });
+  }
   try {
     // Ensure we're in a runtime environment, not build time
     if (!process.env.DATABASE_URL && process.env.NODE_ENV === 'production') {

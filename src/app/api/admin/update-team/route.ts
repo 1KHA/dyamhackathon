@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { requireAdmin } from '@/lib/notification-auth';
 
 export async function POST(req: Request) {
+  if (!requireAdmin(cookies().get('token')?.value)) {
+    return NextResponse.json({ error: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' }, { status: 401 });
+  }
   try {
-    const { 
+    const {
       teamId, 
       teamName, 
       hackathonTrack,

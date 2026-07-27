@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { dispatchNotification } from '@/lib/notify'
+import { requireAdmin } from '@/lib/notification-auth'
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  if (!requireAdmin(cookies().get('token')?.value)) {
+    return NextResponse.json({ error: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' }, { status: 401 });
+  }
   try {
     const body = await request.json()
     const { teamId } = body

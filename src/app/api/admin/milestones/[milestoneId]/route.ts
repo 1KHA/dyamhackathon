@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/notification-auth";
 
 // GET /api/admin/milestones/[milestoneId]
 // Fetches a specific milestone by ID
@@ -7,10 +9,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { milestoneId: string } }
 ) {
+  if (!requireAdmin(cookies().get("token")?.value)) {
+    return NextResponse.json({ error: "غير مصرح. هذه الخدمة متاحة للمسؤولين فقط." }, { status: 401 });
+  }
   try {
-    // Check if admin is authenticated (this would be implemented with proper auth)
-    // For now, we'll skip this check for development purposes
-
     const { milestoneId } = params;
 
     if (!milestoneId) {

@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/notification-auth";
 
 export const dynamic = 'force-dynamic';
 
 // GET /api/admin/submissions
 // Fetches all submissions across all milestones
 export async function GET(request: NextRequest) {
+  if (!requireAdmin(cookies().get("token")?.value)) {
+    return NextResponse.json({ error: "غير مصرح. هذه الخدمة متاحة للمسؤولين فقط." }, { status: 401 });
+  }
   try {
-    // Check if admin is authenticated (this would be implemented with proper auth)
-    // For now, we'll skip this check for development purposes
-
     // Fetch all submissions with participant, team, and milestone info using Prisma
     const submissions = await prisma.milestoneSubmission.findMany({
       include: {

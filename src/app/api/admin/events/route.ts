@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
+import { requireAdmin } from "@/lib/notification-auth";
 
 export const dynamic = 'force-dynamic';
+
+const UNAUTHORIZED = () =>
+  NextResponse.json({ error: "غير مصرح. هذه الخدمة متاحة للمسؤولين فقط." }, { status: 401 });
 
 // Define the Event type
 type EventFromDB = {
@@ -23,6 +28,7 @@ type EventFromDB = {
 
 // POST /api/admin/events - Create a new event
 export async function POST(request: NextRequest) {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const body = await request.json();
     const { title, description, startDate, endDate, location, capacity, type, plan, presenter, status } = body;
@@ -93,6 +99,7 @@ export async function POST(request: NextRequest) {
 
 // GET /api/admin/events - Get all events
 export async function GET() {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const events = await prisma.$queryRaw<EventFromDB[]>`
       SELECT * FROM "Event" ORDER BY "startDate" DESC
@@ -110,6 +117,7 @@ export async function GET() {
 
 // PUT /api/admin/events - Update an event
 export async function PUT(request: NextRequest) {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const body = await request.json();
     const { id, title, description, startDate, endDate, location, capacity, type, plan, presenter, status } = body;
@@ -180,6 +188,7 @@ export async function PUT(request: NextRequest) {
 
 // DELETE /api/admin/events - Delete an event
 export async function DELETE(request: NextRequest) {
+  if (!requireAdmin(cookies().get("token")?.value)) return UNAUTHORIZED();
   try {
     const body = await request.json();
     const { id } = body;

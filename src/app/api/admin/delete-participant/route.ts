@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { requireAdmin } from '@/lib/notification-auth'
 
 export async function POST(request: NextRequest) {
+  if (!requireAdmin(cookies().get('token')?.value)) {
+    return NextResponse.json({ error: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' }, { status: 401 });
+  }
   try {
     const { participantId } = await request.json()
 

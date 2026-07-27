@@ -1,10 +1,21 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { verifyToken, requireAdmin } from '@/lib/notification-auth';
 
+/**
+ * GET is read by BOTH the admin mentors page and the participant mentors page
+ * (participants view a mentor's open slots before booking), so it accepts any
+ * signed-in user rather than admins only. The data here (start/end times) is
+ * not sensitive.
+ */
 export async function GET(
   request: Request,
   { params }: { params: { mentorId: string } }
 ) {
+  if (!verifyToken(cookies().get('token')?.value)) {
+    return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
+  }
   try {
     const { mentorId } = params;
 
@@ -20,10 +31,14 @@ export async function GET(
   }
 }
 
+// POST/DELETE manage a mentor's slots from the admin panel — admin only.
 export async function POST(
   request: Request,
   { params }: { params: { mentorId: string } }
 ) {
+  if (!requireAdmin(cookies().get('token')?.value)) {
+    return NextResponse.json({ message: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' }, { status: 401 });
+  }
   try {
     const { mentorId } = params;
     const { start, end } = await request.json();
@@ -51,6 +66,9 @@ export async function DELETE(
   request: Request,
   { params }: { params: { mentorId: string } }
 ) {
+  if (!requireAdmin(cookies().get('token')?.value)) {
+    return NextResponse.json({ message: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' }, { status: 401 });
+  }
   try {
     // Note: The mentorId from params is not strictly needed if availabilityId is globally unique,
     // but it's good practice for authorization or ensuring consistency.
