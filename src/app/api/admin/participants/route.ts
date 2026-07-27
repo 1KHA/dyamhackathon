@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
@@ -78,6 +79,7 @@ export async function GET(request: NextRequest) {
             ],
             teamId: null // Only include participants without a team
           },
+          select: PARTICIPANT_PUBLIC_FIELDS,
           orderBy: {
             createdAt: 'desc' // Sort by creation date, newest first
           }
@@ -89,6 +91,7 @@ export async function GET(request: NextRequest) {
           where: {
             teamId: null // Only include participants without a team
           },
+          select: PARTICIPANT_PUBLIC_FIELDS,
           orderBy: {
             createdAt: 'desc' // Sort by creation date, newest first
           }

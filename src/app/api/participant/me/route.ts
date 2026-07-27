@@ -85,7 +85,8 @@ export async function GET(request: NextRequest) {
       status: (participant as any).status || 'pending',
       teamId: participant.teamId,
       isLeader: participant.isLeader || false,
-      passwordHash: participant.passwordHash,
+      // passwordHash deliberately NOT included — no client reads it, and it
+      // was previously shipped to the browser on every dashboard load
       createdAt: participant.createdAt,
       updatedAt: participant.updatedAt,
       

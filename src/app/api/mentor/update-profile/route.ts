@@ -36,6 +36,17 @@ export async function PUT(request: NextRequest) {
         specialty,
         phone,
       },
+      // never return passwordHash to the client
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        specialty: true,
+        phone: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     return NextResponse.json(updatedMentor);

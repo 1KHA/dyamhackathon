@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from "jsonwebtoken";
 
 export const dynamic = 'force-dynamic';
@@ -43,7 +44,7 @@ export async function POST(request: Request) {
     // Check if the team exists
     const team = await prisma.team.findUnique({
       where: { id: teamId },
-      include: { participants: true },
+      include: { participants: { select: PARTICIPANT_PUBLIC_FIELDS } },
     });
 
     if (!team) {
@@ -81,16 +82,17 @@ export async function POST(request: Request) {
     // Add the participant to the team
     const updatedParticipant = await prisma.participant.update({
       where: { id: participantId },
-      data: { 
+      data: {
         teamId: teamId,
-        isLeader: makeLeader 
+        isLeader: makeLeader
       },
+      select: PARTICIPANT_PUBLIC_FIELDS,
     });
 
     // Get the updated team data
     const updatedTeam = await prisma.team.findUnique({
       where: { id: teamId },
-      include: { participants: true },
+      include: { participants: { select: PARTICIPANT_PUBLIC_FIELDS } },
     });
 
     return NextResponse.json({

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import { dispatchNotification } from '@/lib/notify'
 import jwt from 'jsonwebtoken'
 
@@ -62,7 +63,8 @@ export async function POST(request: NextRequest) {
       where: { id: participantId },
       data: {
         status: 'rejected'
-      }
+      },
+      select: PARTICIPANT_PUBLIC_FIELDS
     })
 
     // Create notification for the participant

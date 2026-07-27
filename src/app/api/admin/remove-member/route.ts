@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from "jsonwebtoken";
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     // Get the participant to remove
     const participant = await prisma.participant.findUnique({
       where: { id: participantId },
-      include: { team: { include: { participants: true } } },
+      include: { team: { include: { participants: { select: PARTICIPANT_PUBLIC_FIELDS } } } },
     });
 
     if (!participant) {
@@ -71,16 +72,17 @@ export async function POST(request: Request) {
     // Remove the participant from the team
     const updatedParticipant = await prisma.participant.update({
       where: { id: participantId },
-      data: { 
+      data: {
         teamId: null,
         isLeader: false // Ensure they're not marked as a leader
       },
+      select: PARTICIPANT_PUBLIC_FIELDS,
     });
 
     // Get the updated team data
     const updatedTeam = await prisma.team.findUnique({
       where: { id: teamId },
-      include: { participants: true },
+      include: { participants: { select: PARTICIPANT_PUBLIC_FIELDS } },
     });
 
     return NextResponse.json({

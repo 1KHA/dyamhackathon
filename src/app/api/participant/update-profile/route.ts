@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from 'jsonwebtoken';
 
 export const dynamic = 'force-dynamic';
@@ -39,7 +40,8 @@ export async function POST(request: NextRequest) {
       data: {
         ...allowedUpdates,
         updatedAt: new Date()
-      }
+      },
+      select: PARTICIPANT_PUBLIC_FIELDS
     });
 
     return NextResponse.json({

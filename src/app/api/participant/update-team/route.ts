@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
     const updatedTeam = await prisma.team.update({
       where: { id: teamId },
       data: dataToUpdate,
-      include: { participants: true }
+      include: { participants: { select: PARTICIPANT_PUBLIC_FIELDS } }
     });
 
     // Add a computed fullName to each participant

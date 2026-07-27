@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
@@ -58,6 +59,7 @@ export async function GET(request: NextRequest) {
       where: { id: teamId },
       include: {
         participants: {
+          select: PARTICIPANT_PUBLIC_FIELDS,
           orderBy: {
             isLeader: 'desc', // Show leader first
           },

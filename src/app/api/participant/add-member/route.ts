@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
@@ -59,6 +60,7 @@ export async function POST(request: NextRequest) {
         isLeader: false, // New members are never leaders
         teamId: teamId,
       },
+      select: PARTICIPANT_PUBLIC_FIELDS,
     });
 
     return NextResponse.json(newParticipant, { status: 201 });

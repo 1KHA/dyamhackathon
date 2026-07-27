@@ -49,8 +49,9 @@ Or run one suite at a time the same way, substituting the filename.
 | `e2e-att-2.js` | 29 | Attendance scan outcomes, general check-in, stats, undo |
 | `e2e-golden-path.js` | 43 | Full user journey through real HTTP, including the actual `/api/login` flow |
 | `e2e-admin-auth-fix.js` | 58 | Every previously-open admin route now requires auth; `passwordHash` absent from every response body (`mentors`, `teams`, `update-participant`, `update-team`); ownership logic on `update-participant` |
+| `e2e-passwordhash-leak.js` | 34 | Systemic sweep: all 13 routes that could return a Participant/Mentor row are called for real with sentinel-hash fixtures, asserting on **response bodies**; plus feature-behaviour checks (team add/remove, approvals, profile updates) |
 
-**Total: 327 assertions.**
+**Total: 361 assertions.**
 
 ## History
 
