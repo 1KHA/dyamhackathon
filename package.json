@@ -52,6 +52,7 @@
     "formidable": "^3.5.4",
     "framer-motion": "^10.18.0",
     "html5-qrcode": "^2.3.8",
+    "jose": "^6.2.4",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.309.0",
     "moment": "^2.30.1",
