@@ -20,7 +20,7 @@ function deriveKey(): Buffer {
     throw new Error('JWT_SECRET must be set to a real secret in production');
   }
 
-  return crypto.scryptSync(secret, 'alvira-email-settings', 32);
+  return crypto.scryptSync(secret, 'dyam-email-settings', 32);
 }
 
 export function encryptSecret(plaintext: string): string {

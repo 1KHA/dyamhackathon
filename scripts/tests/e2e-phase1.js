@@ -63,8 +63,8 @@ async function main() {
     body: {
       host: 'localhost', port: 1025, secure: false,
       username: '', password: 'super-secret-smtp-pass',
-      fromEmail: 'noreply@alvira.test', fromName: 'منصة دِيَم',
-      adminInboxEmail: 'admins@alvira.test', enabled: false,
+      fromEmail: 'noreply@dyam.test', fromName: 'منصة دِيَم',
+      adminInboxEmail: 'admins@dyam.test', enabled: false,
     },
   });
   check('PUT saves settings', put.status === 200 && put.json.host === 'localhost', `status=${put.status}`);
@@ -94,9 +94,9 @@ async function main() {
   const test = await api('/api/admin/email-settings/test', {
     method: 'POST', cookie: aCookie,
     body: {
-      toEmail: 'tester@alvira.test',
+      toEmail: 'tester@dyam.test',
       host: 'localhost', port: 1025, secure: false, username: '',
-      fromEmail: 'unsaved-values@alvira.test', fromName: 'اختبار غير محفوظ',
+      fromEmail: 'unsaved-values@dyam.test', fromName: 'اختبار غير محفوظ',
     },
   });
   check('test send succeeds', test.status === 200 && test.json.success === true,
@@ -106,9 +106,9 @@ async function main() {
   const inbox = await mailpit('/api/v1/messages');
   check('email arrived in Mailpit', inbox && inbox.total === 1, `total=${inbox?.total}`);
   const msg = inbox.messages[0];
-  check('  correct recipient', msg.To.some(t => t.Address === 'tester@alvira.test'),
+  check('  correct recipient', msg.To.some(t => t.Address === 'tester@dyam.test'),
     JSON.stringify(msg.To));
-  check('  sent with the UNSAVED from address', msg.From.Address === 'unsaved-values@alvira.test',
+  check('  sent with the UNSAVED from address', msg.From.Address === 'unsaved-values@dyam.test',
     msg.From.Address);
   check('  Arabic subject intact', msg.Subject.includes('رسالة اختبار'), msg.Subject);
 
@@ -118,7 +118,7 @@ async function main() {
 
   // blank posted password falls back to saved — send again with no password field
   const test2 = await api('/api/admin/email-settings/test', {
-    method: 'POST', cookie: aCookie, body: { toEmail: 'tester2@alvira.test' },
+    method: 'POST', cookie: aCookie, body: { toEmail: 'tester2@dyam.test' },
   });
   check('test with saved settings (blank overrides) succeeds', test2.status === 200 && test2.json.success === true,
     `status=${test2.status} ${JSON.stringify(test2.json)}`);

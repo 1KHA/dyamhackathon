@@ -15,7 +15,7 @@ Object.keys(process.env).filter(key => key.includes('SUPABASE')).forEach(key => 
   console.log(`- ${key}: ${key.includes('KEY') ? '***' : process.env[key]}`);
 });
 
-const BUCKET_NAME = 'alvira_buk';
+const BUCKET_NAME = 'dyam_buk';
 const REQUIRED_FOLDERS = ['milestones', 'teams'];
 
 async function setupSupabaseStorage() {

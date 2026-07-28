@@ -41,7 +41,7 @@ export const metadata: Metadata = {
     siteName: "تحدي فيجنثون VISIONTHON",
     images: [
       {
-        url: "/alvira.png",
+        url: "/dyam.png",
         width: 1200,
         height: 630,
         alt: "تحدي فيجنثون VISIONTHON"
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     type: "website"
   },
   icons: {
-    icon: "/alvira.png",
+    icon: "/dyam.png",
   },
   alternates: {
     canonical: "https://visionthon.dyam.dev/",

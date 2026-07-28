@@ -52,8 +52,8 @@ async function main() {
     where: { id: settings.id },
     data: {
       host: 'localhost', port: 1025, secure: false, username: '', password: '',
-      fromEmail: 'noreply@alvira.test', fromName: 'منصة دِيَم',
-      adminInboxEmail: 'admins@alvira.test', enabled: true,
+      fromEmail: 'noreply@dyam.test', fromName: 'منصة دِيَم',
+      adminInboxEmail: 'admins@dyam.test', enabled: true,
     },
   });
   await fetch(MAILPIT + '/api/v1/messages', { method: 'DELETE' });
@@ -89,7 +89,7 @@ async function main() {
     (await prisma.notification.count({ where: { recipientType: 'admin', relatedEntityId: team.id } })) > 0);
   const adminInbox = await (await fetch(MAILPIT + '/api/v1/messages?limit=50')).json();
   check('admin notification email sent to shared inbox',
-    (adminInbox.messages || []).some((m) => (m.To || []).some((t) => t.Address === 'admins@alvira.test')));
+    (adminInbox.messages || []).some((m) => (m.To || []).some((t) => t.Address === 'admins@dyam.test')));
 
   // ============ 3. admin approves ============
   section('3. admin approves the team');
