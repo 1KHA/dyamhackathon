@@ -16,7 +16,7 @@ export default function Loader({ className = "", isVisible = true }: LoaderProps
     >
       <div className="flex flex-col items-center justify-center">
         <img
-          src="/dyam.png"
+          src="/logo.png"
           alt="Loading..."
           className="max-w-xs w-60 h-auto animate-pulse"
           style={{

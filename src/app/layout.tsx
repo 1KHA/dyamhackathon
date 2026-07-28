@@ -15,7 +15,10 @@ export const metadata: Metadata = {
     maximumScale: 1,
     userScalable: false
   },
-  title: "تحدي فيجنثون VISIONTHON",
+  title: {
+    default: "dyam",
+    template: "%s | dyam",
+  },
   description: "تحدي فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
   keywords: [
     "تحدي فيجنثون VISIONTHON"
@@ -35,13 +38,13 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "تحدي فيجنثون VISIONTHON",
+    title: "dyam",
     description: "تحدي فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
     url: "https://visionthon.dyam.dev/",
-    siteName: "تحدي فيجنثون VISIONTHON",
+    siteName: "dyam",
     images: [
       {
-        url: "/dyam.png",
+        url: "/logo.png",
         width: 1200,
         height: 630,
         alt: "تحدي فيجنثون VISIONTHON"
@@ -51,7 +54,7 @@ export const metadata: Metadata = {
     type: "website"
   },
   icons: {
-    icon: "/dyam.png",
+    icon: "/favicon.png",
   },
   alternates: {
     canonical: "https://visionthon.dyam.dev/",

@@ -47,7 +47,7 @@ const Navigation = () => {
           <div className="hidden lg:block">
             <Link href="/register-team">
               <Image 
-                src="/dyam.png" 
+                src="/logo.png" 
                 alt="Register Now" 
                 width={100}
                 height={40}
@@ -84,7 +84,7 @@ const Navigation = () => {
               ))}
               <Link href="/register-team">
                 <Image 
-                  src="/dyam.png" 
+                  src="/logo.png" 
                   alt="Register Now" 
                   width={150}
                   height={50}
