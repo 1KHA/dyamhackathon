@@ -27,6 +27,7 @@ const SUITES = [
   'e2e-golden-path',
   'e2e-admin-auth-fix',
   'e2e-passwordhash-leak',
+  'e2e-login-errors',
 ];
 
 let totalPass = 0;

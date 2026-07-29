@@ -15,13 +15,40 @@ interface User {
   isLeader?: boolean
 }
 
+/**
+ * Result of a login attempt. `error` carries a user-facing Arabic message on
+ * failure so the login form can explain *why* it failed (wrong password vs.
+ * account not yet activated vs. team not approved) instead of showing one
+ * generic string for every case.
+ */
+export interface LoginResult {
+  success: boolean
+  error?: string
+}
+
 interface AuthContextType {
   user: User | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<LoginResult>
   logout: () => void
   setUser: (user: User | null) => void
   checkAuth: () => Promise<void>
+}
+
+/** Map the API's English error strings onto the Arabic UI copy. */
+function toArabicLoginError(serverError?: string): string {
+  switch (serverError) {
+    case 'Invalid credentials':
+      return 'البريد الإلكتروني أو كلمة المرور غير صحيحة'
+    case 'Account not activated. Please wait for admin approval.':
+      return 'لم يتم تفعيل حسابك بعد. يرجى انتظار موافقة المشرف.'
+    case 'Your team is not yet approved':
+      return 'لم تتم الموافقة على فريقك بعد. سيصلك إشعار عند الموافقة.'
+    case 'Email and password are required':
+      return 'يرجى إدخال البريد الإلكتروني وكلمة المرور'
+    default:
+      return 'تعذر تسجيل الدخول. يرجى المحاولة مرة أخرى.'
+  }
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -225,7 +252,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth()
   }, [])
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<LoginResult> => {
     setIsLoading(true)
     try {
       const response = await fetch('/api/login', {
@@ -237,9 +264,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: 'include', // Include cookies
       })
 
+      const data = await response.json().catch(() => null)
+
       if (response.ok) {
-        const data = await response.json()
-        if (data.success && data.user) {
+        if (data?.success && data.user) {
           const userData: User = {
             id: data.user.id,
             email: data.user.email,
@@ -250,18 +278,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             teamName: data.user.teamName,
             isLeader: data.user.isLeader
           }
-          
+
           // Store the user role in localStorage to optimize future auth checks
           localStorage.setItem('user', JSON.stringify({ role: data.user.role }))
-          
+
           setUser(userData)
-          return true
+          return { success: true }
         }
       }
-      return false
+
+      // Failed: surface the specific reason the API gave (401 wrong password,
+      // account not activated, team not approved, ...) rather than discarding it
+      return { success: false, error: toArabicLoginError(data?.error) }
     } catch (error) {
       console.error('Login error:', error)
-      return false
+      return { success: false, error: 'تعذر الاتصال بالخادم. تحقق من اتصالك بالإنترنت.' }
     } finally {
       setIsLoading(false)
     }

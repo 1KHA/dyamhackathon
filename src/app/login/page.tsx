@@ -9,12 +9,14 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '../../../components/ui/use-toast'
 import { useAuth } from '@/contexts/auth-context'
 import Link from 'next/link'
+import { AlertCircle } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { login, user, isLoading: authLoading } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -41,11 +43,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setErrorMessage(null)
 
     try {
-      const success = await login(formData.email, formData.password)
+      const result = await login(formData.email, formData.password)
 
-      if (success) {
+      if (result.success) {
         toast({
           title: "نجح",
           description: "تم تسجيل الدخول بنجاح!",
@@ -54,17 +57,23 @@ export default function LoginPage() {
         // The auth context will update the user state
         // The useEffect above will handle the redirect based on user role
       } else {
+        const message = result.error || 'بيانات الدخول غير صحيحة'
+        // Inline message is the primary signal — it stays on screen until the
+        // next attempt, unlike the toast which auto-dismisses after 5s
+        setErrorMessage(message)
         toast({
           title: "خطأ",
-          description: "بيانات الدخول غير صحيحة",
+          description: message,
           variant: "destructive",
         })
       }
     } catch (error) {
       console.error('Login error:', error)
+      const message = 'حدث خطأ أثناء تسجيل الدخول'
+      setErrorMessage(message)
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء تسجيل الدخول",
+        description: message,
         variant: "destructive",
       })
     } finally {
@@ -72,8 +81,11 @@ export default function LoginPage() {
     }
   }
 
-  // Show loading while checking auth
-  if (authLoading) {
+  // Show loading while checking auth on first load.
+  // `isLoading` guards the submit path: login() flips the shared auth
+  // `isLoading` too, and without this the form would be replaced by this
+  // spinner mid-submit — hiding the form and any error it needs to show.
+  if (authLoading && !isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -108,6 +120,16 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {errorMessage && (
+            <div
+              role="alert"
+              aria-live="assertive"
+              className="mb-4 flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
+            >
+              <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">البريد الإلكتروني</Label>
