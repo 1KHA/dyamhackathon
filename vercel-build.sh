@@ -18,5 +18,11 @@ node scripts/check-db-config.js
 # Generate Prisma client and build the application
 echo "Generating Prisma client..."
 npx prisma generate
+
+# Apply pending migrations to the production database (uses DIRECT_URL).
+# Without this, new tables (EmailSettings, attendance, notification indexes)
+# never reach the deployed database and the affected APIs return 500.
+echo "Applying database migrations..."
+npx prisma migrate deploy
 echo "Building Next.js application..."
 npx next build
