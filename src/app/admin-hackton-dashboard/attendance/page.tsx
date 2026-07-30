@@ -227,7 +227,8 @@ export default function AttendancePage() {
   const handleDecoded = useCallback(
     (text: string) => {
       const code = text.trim().toUpperCase();
-      if (!code.startsWith("DYAM-")) return; // stray QR — ignore silently
+      // legacy DYAM- accepted: badges issued before the rename stay scannable
+      if (!code.startsWith("MIYAHTHONE-") && !code.startsWith("DYAM-")) return; // stray QR — ignore silently
       submitCode(code, "scan");
     },
     [submitCode]
@@ -434,7 +435,7 @@ export default function AttendancePage() {
             <Input
               dir="ltr"
               className="text-left font-mono"
-              placeholder="DYAM-XXXXXXXXXXXX"
+              placeholder="MIYAHTHONE-XXXXXXXXXXXX"
               value={manualCode}
               onChange={(e) => setManualCode(e.target.value)}
             />

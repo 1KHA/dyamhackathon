@@ -52,8 +52,8 @@ async function main() {
     where: { id: settings.id },
     data: {
       host: 'localhost', port: 1025, secure: false, username: '', password: '',
-      fromEmail: 'noreply@dyam.test', fromName: 'منصة دِيَم',
-      adminInboxEmail: 'admins@dyam.test', enabled: true,
+      fromEmail: 'noreply@miyahthone.test', fromName: 'منصة دِيَم',
+      adminInboxEmail: 'admins@miyahthone.test', enabled: true,
     },
   });
   await fetch(MAILPIT + '/api/v1/messages', { method: 'DELETE' });
@@ -89,7 +89,7 @@ async function main() {
     (await prisma.notification.count({ where: { recipientType: 'admin', relatedEntityId: team.id } })) > 0);
   const adminInbox = await (await fetch(MAILPIT + '/api/v1/messages?limit=50')).json();
   check('admin notification email sent to shared inbox',
-    (adminInbox.messages || []).some((m) => (m.To || []).some((t) => t.Address === 'admins@dyam.test')));
+    (adminInbox.messages || []).some((m) => (m.To || []).some((t) => t.Address === 'admins@miyahthone.test')));
 
   // ============ 3. admin approves ============
   section('3. admin approves the team');
@@ -145,7 +145,7 @@ async function main() {
   // ============ 6. badge ============
   section('6. digital badge');
   const badge = await req('/api/participant/badge', { cookie: pCookie });
-  check('badge issued', badge.status === 200 && /^DYAM-[A-Z2-9]{12}$/.test(badge.json.badgeCode), JSON.stringify(badge.json));
+  check('badge issued', badge.status === 200 && /^MIYAHTHONE-[A-Z2-9]{12}$/.test(badge.json.badgeCode), JSON.stringify(badge.json));
   check('  shows name + team', badge.json.fullName === 'قائد الرحلة' && badge.json.teamName === `${TAG} فريق`);
   const badgeCode = badge.json.badgeCode;
   check('badge page renders', (await fetch(BASE + '/participant-dashboard/badge')).status === 200);
@@ -181,7 +181,7 @@ async function main() {
 
   // the non-registered teammate must be rejected
   const mate = team.participants.find((p) => p.id !== leader.id);
-  const mateBadge = await prisma.participant.update({ where: { id: mate.id }, data: { badgeCode: 'DYAM-MATETESTCODE' } });
+  const mateBadge = await prisma.participant.update({ where: { id: mate.id }, data: { badgeCode: 'MIYAHTHONE-MATETESTCODE' } });
   const reject = await req('/api/admin/attendance/scan', {
     method: 'POST', cookie: aCookie, body: { badgeCode: mateBadge.badgeCode, mode: 'event', eventId: event.id },
   });

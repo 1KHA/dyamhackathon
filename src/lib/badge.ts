@@ -4,12 +4,12 @@ import { prisma } from './prisma';
 /**
  * Badge codes for the QR attendance system.
  *
- * Random opaque tokens: DYAM- + 12 uppercase base32 chars (~60 bits).
+ * Random opaque tokens: MIYAHTHONE- + 12 uppercase base32 chars (~60 bits).
  * Every scan is verified server-side, so no signing is needed — the code is
  * just a lookup key. The prefix lets the scanner ignore stray QR reads.
  */
 
-const BADGE_PREFIX = 'DYAM-';
+const BADGE_PREFIX = 'MIYAHTHONE-';
 const ALPHABET = 'ABCDEFGHJKMNPQRSTVWXYZ23456789'; // no I/L/O/U/0/1 — print-legible
 const CODE_LENGTH = 12;
 

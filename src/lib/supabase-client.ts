@@ -24,18 +24,18 @@ async function ensureBucketExists(): Promise<void> {
     }
     
     // Check if our bucket exists
-    const bucketExists = buckets.some(bucket => bucket.name === 'dyam_buk');
+    const bucketExists = buckets.some(bucket => bucket.name === 'miyahthone_buk');
     
     if (!bucketExists) {
       // Create the bucket if it doesn't exist
-      const { error: createError } = await supabase.storage.createBucket('dyam_buk', {
+      const { error: createError } = await supabase.storage.createBucket('miyahthone_buk', {
         public: true, // Make bucket public
       });
       
       if (createError) {
-        console.error(`Error creating bucket dyam_buk:`, createError);
+        console.error(`Error creating bucket miyahthone_buk:`, createError);
       } else {
-        console.log(`Created bucket dyam_buk`);
+        console.log(`Created bucket miyahthone_buk`);
       }
     }
   } catch (error) {
@@ -56,7 +56,7 @@ async function ensureFolderExists(folder: string): Promise<void> {
     
     // Check if folder exists
     const { data, error } = await supabase.storage
-      .from('dyam_buk')
+      .from('miyahthone_buk')
       .list(folder);
     
     if (error) {
@@ -68,7 +68,7 @@ async function ensureFolderExists(folder: string): Promise<void> {
       // Create an empty file in the folder to create it
       // This is a common workaround since many storage systems don't have explicit "create folder" operations
       await supabase.storage
-        .from('dyam_buk')
+        .from('miyahthone_buk')
         .upload(`${folder}/.folder`, new Blob([''], { type: 'text/plain' }), {
           upsert: true
         });
@@ -102,7 +102,7 @@ export async function uploadFileToSupabase(
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('dyam_buk')
+      .from('miyahthone_buk')
       .upload(filePath, file, {
         cacheControl: '3600',
         upsert: false
@@ -115,7 +115,7 @@ export async function uploadFileToSupabase(
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('dyam_buk')
+      .from('miyahthone_buk')
       .getPublicUrl(filePath);
 
     return {
@@ -138,7 +138,7 @@ export async function deleteFileFromSupabase(filePath: string): Promise<void> {
     await ensureBucketExists();
     
     const { error } = await supabase.storage
-      .from('dyam_buk')
+      .from('miyahthone_buk')
       .remove([filePath]);
 
     if (error) {

@@ -126,7 +126,7 @@ async function main() {
     (await prisma.attendanceRecord.count({ where: { participantId: pNone.id } })) === 0,
     JSON.stringify(s5.json));
 
-  check('unknown badge -> 404', (await scan('DYAM-ZZZZZZZZZZZZ')).status === 404);
+  check('unknown badge -> 404', (await scan('MIYAHTHONE-ZZZZZZZZZZZZ')).status === 404);
   check('manual method recorded', (await (async () => {
     // undo then re-scan pAbs manually to check method persistence
     await api('/api/admin/attendance/undo', { method: 'POST', cookie: aCookie, body: { participantId: pAbs.id, mode: 'event', eventId: event.id } });

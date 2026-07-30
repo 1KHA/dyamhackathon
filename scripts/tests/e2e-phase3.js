@@ -62,8 +62,8 @@ async function main() {
     where: { id: settingsRow.id },
     data: {
       host: 'localhost', port: 1025, secure: false, username: '', password: '',
-      fromEmail: 'noreply@dyam.test', fromName: 'منصة دِيَم',
-      adminInboxEmail: 'admins@dyam.test', enabled: true,
+      fromEmail: 'noreply@miyahthone.test', fromName: 'منصة دِيَم',
+      adminInboxEmail: 'admins@miyahthone.test', enabled: true,
     },
   });
   await clearMp();
@@ -116,7 +116,7 @@ async function main() {
   await wait(700);
 
   check('participant got confirmation email', (await inboxFor(`${TAG}-m1@t.test`)).length === 1);
-  const adminMail = await inboxFor('admins@dyam.test');
+  const adminMail = await inboxFor('admins@miyahthone.test');
   check('EXACTLY ONE email to the shared admin inbox', adminMail.length === 1, `count=${adminMail.length}`);
 
   const adminRows = await prisma.notification.findMany({
@@ -209,7 +209,7 @@ async function main() {
   check('  admin rows exist with emailStatus=null (never failed)',
     blankRows.length === admins.length && blankRows.every(r => r.emailStatus === null),
     blankRows.map(r => r.emailStatus).join(','));
-  await prisma.emailSettings.update({ where: { id: settingsRow.id }, data: { adminInboxEmail: 'admins@dyam.test' } });
+  await prisma.emailSettings.update({ where: { id: settingsRow.id }, data: { adminInboxEmail: 'admins@miyahthone.test' } });
 
   // ============ mentor flow emails ============
   section('mentor booking + cancellation emails');

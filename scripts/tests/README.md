@@ -8,9 +8,9 @@ in a `finally` block, so the database is unchanged after a run.
 
 ## Prerequisites
 
-- The local Docker Postgres running (`dyam-postgres`) with all migrations
+- The local Docker Postgres running (`miyahthone-postgres`) with all migrations
   applied (`npx prisma migrate deploy`).
-- Mailpit running for the email suites (`docker run -d --name dyam-mailpit
+- Mailpit running for the email suites (`docker run -d --name miyahthone-mailpit
   -p 1025:1025 -p 8025:8025 axllent/mailpit`).
 - A production build served locally — **not** `next dev`. The dev server was
   found to hang under the load these suites generate; every suite here is

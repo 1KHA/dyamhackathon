@@ -45,8 +45,8 @@ async function main() {
     where: { id: settingsRow.id },
     data: {
       host: 'localhost', port: 1025, secure: false, username: '', password: '',
-      fromEmail: 'noreply@dyam.test', fromName: 'منصة دِيَم',
-      adminInboxEmail: 'admins@dyam.test', enabled: true,
+      fromEmail: 'noreply@miyahthone.test', fromName: 'منصة دِيَم',
+      adminInboxEmail: 'admins@miyahthone.test', enabled: true,
     },
   });
   await clearMp();
@@ -142,7 +142,7 @@ async function main() {
   await wait(600);
   const adminInbox = await mp('/api/v1/messages?limit=10');
   check('ONE email to shared inbox for all admins', adminInbox.total === 1 &&
-    adminInbox.messages[0].To.some(t => t.Address === 'admins@dyam.test'), `total=${adminInbox.total}`);
+    adminInbox.messages[0].To.some(t => t.Address === 'admins@miyahthone.test'), `total=${adminInbox.total}`);
   check(`  ${admins.length} admin dashboard rows stamped sent`,
     (await prisma.notification.count({ where: { relatedEntityId: b4.json.broadcast.id, recipientType: 'admin', emailStatus: 'sent' } })) === admins.length);
 

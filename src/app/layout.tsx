@@ -16,8 +16,8 @@ export const metadata: Metadata = {
     userScalable: false
   },
   title: {
-    default: "dyam",
-    template: "%s | dyam",
+    default: "miyahthone",
+    template: "%s | miyahthone",
   },
   description: "تحدي فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
   keywords: [
@@ -38,10 +38,10 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "dyam",
+    title: "miyahthone",
     description: "تحدي فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
     url: "https://visionthon.dyam.dev/",
-    siteName: "dyam",
+    siteName: "miyahthone",
     images: [
       {
         url: "/logo.png",

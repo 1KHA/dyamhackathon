@@ -1,7 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Default bucket name - make sure this bucket exists in your Supabase project
-const DEFAULT_BUCKET = 'dyam_buk';
+const DEFAULT_BUCKET = 'miyahthone_buk';
 
 // Lazy-initialize Supabase client only when needed
 function getSupabaseClient(): SupabaseClient {

@@ -41,8 +41,8 @@ async function main() {
     (await api('/api/participant/badge', { cookie: 'token=' + jwt.sign({ id: 'x', mentorId: 'x', role: 'mentor' }, SECRET, { expiresIn: '10m' }) })).status === 401);
 
   const first = await api('/api/participant/badge', { cookie: pCookie(p1.id) });
-  check('first call returns 200 with a DYAM- code',
-    first.status === 200 && /^DYAM-[A-Z2-9]{12}$/.test(first.json.badgeCode), JSON.stringify(first.json));
+  check('first call returns 200 with a MIYAHTHONE- code',
+    first.status === 200 && /^MIYAHTHONE-[A-Z2-9]{12}$/.test(first.json.badgeCode), JSON.stringify(first.json));
   check('  carries name and team', first.json.fullName === 'مشارك أول' && first.json.teamName === `${TAG} فريق`);
 
   const dbRow = await prisma.participant.findUnique({ where: { id: p1.id }, select: { badgeCode: true } });

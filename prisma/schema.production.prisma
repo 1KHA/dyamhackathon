@@ -52,7 +52,7 @@ model Participant {
   
   // Core fields
   email                String                @unique
-  badgeCode            String?               @unique // QR badge token, lazy-generated (DYAM-XXXXXXXXXXXX)
+  badgeCode            String?               @unique // QR badge token, lazy-generated (MIYAHTHONE-XXXXXXXXXXXX)
   university           String?               // اذكر جامعتك
   isLeader             Boolean               @default(false)
   passwordHash         String?
