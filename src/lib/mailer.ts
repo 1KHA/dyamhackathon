@@ -96,9 +96,9 @@ export function renderEmailHtml(title: string, bodyText: string): string {
 
   return `<div dir="rtl" lang="ar" style="direction:rtl;text-align:right;font-family:Tahoma,Arial,sans-serif;background:#f4f6f8;padding:24px">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
-    <div style="background:#0A1A46;background:linear-gradient(135deg,#0A1A46 0%,#14306B 55%,#1E4E9C 100%);padding:16px 24px"><img src="${baseUrl}/logo2.png" alt="مياهثون" style="height:36px;display:block;border:0"></div>
+    <div style="background:#001742;background:linear-gradient(135deg,#001742 0%,#2F44DC 55%,#53AEF5 100%);padding:16px 24px"><img src="${baseUrl}/logo2.png" alt="مياهثون" style="height:36px;display:block;border:0"></div>
     <div style="padding:24px">
-      <h2 style="margin:0 0 12px;font-size:16px;color:#0A1A46">${titleHtml}</h2>
+      <h2 style="margin:0 0 12px;font-size:16px;color:#001742">${titleHtml}</h2>
       <p style="margin:0;font-size:14px;line-height:1.9;color:#334155">${bodyHtml}</p>
     </div>
     <div style="padding:12px 24px;background:#F2F8FE;color:#5B7A9E;font-size:12px">هذه رسالة آلية من منصة مياهثون — يرجى عدم الرد عليها.</div>

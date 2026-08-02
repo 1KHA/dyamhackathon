@@ -22,7 +22,7 @@ export default function BadgeCard({ fullName, teamName, badgeCode }: BadgeCardPr
       width: 280,
       margin: 1,
       errorCorrectionLevel: "M",
-      color: { dark: "#0A1A46", light: "#ffffff" },
+      color: { dark: "#001742", light: "#ffffff" },
     })
       .then((url) => {
         if (!cancelled) setQrDataUrl(url);
@@ -36,12 +36,12 @@ export default function BadgeCard({ fullName, teamName, badgeCode }: BadgeCardPr
   return (
     <div
       id="print-badge"
-      className="mx-auto w-full max-w-sm rounded-2xl border-2 border-[#0A1A46] bg-white shadow-lg overflow-hidden"
+      className="mx-auto w-full max-w-sm rounded-2xl border-2 border-[#001742] bg-white shadow-lg overflow-hidden"
       dir="rtl"
     >
       <div
         className="text-white px-6 py-4 text-center"
-        style={{ background: "linear-gradient(135deg, #0A1A46 0%, #14306B 55%, #1E4E9C 100%)" }}
+        style={{ background: "linear-gradient(135deg, #001742 0%, #2F44DC 55%, #53AEF5 100%)" }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo2.png" alt="مياهثون" className="h-10 mx-auto" />
@@ -69,7 +69,7 @@ export default function BadgeCard({ fullName, teamName, badgeCode }: BadgeCardPr
       </div>
 
       <div className="pb-5 text-center">
-        <span className="inline-block px-3 py-1 rounded-full bg-[#EAF4FE] text-[#0A1A46] text-xs font-mono tracking-wider" dir="ltr">
+        <span className="inline-block px-3 py-1 rounded-full bg-[#EAF4FE] text-[#001742] text-xs font-mono tracking-wider" dir="ltr">
           {badgeCode}
         </span>
       </div>
