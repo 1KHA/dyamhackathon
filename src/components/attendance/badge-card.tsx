@@ -45,7 +45,7 @@ export default function BadgeCard({ fullName, teamName, badgeCode }: BadgeCardPr
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo2.png" alt="مياهثون" className="h-10 mx-auto" />
-        <div className="text-xs opacity-80 mt-2">بطاقة مشارك — الهاكاثون</div>
+        <div className="text-xs opacity-80 mt-2">بطاقة مشارك</div>
       </div>
 
       <div className="px-6 py-5 text-center space-y-1">

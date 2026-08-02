@@ -32,7 +32,9 @@ import {
   Award,
   Clock,
   Edit,
-  Trash2
+  Trash2,
+  UserCheck,
+  UserX
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -126,6 +128,9 @@ export default function MentorsPage() {
     password: '',
   });
   const [generatedPassword, setGeneratedPassword] = useState('');
+  // Id of the mentor whose status is currently being toggled from the table row,
+  // so that row's button can show a spinner state and reject double clicks.
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchMentorAvailability = async (mentorId: string) => {
@@ -311,6 +316,55 @@ export default function MentorsPage() {
         description: error.message || 'فشل في تحديث بيانات الموجه.',
         variant: 'destructive',
       });
+    }
+  };
+
+  /**
+   * One-click activate / deactivate straight from the table row, so approving a
+   * mentor no longer means "⋯ → تعديل المعلومات → الحالة → حفظ".
+   *
+   * Only `status` is sent: Prisma skips `undefined` fields, so the mentor's
+   * name/email/specialty/phone are left untouched. Switching to 'active' goes
+   * through the same PUT the edit dialog uses, so the mentorProfileApproval
+   * notification still fires on the pending → active transition.
+   */
+  const handleToggleMentorStatus = async (mentor: Mentor) => {
+    const nextStatus = mentor.status === 'active' ? 'inactive' : 'active';
+    setStatusUpdatingId(mentor.id);
+    try {
+      const response = await fetch('/api/admin/mentors', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: mentor.id, status: nextStatus }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update mentor status');
+      }
+
+      // Patch the single row instead of refetching: fetchMentors() re-rolls the
+      // mock display data (rating/availability/teams), which would make the
+      // whole table jump on every activation.
+      setMentors((prev) =>
+        prev.map((m) => (m.id === mentor.id ? { ...m, status: nextStatus } : m))
+      );
+
+      toast({
+        title: 'نجاح',
+        description:
+          nextStatus === 'active'
+            ? `تم تفعيل حساب الموجه ${mentor.name}.`
+            : `تم إلغاء تفعيل حساب الموجه ${mentor.name}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'خطأ',
+        description: error.message || 'فشل في تحديث حالة الموجه.',
+        variant: 'destructive',
+      });
+    } finally {
+      setStatusUpdatingId(null);
     }
   };
 
@@ -758,7 +812,7 @@ export default function MentorsPage() {
                 <TableHead>الاسم</TableHead>
                 <TableHead>التخصص</TableHead>
                 <TableHead>الفرق المعينة</TableHead>
-                <TableHead>الحالة</TableHead>
+                <TableHead>التوفر</TableHead>
                 <TableHead>الجلسات</TableHead>
                 <TableHead>التقييم</TableHead>
                 <TableHead>الحالة</TableHead>
@@ -799,8 +853,32 @@ export default function MentorsPage() {
                   <TableCell>{getStatusBadge(mentor.status)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2 justify-end">
-                      <Button 
-                        variant="outline" 
+                      {mentor.status === 'active' ? (
+                        <Button
+                          variant="outline"
+                          className="bg-gray-50 text-gray-700 hover:bg-gray-100 border-gray-200 flex items-center gap-1"
+                          disabled={statusUpdatingId === mentor.id}
+                          onClick={() => handleToggleMentorStatus(mentor)}
+                        >
+                          <UserX className="h-4 w-4" />
+                          <span>
+                            {statusUpdatingId === mentor.id ? 'جاري الحفظ...' : 'إلغاء التفعيل'}
+                          </span>
+                        </Button>
+                      ) : (
+                        <Button
+                          className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1"
+                          disabled={statusUpdatingId === mentor.id}
+                          onClick={() => handleToggleMentorStatus(mentor)}
+                        >
+                          <UserCheck className="h-4 w-4" />
+                          <span>
+                            {statusUpdatingId === mentor.id ? 'جاري التفعيل...' : 'تفعيل'}
+                          </span>
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
                         className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200 flex items-center gap-1"
                         onClick={() => openAvailabilityDialog(mentor)}
                       >
