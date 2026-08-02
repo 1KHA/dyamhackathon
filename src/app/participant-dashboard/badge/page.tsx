@@ -38,7 +38,7 @@ export default function BadgePage() {
       <div className="flex justify-between items-center print:hidden">
         <h1 className="text-3xl font-bold">بطاقتي</h1>
         {badge && (
-          <Button onClick={() => window.print()} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={() => window.print()} className="bg-[#0A1A46] hover:bg-[#14306B]">
             <Printer className="ml-2 h-4 w-4" />
             طباعة البطاقة
           </Button>

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     const result = await sendEmail({
       config,
       to: toEmail,
-      subject: 'رسالة اختبار — منصة دِيَم',
+      subject: 'رسالة اختبار — مياهثون',
       title: 'اختبار إعدادات البريد الإلكتروني',
       bodyText:
         'تهانينا! إذا وصلتك هذه الرسالة فإن إعدادات SMTP تعمل بشكل صحيح.\nيمكنك الآن تفعيل إشعارات البريد الإلكتروني من صفحة الإعدادات.',

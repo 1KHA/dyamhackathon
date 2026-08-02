@@ -22,7 +22,7 @@ export default function BadgeCard({ fullName, teamName, badgeCode }: BadgeCardPr
       width: 280,
       margin: 1,
       errorCorrectionLevel: "M",
-      color: { dark: "#1a2744", light: "#ffffff" },
+      color: { dark: "#0A1A46", light: "#ffffff" },
     })
       .then((url) => {
         if (!cancelled) setQrDataUrl(url);
@@ -36,12 +36,16 @@ export default function BadgeCard({ fullName, teamName, badgeCode }: BadgeCardPr
   return (
     <div
       id="print-badge"
-      className="mx-auto w-full max-w-sm rounded-2xl border-2 border-[#364F7A] bg-white shadow-lg overflow-hidden"
+      className="mx-auto w-full max-w-sm rounded-2xl border-2 border-[#0A1A46] bg-white shadow-lg overflow-hidden"
       dir="rtl"
     >
-      <div className="bg-[#364F7A] text-white px-6 py-4 text-center">
-        <div className="text-xl font-bold">منصة دِيَم</div>
-        <div className="text-xs opacity-80 mt-1">بطاقة مشارك — الهاكاثون</div>
+      <div
+        className="text-white px-6 py-4 text-center"
+        style={{ background: "linear-gradient(135deg, #0A1A46 0%, #14306B 55%, #1E4E9C 100%)" }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo2.png" alt="مياهثون" className="h-10 mx-auto" />
+        <div className="text-xs opacity-80 mt-2">بطاقة مشارك — الهاكاثون</div>
       </div>
 
       <div className="px-6 py-5 text-center space-y-1">
@@ -65,12 +69,12 @@ export default function BadgeCard({ fullName, teamName, badgeCode }: BadgeCardPr
       </div>
 
       <div className="pb-5 text-center">
-        <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-mono tracking-wider" dir="ltr">
+        <span className="inline-block px-3 py-1 rounded-full bg-[#EAF4FE] text-[#0A1A46] text-xs font-mono tracking-wider" dir="ltr">
           {badgeCode}
         </span>
       </div>
 
-      <div className="bg-gray-50 border-t px-6 py-2 text-center text-[10px] text-gray-400">
+      <div className="bg-[#F2F8FE] border-t px-6 py-2 text-center text-[10px] text-[#5B7A9E]">
         أبرِز هذه البطاقة للمشرف عند الدخول لتسجيل حضورك
       </div>
     </div>
