@@ -44,7 +44,7 @@ export default function TopBar() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-[#364F7A] text-primary-foreground">
+    <header className="sticky top-0 z-40 border-b bg-[#2F44DC] text-primary-foreground">
       <div className="container flex h-16 items-center justify-between px-4">
         <div className="flex items-center">
           <button

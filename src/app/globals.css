@@ -38,11 +38,11 @@
     --popover: 0 0% 98%;
     --popover-foreground: 220 30% 24%;
 
-    /* Primary Theme - Using #183063 (Dark Blue) */
-    --primary: 220 30% 24%; /* #183063 - Dark Blue */
+    /* Primary Theme - Using #2F44DC (Brand Blue) */
+    --primary: 233 71% 52%; /* #2F44DC - Brand Blue */
     --primary-foreground: 0 0% 100%; /* White text on primary */
-    --primary-glow: 220 30% 34%; /* Lighter version of primary */
-    --primary-dark: 220 30% 24%; /* #183063 - Dark Blue */
+    --primary-glow: 206 89% 64%; /* #53AEF5 - Brand Light Blue */
+    --primary-dark: 233 71% 42%; /* Darker shade of brand blue */
 
     /* Secondary Colors - Using #525661 (Gray) and #FF8D30 (Orange) */
     --secondary: 220 8% 35%; /* #525661 - Gray */
@@ -54,8 +54,8 @@
     --muted: 220 8% 95%;
     --muted-foreground: 220 8% 45%;
 
-    /* Accent Colors - Using #525661 (Gray) */
-    --accent: 220 8% 35%; /* #525661 - Gray */
+    /* Accent Colors - Using #53AEF5 (Brand Light Blue) */
+    --accent: 206 89% 64%; /* #53AEF5 - Brand Light Blue */
     --accent-foreground: 0 0% 100%; /* White text on accent */
 
     /* Destructive Colors */

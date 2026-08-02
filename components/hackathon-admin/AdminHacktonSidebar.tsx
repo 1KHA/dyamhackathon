@@ -48,8 +48,8 @@ export default function AdminHacktonSidebar() {
             href={item.href}
             className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${
               pathname === item.href
-                ? "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white"
-                : "text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                ? "bg-[#2F44DC] text-white"
+                : "text-gray-600 dark:text-gray-300 hover:bg-[#53AEF5]/20 dark:hover:bg-[#53AEF5]/30"
             }`}
           >
             <item.icon className="w-5 h-5 ml-3" />

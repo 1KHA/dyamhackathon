@@ -20,7 +20,7 @@ export default function TopBar() {
   const { setTheme, theme } = useTheme()
 
   return (
-    <div className="bg-[#364F7A] text-primary-foreground h-12 flex items-center justify-between px-4 text-right">
+    <div className="bg-[#2F44DC] text-primary-foreground h-12 flex items-center justify-between px-4 text-right">
       <div className="text-sm font-medium">منصة دِيَم</div>
       <div className="flex items-center gap-4">
         <div className="text-sm">لوحة تحكم</div>
@@ -28,14 +28,14 @@ export default function TopBar() {
           variant="ghost" 
           size="sm" 
           onClick={logout} 
-          className="text-primary-foreground hover:bg-[#4A6490] text-xs flex items-center gap-1"
+          className="text-primary-foreground hover:bg-[#53AEF5] text-xs flex items-center gap-1"
         >
           <LogOut className="h-3 w-3 ml-1" />
           تسجيل الخروج
         </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-[#4A6490]">
+            <Button variant="ghost" size="icon" className="text-primary-foreground hover:bg-[#53AEF5]">
               <User className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
