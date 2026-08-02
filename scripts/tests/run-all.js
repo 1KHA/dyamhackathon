@@ -28,6 +28,7 @@ const SUITES = [
   'e2e-admin-auth-fix',
   'e2e-passwordhash-leak',
   'e2e-login-errors',
+  'e2e-auth-flows',
 ];
 
 let totalPass = 0;

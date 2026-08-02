@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useToast } from "../../../components/ui/use-toast";
 
@@ -14,7 +14,12 @@ export default function MentorRouteGuard({ children }: MentorRouteGuardProps) {
   const { toast } = useToast();
   const [authorized, setAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [redirectAttempts, setRedirectAttempts] = useState(0);
+  // Held in a ref, NOT state: as state it was both a useEffect dependency and
+  // written inside that effect, so every failed check re-triggered the effect
+  // — and because it was also reset to 0 at the top of each run, the
+  // "too many attempts" circuit breaker could never trip. That was an
+  // infinite loop of /api/mentor/me + /api/logout + router.push('/login').
+  const redirectAttemptsRef = useRef(0);
 
   // Function to clear auth cookies
   const clearAuthCookies = async () => {
@@ -31,20 +36,20 @@ export default function MentorRouteGuard({ children }: MentorRouteGuardProps) {
   };
 
   useEffect(() => {
-    // Reset redirect attempts when pathname changes
-    if (pathname !== '/login') {
-      setRedirectAttempts(0);
-    }
+    // Guards against setting state after unmount (the redirect unmounts us)
+    let cancelled = false;
 
     // Authentication check function
     const authCheck = async () => {
       try {
         // Prevent infinite redirect loops
-        if (redirectAttempts > 2) {
+        if (redirectAttemptsRef.current > 2) {
           console.log('⚠️ MentorRouteGuard - Too many redirect attempts, clearing auth state');
           await clearAuthCookies();
-          setIsLoading(false);
-          setAuthorized(false);
+          if (!cancelled) {
+            setIsLoading(false);
+            setAuthorized(false);
+          }
           return;
         }
 
@@ -77,31 +82,37 @@ export default function MentorRouteGuard({ children }: MentorRouteGuardProps) {
         // Verify the user is a mentor (updated to match new response format)
         if (data.success && data.role === 'mentor') {
           console.log('✅ MentorRouteGuard - Mentor authorization successful');
-          setAuthorized(true);
+          redirectAttemptsRef.current = 0; // reset only on success
+          if (!cancelled) setAuthorized(true);
         } else {
           console.log('❌ MentorRouteGuard - Authorization failed:', { success: data.success, role: data.role });
           await clearAuthCookies();
           throw new Error('غير مصرح. هذه الخدمة متاحة للموجهين فقط.');
         }
       } catch (error: any) {
+        if (cancelled) return;
         setAuthorized(false);
         toast({
           title: "خطأ في الصلاحيات",
           description: error.message || "غير مصرح. هذه الخدمة متاحة للموجهين فقط.",
           variant: "destructive",
         });
-        
+
         // Increment redirect attempts and redirect to login
-        setRedirectAttempts(prev => prev + 1);
+        redirectAttemptsRef.current += 1;
         router.push("/login");
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     // Check authentication on route change
     authCheck();
-  }, [pathname, router, toast, redirectAttempts]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, router, toast]);
 
   // Show loading while checking authentication
   if (isLoading) {

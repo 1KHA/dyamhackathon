@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useToast } from "../../../components/ui/use-toast";
 import { useAuthErrorHandler } from "@/hooks/useAuthErrorHandler";
-import { useAuth } from "@/contexts/auth-context";
 
 interface ParticipantRouteGuardProps {
   children: ReactNode;
@@ -14,26 +13,29 @@ export default function ParticipantRouteGuard({ children }: ParticipantRouteGuar
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
-  const { logout } = useAuth();
   const { checkAndHandleAuthError } = useAuthErrorHandler();
   const [authorized, setAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [redirectAttempts, setRedirectAttempts] = useState(0);
+  // Held in a ref, NOT state: as state it was both a useEffect dependency and
+  // written inside that effect, and it was reset to 0 at the top of every run,
+  // so the "too many attempts" circuit breaker could never trip — an infinite
+  // auth-check/redirect loop whenever authorization failed.
+  const redirectAttemptsRef = useRef(0);
 
   useEffect(() => {
-    // Reset redirect attempts when pathname changes
-    if (pathname !== '/login') {
-      setRedirectAttempts(0);
-    }
+    // Guards against setting state after unmount (the redirect unmounts us)
+    let cancelled = false;
 
     // Authentication check function
     const authCheck = async () => {
       try {
         // Prevent infinite redirect loops
-        if (redirectAttempts > 2) {
+        if (redirectAttemptsRef.current > 2) {
           console.log('⚠️ ParticipantRouteGuard - Too many redirect attempts, stopping redirect');
-          setIsLoading(false);
-          setAuthorized(false);
+          if (!cancelled) {
+            setIsLoading(false);
+            setAuthorized(false);
+          }
           return;
         }
 
@@ -67,19 +69,21 @@ export default function ParticipantRouteGuard({ children }: ParticipantRouteGuar
         // If the role field is missing but we have a valid participant ID, assume it's a participant
         if (data && (data.role === 'participant' || (data.id && !data.role))) {
           console.log('✅ ParticipantRouteGuard - Participant authorization successful');
-          setAuthorized(true);
+          redirectAttemptsRef.current = 0; // reset only on success
+          if (!cancelled) setAuthorized(true);
         } else {
           console.log('❌ ParticipantRouteGuard - Authorization failed:', data);
           // Use a specific error message for role issues (403) vs authentication issues (401)
           throw new Error('Invalid role: ' + (data.role || 'unknown') + ' (expected: participant)');
         }
       } catch (error: any) {
+        if (cancelled) return;
         setAuthorized(false);
-        
+
         // Use the auth error handler to handle the error
         const handled = await checkAndHandleAuthError(error);
-        
-        if (!handled) {
+
+        if (!handled && !cancelled) {
           // If not handled by the auth error handler, show a toast
           toast({
             title: "خطأ في الصلاحيات",
@@ -88,17 +92,21 @@ export default function ParticipantRouteGuard({ children }: ParticipantRouteGuar
           });
           
           // Increment redirect attempts and redirect to login
-          setRedirectAttempts(prev => prev + 1);
+          redirectAttemptsRef.current += 1;
           router.push("/login");
         }
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     // Check authentication on route change
     authCheck();
-  }, [pathname, router, toast, redirectAttempts, checkAndHandleAuthError, logout]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, router, toast, checkAndHandleAuthError]);
 
   // Show loading while checking authentication
   if (isLoading) {

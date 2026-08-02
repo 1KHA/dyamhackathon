@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Search,
@@ -20,8 +21,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NotificationDropdown from "@/components/ui/notification-dropdown";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function TopBar() {
+  const { logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -33,9 +36,13 @@ export default function TopBar() {
     }
   };
 
-  const handleLogout = () => {
-    // Handle logout functionality
-    window.location.href = "/";
+  const handleLogout = async () => {
+    // Must go through the auth context: it calls /api/logout to clear the
+    // httpOnly cookie server-side, clears localStorage and resets user state.
+    // Previously this just did `window.location.href = "/"`, which left the
+    // session cookie intact — so /login saw a valid mentor session and
+    // immediately redirected straight back into the mentor dashboard.
+    await logout();
   };
 
   return (
@@ -55,7 +62,7 @@ export default function TopBar() {
           </button>
 
           <Link href="/mentor-dashboard" className="flex items-center">
-            <span className="text-xl font-bold">منصة دِيَم</span>
+            <Image src="/logo2.png" alt="miyahthone" width={120} height={40} className="h-7 w-auto" />
             <span className="ml-1 rounded-md bg-primary-foreground/20 px-1.5 py-0.5 text-xs font-medium">
               لوحة المرشد
             </span>

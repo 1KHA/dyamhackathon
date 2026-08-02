@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, ReactNode } from "react";
+import { useState, useEffect, useRef, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useToast } from "../../../components/ui/use-toast";
 
@@ -14,7 +14,11 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   const { toast } = useToast();
   const [authorized, setAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [redirectAttempts, setRedirectAttempts] = useState(0);
+  // Held in a ref, NOT state: as state it was both a useEffect dependency and
+  // written inside that effect, and it was reset to 0 at the top of every run,
+  // so the "too many attempts" circuit breaker could never trip — an infinite
+  // auth-check/redirect loop whenever authorization failed.
+  const redirectAttemptsRef = useRef(0);
 
   // Function to clear auth cookies
   const clearAuthCookies = async () => {
@@ -31,20 +35,20 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
   };
 
   useEffect(() => {
-    // Reset redirect attempts when pathname changes
-    if (pathname !== '/admin-login') {
-      setRedirectAttempts(0);
-    }
+    // Guards against setting state after unmount (the redirect unmounts us)
+    let cancelled = false;
 
     // Authentication check function
     const authCheck = async () => {
       try {
         // Prevent infinite redirect loops
-        if (redirectAttempts > 2) {
+        if (redirectAttemptsRef.current > 2) {
           console.log('⚠️ AdminRouteGuard - Too many redirect attempts, clearing auth state');
           await clearAuthCookies();
-          setIsLoading(false);
-          setAuthorized(false);
+          if (!cancelled) {
+            setIsLoading(false);
+            setAuthorized(false);
+          }
           return;
         }
 
@@ -77,31 +81,37 @@ export default function AdminRouteGuard({ children }: AdminRouteGuardProps) {
         // Verify the user is an admin (updated to match new response format)
         if (data.success && data.role === 'admin') {
           console.log('✅ AdminRouteGuard - Admin authorization successful');
-          setAuthorized(true);
+          redirectAttemptsRef.current = 0; // reset only on success
+          if (!cancelled) setAuthorized(true);
         } else {
           console.log('❌ AdminRouteGuard - Authorization failed:', { success: data.success, role: data.role });
           await clearAuthCookies();
           throw new Error('غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.');
         }
       } catch (error: any) {
+        if (cancelled) return;
         setAuthorized(false);
         toast({
           title: "خطأ في الصلاحيات",
           description: error.message || "غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.",
           variant: "destructive",
         });
-        
+
         // Increment redirect attempts and redirect to login
-        setRedirectAttempts(prev => prev + 1);
+        redirectAttemptsRef.current += 1;
         router.push("/admin-login");
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
     };
 
     // Check authentication on route change
     authCheck();
-  }, [pathname, router, toast, redirectAttempts]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname, router, toast]);
 
   // Show loading while checking authentication
   if (isLoading) {

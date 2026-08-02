@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Search,
@@ -59,7 +60,7 @@ export default function TopBar() {
           </button>
 
           <Link href="/participant-dashboard" className="flex items-center">
-            <span className="text-xl font-bold">منصة دِيَم</span>
+            <Image src="/logo2.png" alt="miyahthone" width={120} height={40} className="h-7 w-auto" />
             <span className="ml-1 rounded-md bg-primary-foreground/20 px-1.5 py-0.5 text-xs font-medium">
               لوحة المشارك
             </span>
