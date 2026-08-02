@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { useToast } from '../../../components/ui/use-toast'
@@ -153,10 +154,17 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">كلمة المرور</Label>
-              <Input
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">كلمة المرور</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  نسيت كلمة المرور؟
+                </Link>
+              </div>
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="********"
                 required
                 value={formData.password}
