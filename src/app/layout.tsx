@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/../../components/ui/toaster";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Analytics } from "@vercel/analytics/next";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://visionthon.dyam.dev'),
@@ -68,7 +65,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ar" dir="rtl">
-      <body className={inter.className}>
+      <body>
         <AuthProvider>
           {children}
           <Toaster />

@@ -4,23 +4,16 @@
 
 /* Custom Arabic Fonts */
 @font-face {
-  font-family: 'Somar-Bold';
-  src: url('/fonts/ArbFONTS-Somar-Bold.otf') format('opentype');
-  font-weight: bold;
+  font-family: 'PingAR';
+  src: url('/fonts/ping-ar-lt-regular.otf') format('opentype');
+  font-weight: 100 500;
   font-display: swap;
 }
 
 @font-face {
-  font-family: 'Somar-Medium';
-  src: url('/fonts/ArbFONTS-Somar-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Somar-Light';
-  src: url('/fonts/alfont_com_SomarGX.ttf') format('truetype');
-  font-weight: 300;
+  font-family: 'PingAR';
+  src: url('/fonts/ping-ar-lt-regular-Bold.otf') format('opentype');
+  font-weight: 600 900;
   font-display: swap;
 }
 
@@ -131,6 +124,7 @@
 
   body {
     @apply bg-background text-foreground font-medium;
+    font-family: 'PingAR', 'Tajawal', 'Noto Sans Arabic', 'Arial', sans-serif;
     background: var(--gradient-cosmic);
     min-height: 100vh;
     overflow-x: hidden;
@@ -186,7 +180,7 @@
 
   /* Arabic font optimization */
   .arabic-text {
-    font-family: 'Somar-Bold', 'Tajawal', 'Noto Sans Arabic', 'Arial', sans-serif;
+    font-family: 'PingAR', 'Tajawal', 'Noto Sans Arabic', 'Arial', sans-serif;
     font-weight: 500;
     letter-spacing: 0.025em;
   }

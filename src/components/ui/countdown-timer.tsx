@@ -162,13 +162,13 @@ export default function CountdownTimer({
           font-weight: bold;
           color: #761814;
           text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-          font-family: 'Somar-Bold', 'Arial', sans-serif;
+          font-family: 'PingAR', 'Arial', sans-serif;
         }
         .time-label {
           font-size: 1.9rem;
           color: #666;
           font-weight: 500;
-          font-family: 'Somar-Bold', 'Arial', sans-serif;
+          font-family: 'PingAR', 'Arial', sans-serif;
         }
         @keyframes fadeInUp {
           to {
@@ -347,7 +347,7 @@ export default function CountdownTimer({
           text-shadow: 0 2px 4px rgba(0,0,0,0.3);
           opacity: 0;
           animation: fadeInUp 1s ease-out forwards;
-          font-family: 'Somar-Bold', 'Arial', sans-serif;
+          font-family: 'PingAR', 'Arial', sans-serif;
         }
       `}</style>
     </div>
