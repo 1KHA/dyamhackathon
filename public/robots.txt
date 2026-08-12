@@ -9,4 +9,4 @@ Disallow: /api/
 Disallow: /participant-dashboard/
 Disallow: /mentor-dashboard/
 
-Sitemap: https://dar-alhekma.dyam.dev/sitemap.xml
+Sitemap: https://dyamhackathon.vercel.app/sitemap.xml

@@ -92,7 +92,7 @@ export function renderEmailHtml(title: string, bodyText: string): string {
   const bodyHtml = escapeHtml(bodyText).replace(/\r?\n/g, '<br>');
   const titleHtml = escapeHtml(title);
   // Email clients require absolute image URLs.
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://visionthon.dyam.dev').replace(/\/+$/, '');
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://dyamhackathon.vercel.app').replace(/\/+$/, '');
 
   return `<div dir="rtl" lang="ar" style="direction:rtl;text-align:right;font-family:Tahoma,Arial,sans-serif;background:#f4f6f8;padding:24px">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">

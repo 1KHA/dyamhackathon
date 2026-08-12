@@ -12,16 +12,16 @@ export default function HomePage() {
     const structuredData = {
       "@context": "https://schema.org",
       "@type": "Event",
-      "name": "تحدي فيجنثون VISIONTHON",
-      "description": "تحدي فيجنثون VISIONTHON",
+      "name": "مياهثون",
+      "description": "مياهثون - هاكاثون يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول تقنية مستدامة في قطاع المياه.",
       "organizer": {
         "@type": "Organization",
-        "name": "تحدي فيجنثون VISIONTHON",
-        "url": "https://visionthon.dyam.dev"
+        "name": "مياهثون",
+        "url": "https://dyamhackathon.vercel.app"
       },
       "location": {
         "@type": "Place",
-        "name": "تحدي فيجنثون VISIONTHON",
+        "name": "مياهثون",
         "address": {
           "@type": "PostalAddress",
           "addressLocality": "جدة",
@@ -29,11 +29,12 @@ export default function HomePage() {
         }
       },
       "keywords": [
-        "تحدي فيجنثون VISIONTHON"
+        "مياهثون",
+        "هاكاثون المياه"
       ],
       "eventStatus": "https://schema.org/EventScheduled",
       "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
-      "url": "https://visionthon.dyam.dev/"
+      "url": "https://dyamhackathon.vercel.app/"
     };
 
     const script = document.createElement('script');
@@ -45,7 +46,7 @@ export default function HomePage() {
       // Cleanup: remove the script when component unmounts
       const scripts = document.head.querySelectorAll('script[type="application/ld+json"]');
       scripts.forEach(s => {
-        if (s.textContent?.includes('تحدي فيجنثون VISIONTHON')) {
+        if (s.textContent?.includes('مياهثون')) {
           document.head.removeChild(s);
         }
       });
@@ -76,7 +77,7 @@ export default function HomePage() {
             />
           </div>
           <p className="text-lg text-muted-foreground arabic-text mb-2">
-            © 2026 تحدي فيجنثون "VISIONTHON" - جميع الحقوق محفوظة
+            © 2026 مياهثون - جميع الحقوق محفوظة
           </p>
           <p className="text-lg text-muted-foreground">
             hackathon@elvirasa.com

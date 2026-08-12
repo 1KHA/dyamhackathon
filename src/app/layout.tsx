@@ -5,7 +5,7 @@ import { AuthProvider } from "@/contexts/auth-context";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://visionthon.dyam.dev'),
+  metadataBase: new URL('https://dyamhackathon.vercel.app'),
   viewport: {
     width: 'device-width',
     initialScale: 1,
@@ -13,16 +13,18 @@ export const metadata: Metadata = {
     userScalable: false
   },
   title: {
-    default: "miyahthone",
-    template: "%s | miyahthone",
+    default: "مياهثون",
+    template: "%s | مياهثون",
   },
-  description: "تحدي فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
+  description: "مياهثون - هاكاثون يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول تقنية مستدامة في قطاع المياه.",
   keywords: [
-    "تحدي فيجنثون VISIONTHON"
+    "مياهثون",
+    "هاكاثون المياه",
+    "miyahthone"
   ],
-  authors: [{ name: "جامعة دار الحكمة" }],
-  creator: "جامعة دار الحكمة",
-  publisher: "جامعة دار الحكمة",
+  authors: [{ name: "مياهثون" }],
+  creator: "مياهثون",
+  publisher: "مياهثون",
   robots: {
     index: true,
     follow: true,
@@ -35,26 +37,32 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "miyahthone",
-    description: "تحدي فيجنثون VISIONTHON - تحدي يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول مستدامة في مجال الرؤية الحاسوبية والذكاء الاصطناعي لتصنيف النفايات.",
-    url: "https://visionthon.dyam.dev/",
-    siteName: "miyahthone",
+    title: "مياهثون",
+    description: "مياهثون - هاكاثون يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول تقنية مستدامة في قطاع المياه.",
+    url: "https://dyamhackathon.vercel.app/",
+    siteName: "مياهثون",
     images: [
       {
         url: "/logo.png",
         width: 1200,
         height: 630,
-        alt: "تحدي فيجنثون VISIONTHON"
+        alt: "مياهثون"
       }
     ],
     locale: "ar_SA",
     type: "website"
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "مياهثون",
+    description: "مياهثون - هاكاثون يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول تقنية مستدامة في قطاع المياه.",
+    images: ["/logo.png"],
+  },
   icons: {
     icon: "/favicon.png",
   },
   alternates: {
-    canonical: "https://visionthon.dyam.dev/",
+    canonical: "https://dyamhackathon.vercel.app/",
   }
 };
 
