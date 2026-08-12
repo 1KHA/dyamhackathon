@@ -13,7 +13,7 @@ export default function HomePage() {
       "@context": "https://schema.org",
       "@type": "Event",
       "name": "مياهثون",
-      "description": "مياهثون - هاكاثون يجمع طلبة وخريجي الجامعات لتشجيع الابتكار وتطوير حلول تقنية مستدامة في قطاع المياه.",
+      "description": "مبادرة تستعرض التحديات والفرص في قطاع المياه لاستقطاب أبرز الحلول الابتكارية",
       "organizer": {
         "@type": "Organization",
         "name": "مياهثون",
