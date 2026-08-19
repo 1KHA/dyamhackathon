@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
 import { decryptSecret } from '@/lib/crypto';
 import { sendEmail, type SmtpConfig } from '@/lib/mailer';
+import { isMandrillConfigured } from '@/lib/mandrill';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,7 +48,8 @@ export async function POST(request: NextRequest) {
       fromName: String(body.fromName ?? saved?.fromName ?? '').trim(),
     };
 
-    if (!config.host || !config.fromEmail) {
+    // Mandrill sends over HTTPS and ignores the SMTP fields entirely.
+    if (!isMandrillConfigured() && (!config.host || !config.fromEmail)) {
       return NextResponse.json(
         { error: 'يرجى تعبئة خادم SMTP وبريد المُرسِل قبل الاختبار' },
         { status: 400 }

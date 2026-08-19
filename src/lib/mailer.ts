@@ -2,9 +2,13 @@ import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { prisma } from './prisma';
 import { decryptSecret } from './crypto';
+import { isMandrillConfigured, sendViaMandrill } from './mandrill';
 
 /**
- * SMTP delivery built on the admin-configured EmailSettings row.
+ * Email delivery. Transport is chosen per call, not at boot:
+ *   1. MAILCHIMP_API_KEY + MAIL_FROM set  -> Mandrill HTTPS API (see mandrill.ts)
+ *   2. otherwise                          -> SMTP from the admin-configured EmailSettings row
+ * The EmailSettings `enabled` master switch gates sending for both transports.
  *
  * All sends are best-effort: callers wrap in try/catch (the codebase-wide
  * convention that a notification failure never fails the business action).
@@ -44,6 +48,20 @@ export async function getEmailSettings(): Promise<EmailSettingsRow | null> {
  * Settings row -> plaintext SMTP config, or null when incomplete/undecryptable.
  */
 export function toSmtpConfig(row: EmailSettingsRow): SmtpConfig | null {
+  // Mandrill ignores the SMTP fields — never block sending on a blank host or
+  // an undecryptable password when it is the active transport.
+  if (isMandrillConfigured()) {
+    return {
+      host: row.host,
+      port: row.port,
+      secure: row.secure,
+      username: row.username,
+      password: '',
+      fromEmail: process.env.MAIL_FROM as string,
+      fromName: row.fromName || process.env.MAIL_FROM_NAME || '',
+    };
+  }
+
   if (!row.host || !row.fromEmail) return null;
 
   const password = decryptSecret(row.password);
@@ -123,6 +141,21 @@ export interface SendEmailParams {
 
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
   const { config, to, bcc, subject, title, bodyText } = params;
+
+  if (isMandrillConfigured()) {
+    console.log(`📧 Email transport: mandrill (to=${to ?? 'sender'}, bcc=${bcc?.length ?? 0})`);
+    const result = await sendViaMandrill({
+      to,
+      bcc,
+      subject,
+      html: renderEmailHtml(title, bodyText),
+      text: bodyText,
+      fromName: process.env.MAIL_FROM_NAME || config.fromName,
+    });
+    if (!result.ok) console.error(`[email] mandrill send failed: ${result.error}`);
+    return result;
+  }
+
   const transport = buildTransport(config);
 
   try {
