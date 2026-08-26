@@ -3,10 +3,21 @@ import { cookies } from 'next/headers';
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
-import { getEmailSettings, toSmtpConfig, chunkRecipients } from '@/lib/mailer';
-import { sendRawEmail, partitionByOutcome, stampEmailStatus } from '@/lib/notify';
+import { waitUntil } from '@vercel/functions';
+import { getEmailSettings, toSmtpConfig } from '@/lib/mailer';
+import {
+  enqueueBroadcastRecipients,
+  drainEmailQueue,
+  ADMIN_INBOX_RECIPIENT_ID,
+  type QueueRecipientInput,
+} from '@/lib/email-queue';
 
 export const dynamic = 'force-dynamic';
+// The inline drainer (waitUntil) keeps running after the response; give it
+// room. Overrides the 30s default in vercel.json for this route only.
+export const maxDuration = 300;
+/** Inline drain budget — leaves headroom under maxDuration for the last batch. */
+const INLINE_DRAIN_BUDGET_MS = 240_000;
 
 const UNAUTHORIZED = () =>
   NextResponse.json({ error: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' }, { status: 401 });
@@ -148,6 +159,11 @@ export async function POST(request: NextRequest) {
     }
 
     // ---- email channel -----------------------------------------------------
+    // Nothing is sent inside this request. Recipients are written to the
+    // BroadcastRecipient queue, the response returns immediately, and the
+    // queue is drained in the background (waitUntil) + by the cron.
+    // See mdfiles/email-queue.md.
+    let queued = 0;
     if (channels.includes('email')) {
       const settings = await getEmailSettings();
       const config = settings && settings.enabled ? toSmtpConfig(settings) : null;
@@ -166,107 +182,83 @@ export async function POST(request: NextRequest) {
           },
         });
       } else {
-        // Every count below comes from the transport's PER-RECIPIENT verdict
-        // (result.accepted / result.rejected), never from a batch-level boolean —
-        // see mdfiles/email-per-recipient-accounting.md.
-        const stampOutcome = async (
-          batch: ResolvedRecipient[],
-          result: Awaited<ReturnType<typeof sendRawEmail>>
-        ) => {
-          const { sent, failed } = partitionByOutcome(batch, result);
-          const idsOf = (rows: ResolvedRecipient[]) =>
-            rows
-              .map((r) => notificationIds.get(`${r.recipientType}:${r.recipientId}`))
-              .filter(Boolean) as string[];
-          await stampEmailStatus(idsOf(sent), 'sent');
-          await stampEmailStatus(idsOf(failed), 'failed');
-        };
+        const queueInput: QueueRecipientInput[] = [];
 
-        // admins -> ONE shared-inbox email covering all admin recipients
+        // admins -> ONE shared-inbox row covering all admin recipients
         const adminRecipients = recipients.filter((r) => r.recipientType === 'admin');
         if (adminRecipients.length > 0) {
           const inbox = settings!.adminInboxEmail.trim();
-          const adminKeys = adminRecipients.map((r) => `admin:${r.recipientId}`);
-          const adminIds = adminKeys.map((k) => notificationIds.get(k)).filter(Boolean) as string[];
           if (inbox) {
-            const result = await sendRawEmail({
-              config, to: inbox, subject: emailSubject, bodyText: message, broadcastId: broadcast.id,
-            });
-            // One shared-inbox email stands for every admin recipient: counts as 1.
-            if (result.ok) emailSentCount += 1;
-            else emailFailedCount += 1;
-            await stampEmailStatus(adminIds, result.ok ? 'sent' : 'failed');
+            queueInput.push({ recipientType: 'admin', recipientId: ADMIN_INBOX_RECIPIENT_ID, email: inbox });
           } else {
             // The admin explicitly asked for email to admins; a blank shared
-            // inbox is a failure worth showing (as the 1 email that could not
-            // be sent), not a silent skip.
-            emailFailedCount += 1;
-            await stampEmailStatus(adminIds, 'failed');
-            await prisma.emailLog.create({
+            // inbox is a failure worth showing, not a silent skip.
+            const adminIds = adminRecipients
+              .map((r) => notificationIds.get(`admin:${r.recipientId}`))
+              .filter(Boolean) as string[];
+            if (adminIds.length > 0) {
+              await prisma.notification.updateMany({
+                where: { id: { in: adminIds } },
+                data: { emailStatus: 'failed' },
+              });
+            }
+            await prisma.broadcastRecipient.create({
               data: {
                 broadcastId: broadcast.id,
-                toEmail: `${adminRecipients.length} مسؤول`,
-                recipientCount: adminRecipients.length,
-                subject: emailSubject,
+                recipientType: 'admin',
+                recipientId: ADMIN_INBOX_RECIPIENT_ID,
+                email: '',
                 status: 'failed',
                 error: 'admin inbox email (adminInboxEmail) is not configured',
               },
             });
+            await prisma.broadcast.update({
+              where: { id: broadcast.id },
+              data: { totalRecipients: { increment: 1 } },
+            });
+            emailFailedCount += 1;
           }
         }
 
-        // participants + mentors -> direct / BCC batches
-        const direct = recipients.filter((r) => r.recipientType !== 'admin' && r.email);
-        if (direct.length === 1) {
-          const r = direct[0];
-          const result = await sendRawEmail({
-            config, to: r.email!, subject: emailSubject, bodyText: message, broadcastId: broadcast.id,
+        // participants + mentors -> one row each
+        for (const r of recipients) {
+          if (r.recipientType === 'admin' || !r.email) continue;
+          queueInput.push({
+            recipientType: r.recipientType,
+            recipientId: r.recipientId,
+            email: r.email,
+            notificationId: notificationIds.get(`${r.recipientType}:${r.recipientId}`) ?? null,
           });
-          emailSentCount += result.accepted.length;
-          emailFailedCount += result.rejected.length;
-          await stampOutcome([r], result);
-        } else if (direct.length > 1) {
-          const batches = chunkRecipients(direct.map((r) => r.email!));
-          let cursor = 0;
-          const startedAt = Date.now();
-          for (const batch of batches) {
-            const slice = direct.slice(cursor, cursor + batch.length);
-            cursor += batch.length;
+        }
 
-            if (Date.now() - startedAt > 20_000) {
-              const remaining = direct.length - cursor + batch.length;
-              emailFailedCount += remaining;
-              await prisma.emailLog.create({
-                data: {
-                  broadcastId: broadcast.id,
-                  toEmail: `${remaining} مستلم متبقٍ`,
-                  recipientCount: remaining,
-                  subject: emailSubject,
-                  status: 'failed',
-                  error: 'timeout: email time budget exceeded',
-                },
-              });
-              break;
-            }
+        queued = await enqueueBroadcastRecipients(broadcast.id, queueInput);
 
-            const result = await sendRawEmail({
-              config, bcc: batch, subject: emailSubject, bodyText: message, broadcastId: broadcast.id,
-            });
-            // 3 accepted + 1 rejected => sent 3, failed 1 (was: failed 4).
-            emailSentCount += result.accepted.length;
-            emailFailedCount += result.rejected.length;
-            await stampOutcome(slice, result);
-          }
+        if (queued > 0) {
+          // Start sending now, after the response is flushed. Anything left
+          // when this function is retired is picked up by the cron drainer.
+          waitUntil(
+            drainEmailQueue({ budgetMs: INLINE_DRAIN_BUDGET_MS }).catch((err) =>
+              console.error('[broadcast] inline drain failed:', err)
+            )
+          );
         }
       }
     }
 
     const updated = await prisma.broadcast.update({
       where: { id: broadcast.id },
-      data: { notificationCount, emailSentCount, emailFailedCount },
+      data: {
+        notificationCount,
+        emailSentCount,
+        emailFailedCount,
+        // Dashboard-only or nothing queued: terminal immediately. With queued
+        // rows, enqueueBroadcastRecipients() already set status='queued' and
+        // the drainer moves it on from there.
+        ...(queued === 0 ? { status: emailFailedCount > 0 ? 'partial' : 'completed' } : {}),
+      },
     });
 
-    return NextResponse.json({ success: true, broadcast: updated });
+    return NextResponse.json({ success: true, broadcast: updated, queued });
   } catch (error) {
     console.error('Error sending broadcast:', error);
     return NextResponse.json({ error: 'خطأ في الخادم' }, { status: 500 });

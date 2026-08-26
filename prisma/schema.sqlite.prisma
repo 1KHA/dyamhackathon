@@ -274,8 +274,37 @@ model Broadcast {
   emailFailedCount  Int      @default(0)
   createdBy         String   // admin id
   createdAt         DateTime @default(now())
+  // Email queue lifecycle: completed (no email / all done) | queued | sending | partial (done, some failed)
+  status            String   @default("completed")
+  totalRecipients   Int      @default(0) // email recipients enqueued (0 for dashboard-only)
+  recipients        BroadcastRecipient[]
 
   @@index([createdAt])
+}
+
+/// One row per email recipient of a broadcast — the persistent, resumable send
+/// queue drained by /api/cron/drain-email-queue (and inline via waitUntil).
+/// See mdfiles/email-queue.md.
+model BroadcastRecipient {
+  id                String    @id @default(cuid())
+  broadcastId       String
+  broadcast         Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+  recipientType     String    // participant | mentor | admin (admin = the shared inbox, one row)
+  recipientId       String
+  email             String
+  notificationId    String?   // dashboard Notification row to stamp emailStatus on
+  status            String    @default("pending") // pending | sending | sent | failed
+  attempts          Int       @default(0)
+  error             String?
+  providerMessageId String?
+  claimedAt         DateTime? // set when a drainer claims the row; stale claims are re-claimed
+  nextAttemptAt     DateTime? // retry backoff for transport-level failures
+  sentAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@unique([broadcastId, email]) // idempotency: never double-send within a broadcast
+  @@index([status, nextAttemptAt, createdAt]) // the claim query
+  @@index([broadcastId, status])             // progress counters
 }
 
 model AttendanceRecord {

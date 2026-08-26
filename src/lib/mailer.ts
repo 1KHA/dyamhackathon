@@ -44,8 +44,20 @@ export interface EmailSettingsRow {
   enabled: boolean;
 }
 
-/** BCC batch size for bulk fan-outs (300 recipients = 6 SMTP messages). */
+/** Recipients per SMTP message for bulk fan-outs (300 recipients = 6 messages). */
 export const BCC_BATCH_SIZE = 50;
+
+/**
+ * Recipients per Mandrill API call. Mandrill accepts up to 1,000 per call;
+ * 500 leaves headroom and turns a 5,000-recipient broadcast into 10 HTTPS
+ * round-trips instead of 100. See mdfiles/email-queue.md §Option 1.
+ */
+export const MANDRILL_BATCH_SIZE = 500;
+
+/** Per-call recipient cap for whichever transport is active right now. */
+export function getBatchSize(): number {
+  return isMandrillConfigured() ? MANDRILL_BATCH_SIZE : BCC_BATCH_SIZE;
+}
 
 export async function getEmailSettings(): Promise<EmailSettingsRow | null> {
   return prisma.emailSettings.findFirst();
@@ -197,7 +209,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     const rejected: RecipientFailure[] = [];
     for (const email of requested) {
       const key = email.toLowerCase();
-      if (rejectedSet.has(key)) rejected.push({ email, reason: 'rejected by SMTP server' });
+      if (rejectedSet.has(key)) rejected.push({ email, reason: 'rejected by SMTP server', permanent: true });
       else if (acceptedSet.has(key)) accepted.push(email);
       else rejected.push({ email, reason: 'not accepted by SMTP server' });
     }
@@ -227,8 +239,8 @@ function addressOf(entry: string | { address: string }): string {
   return (typeof entry === 'string' ? entry : entry.address).toLowerCase();
 }
 
-/** Split a recipient list into BCC batches. */
-export function chunkRecipients(emails: string[], size: number = BCC_BATCH_SIZE): string[][] {
+/** Split a recipient list into per-call batches sized for the active transport. */
+export function chunkRecipients(emails: string[], size: number = getBatchSize()): string[][] {
   const chunks: string[][] = [];
   for (let i = 0; i < emails.length; i += size) {
     chunks.push(emails.slice(i, i + size));

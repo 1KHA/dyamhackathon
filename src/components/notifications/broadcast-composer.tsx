@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Send, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Send, Search, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,8 +25,20 @@ interface BroadcastRow {
   notificationCount: number;
   emailSentCount: number;
   emailFailedCount: number;
+  status: string; // queued | sending | completed | partial
+  totalRecipients: number;
   createdAt: string;
 }
+
+const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  queued: { label: "في الانتظار", className: "bg-amber-100 text-amber-800" },
+  sending: { label: "جاري الإرسال", className: "bg-blue-100 text-blue-800" },
+  completed: { label: "مكتمل", className: "bg-green-100 text-green-800" },
+  partial: { label: "مكتمل مع أخطاء", className: "bg-red-100 text-red-700" },
+};
+
+/** Poll the history while any broadcast is still being drained. */
+const PROGRESS_POLL_MS = 3000;
 
 type AudienceType = "all-participants" | "all-mentors" | "all-admins" | "selected";
 
@@ -49,20 +61,52 @@ export default function BroadcastComposer() {
   const [search, setSearch] = useState("");
   const [sending, setSending] = useState(false);
   const [history, setHistory] = useState<BroadcastRow[]>([]);
+  const [retrying, setRetrying] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/broadcast", { credentials: "include" });
       if (res.ok) setHistory((await res.json()).broadcasts || []);
     } catch {
       /* history is non-critical */
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchHistory();
-  }, []);
+  }, [fetchHistory]);
+
+  // Live progress: emails are sent by a background drainer after the POST
+  // returns, so keep refreshing while anything is queued/sending.
+  const inFlight = history.some((b) => b.status === "queued" || b.status === "sending");
+  useEffect(() => {
+    if (!inFlight) return;
+    const t = setInterval(fetchHistory, PROGRESS_POLL_MS);
+    return () => clearInterval(t);
+  }, [inFlight, fetchHistory]);
+
+  const retryFailed = async (id: string) => {
+    try {
+      setRetrying(id);
+      const res = await fetch(`/api/admin/broadcast/${id}/retry`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشلت إعادة المحاولة");
+      toast({ title: "تمت إعادة الجدولة", description: `${data.requeued} بريد أُعيد إلى قائمة الإرسال` });
+      fetchHistory();
+    } catch (err) {
+      toast({
+        title: "خطأ",
+        description: err instanceof Error ? err.message : "فشلت إعادة المحاولة",
+        variant: "destructive",
+      });
+    } finally {
+      setRetrying(null);
+    }
+  };
 
   useEffect(() => {
     if (audienceType !== "selected" || users.length > 0) return;
@@ -128,9 +172,13 @@ export default function BroadcastComposer() {
       if (!res.ok) throw new Error(data.error || "فشل الإرسال");
 
       const b = data.broadcast;
+      const queued: number = data.queued ?? 0;
       toast({
-        title: "تم الإرسال",
-        description: `إشعارات: ${b.notificationCount} · بريد ناجح: ${b.emailSentCount} · بريد فاشل: ${b.emailFailedCount}`,
+        title: queued > 0 ? "تمت الجدولة — جاري الإرسال في الخلفية" : "تم الإرسال",
+        description:
+          queued > 0
+            ? `إشعارات: ${b.notificationCount} · ${queued} بريد في قائمة الإرسال — تابع التقدم في السجل أدناه`
+            : `إشعارات: ${b.notificationCount} · بريد ناجح: ${b.emailSentCount} · بريد فاشل: ${b.emailFailedCount}`,
       });
       setTitle("");
       setBody("");
@@ -290,6 +338,7 @@ export default function BroadcastComposer() {
                     <th className="border p-2 text-right">إشعارات</th>
                     <th className="border p-2 text-right">بريد ناجح</th>
                     <th className="border p-2 text-right">بريد فاشل</th>
+                    <th className="border p-2 text-right">الحالة</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -322,6 +371,48 @@ export default function BroadcastComposer() {
                         </td>
                         <td className="border p-2 text-sm text-center text-red-500">
                           {b.emailFailedCount}
+                        </td>
+                        <td className="border p-2 text-sm">
+                          {(() => {
+                            const st = STATUS_LABELS[b.status] ?? STATUS_LABELS.completed;
+                            const total = b.totalRecipients ?? 0;
+                            const done = b.emailSentCount + b.emailFailedCount;
+                            const active = b.status === "queued" || b.status === "sending";
+                            return (
+                              <div className="flex items-center gap-2 whitespace-nowrap">
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${st.className}`}>
+                                  {st.label}
+                                </span>
+                                {total > 0 && (
+                                  <span className="text-xs text-muted-foreground" dir="ltr">
+                                    {done}/{total}
+                                  </span>
+                                )}
+                                {active && total > 0 && (
+                                  <span className="h-1.5 w-16 rounded bg-muted overflow-hidden">
+                                    <span
+                                      className="block h-full bg-blue-500 transition-all"
+                                      style={{ width: `${Math.min(100, Math.round((done / total) * 100))}%` }}
+                                    />
+                                  </span>
+                                )}
+                                {!active && b.emailFailedCount > 0 && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 text-xs"
+                                    disabled={retrying === b.id}
+                                    onClick={() => retryFailed(b.id)}
+                                    title="إعادة محاولة الرسائل الفاشلة"
+                                  >
+                                    <RotateCcw className="ml-1 h-3 w-3" />
+                                    {retrying === b.id ? "..." : "إعادة المحاولة"}
+                                  </Button>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                       </tr>
                     );

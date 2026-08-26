@@ -2,10 +2,25 @@
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/admin/broadcast/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/admin/broadcast/[id]/retry/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/cron/drain-email-queue/route.ts": {
+      "maxDuration": 300
     }
   },
   "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
   "env": {
     "DATABASE_TYPE": "postgresql"
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/drain-email-queue",
+      "schedule": "* * * * *"
+    }
+  ]
 }

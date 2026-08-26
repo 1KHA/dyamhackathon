@@ -69,3 +69,10 @@ updated row — hash included — because the Prisma `update()` call had no
 `select`. The suite here includes the assertion that would have caught it
 (and now does): checking the response *body*, not just the database, for the
 sentinel hash value.
+
+## Broadcast email queue (2026-08-26)
+
+| Script | What | Needs |
+|---|---|---|
+| `queue-integration.js` | Library-level test of `src/lib/email-queue.ts` with a faked transport: 5,000-recipient drain, partial batches + backoff, max attempts, 4 concurrent drainers (no duplicates), budget release/resume, stale-claim recovery, master switch, retry-failed, de-dup, admin inbox. Compiles the TS via `tsc` on each run. **Wipes Broadcast rows — scratch DB only.** | `DATABASE_URL` (Postgres), `DATABASE_TYPE=postgresql`, `JWT_SECRET` |
+| `e2e-broadcast-queue.js` | Real HTTP: creates 5,000 participants, posts a broadcast, asserts the POST returns immediately, waits for the background drain, checks an SMTP sink received every address exactly once, cron auth gate, retry endpoint. Cleans up. | running app (`VERIFY_BASE_URL`), same DB + `JWT_SECRET` as the app, `CRON_SECRET`, an SMTP sink on `SMTP_SINK_HOST:SMTP_SINK_PORT` with a stats endpoint at `SMTP_SINK_STATS` (see `mdfiles/email-queue.md` §6) |

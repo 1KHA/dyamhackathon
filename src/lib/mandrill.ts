@@ -39,6 +39,12 @@ export interface MandrillSendParams {
 export interface RecipientFailure {
   email: string;
   reason: string;
+  /**
+   * True when the PROVIDER refused this address (hard-bounce, invalid,
+   * blacklisted) — retrying will not help. False/undefined for transport-level
+   * failures (API error, timeout, network) that a later attempt may succeed on.
+   */
+  permanent?: boolean;
 }
 
 export interface MandrillSendResult {
@@ -155,7 +161,11 @@ export async function sendViaMandrill(params: MandrillSendParams): Promise<Mandr
       if (!r) {
         rejected.push({ email, reason: 'missing from Mandrill response' });
       } else if (r.status === 'rejected' || r.status === 'invalid') {
-        rejected.push({ email, reason: `${r.status}: ${r.reject_reason ?? 'invalid recipient'}` });
+        rejected.push({
+          email,
+          reason: `${r.status}: ${r.reject_reason ?? 'invalid recipient'}`,
+          permanent: true,
+        });
       } else {
         accepted.push(email);
         if (!messageId && r._id) messageId = r._id;
