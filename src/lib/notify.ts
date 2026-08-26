@@ -6,6 +6,7 @@ import {
   sendEmail,
   chunkRecipients,
   type SmtpConfig,
+  type SendEmailResult,
 } from './mailer';
 
 /**
@@ -521,32 +522,10 @@ async function sendTemplateEmails(
   const bodyText = renderTemplate(template.emailBody, variables);
   const startedAt = Date.now();
 
-  const stamp = async (ids: string[], status: 'sent' | 'failed') => {
-    if (ids.length === 0) return;
-    await prisma.notification.updateMany({
-      where: { id: { in: ids } },
-      data: { emailStatus: status },
-    });
-  };
-
-  const log = async (entry: {
-    toEmail: string;
-    recipientCount: number;
-    status: 'sent' | 'failed';
-    error?: string;
-    messageId?: string;
-  }) => {
-    await prisma.emailLog.create({
-      data: {
-        templateKey: template.key,
-        subject,
-        toEmail: entry.toEmail,
-        recipientCount: entry.recipientCount,
-        status: entry.status,
-        error: entry.error,
-        messageId: entry.messageId,
-      },
-    });
+  const stampOutcome = async (batch: PlannedRecipient[], result: SendEmailResult) => {
+    const { sent, failed } = partitionByOutcome(batch, result);
+    await stampEmailStatus(sent.map((r) => r.notificationId), 'sent');
+    await stampEmailStatus(failed.map((r) => r.notificationId), 'failed');
   };
 
   if (audienceKind === 'admins') {
@@ -557,14 +536,8 @@ async function sendTemplateEmails(
     if (!inbox) return;
 
     const result = await sendEmail({ config, to: inbox, subject, title: subject, bodyText });
-    await stamp(recipients.map((r) => r.notificationId), result.ok ? 'sent' : 'failed');
-    await log({
-      toEmail: inbox,
-      recipientCount: 1,
-      status: result.ok ? 'sent' : 'failed',
-      error: result.error,
-      messageId: result.messageId,
-    });
+    await stampEmailStatus(recipients.map((r) => r.notificationId), result.ok ? 'sent' : 'failed');
+    await logSendResult({ templateKey: template.key, subject, result });
     return;
   }
 
@@ -575,14 +548,8 @@ async function sendTemplateEmails(
   if (emailable.length === 1) {
     const r = emailable[0];
     const result = await sendEmail({ config, to: r.email!, subject, title: subject, bodyText });
-    await stamp([r.notificationId], result.ok ? 'sent' : 'failed');
-    await log({
-      toEmail: r.email!,
-      recipientCount: 1,
-      status: result.ok ? 'sent' : 'failed',
-      error: result.error,
-      messageId: result.messageId,
-    });
+    await stampOutcome([r], result);
+    await logSendResult({ templateKey: template.key, subject, result });
     return;
   }
 
@@ -596,30 +563,119 @@ async function sendTemplateEmails(
     cursor += batch.length;
 
     if (Date.now() - startedAt > EMAIL_TIME_BUDGET_MS) {
-      await log({
-        toEmail: `${emailable.length - cursor + batch.length} مستلم متبقٍ`,
-        recipientCount: emailable.length - cursor + batch.length,
-        status: 'failed',
-        error: 'timeout: email time budget exceeded, remaining batches skipped',
+      const remaining = emailable.length - cursor + batch.length;
+      await prisma.emailLog.create({
+        data: {
+          templateKey: template.key,
+          subject,
+          toEmail: `${remaining} مستلم متبقٍ`,
+          recipientCount: remaining,
+          status: 'failed',
+          error: 'timeout: email time budget exceeded, remaining batches skipped',
+        },
       });
       break;
     }
 
     const result = await sendEmail({ config, bcc: batch, subject, title: subject, bodyText });
-    await stamp(batchRecipients.map((r) => r.notificationId), result.ok ? 'sent' : 'failed');
-    await log({
-      toEmail: `${batch.length} مستلم`,
-      recipientCount: batch.length,
-      status: result.ok ? 'sent' : 'failed',
-      error: result.error,
-      messageId: result.messageId,
+    // Per-recipient stamps: 3 accepted + 1 rejected => 3 'sent' rows, 1 'failed' row.
+    await stampOutcome(batchRecipients, result);
+    await logSendResult({ templateKey: template.key, subject, result });
+  }
+}
+
+/** Set `emailStatus` on a list of notification rows (no-op for an empty list). */
+export async function stampEmailStatus(ids: string[], status: 'sent' | 'failed'): Promise<void> {
+  if (ids.length === 0) return;
+  await prisma.notification.updateMany({
+    where: { id: { in: ids } },
+    data: { emailStatus: status },
+  });
+}
+
+/**
+ * Split a recipient list by the transport's per-address verdict.
+ * A recipient with no email address is reported as failed.
+ */
+export function partitionByOutcome<T extends { email?: string | null }>(
+  recipients: T[],
+  result: SendEmailResult
+): { sent: T[]; failed: T[] } {
+  const accepted = new Set(result.accepted.map((e) => e.toLowerCase()));
+  const sent: T[] = [];
+  const failed: T[] = [];
+  for (const r of recipients) {
+    if (r.email && accepted.has(r.email.toLowerCase())) sent.push(r);
+    else failed.push(r);
+  }
+  return { sent, failed };
+}
+
+/**
+ * Persist one send's outcome to EmailLog with REAL numbers: a `sent` row for
+ * the accepted recipients and/or a `failed` row for the rejected ones. A
+ * partial batch therefore produces two rows whose recipientCounts add up to
+ * the batch size, instead of one all-or-nothing row.
+ */
+export async function logSendResult(params: {
+  templateKey?: string;
+  broadcastId?: string;
+  subject: string;
+  result: SendEmailResult;
+}): Promise<void> {
+  const { templateKey, broadcastId, subject, result } = params;
+  const total = result.accepted.length + result.rejected.length;
+  const label = (emails: string[]) => (total === 1 ? emails[0] : `${emails.length} مستلم`);
+
+  if (result.accepted.length > 0) {
+    await prisma.emailLog.create({
+      data: {
+        templateKey,
+        broadcastId,
+        subject,
+        toEmail: label(result.accepted),
+        recipientCount: result.accepted.length,
+        status: 'sent',
+        messageId: result.messageId,
+        // On a partial batch, keep the rejection summary on the sent row too so
+        // "why did only 3 of 4 go out?" is answerable from either row.
+        error: result.rejected.length > 0 ? result.error : undefined,
+      },
+    });
+  }
+
+  if (result.rejected.length > 0) {
+    await prisma.emailLog.create({
+      data: {
+        templateKey,
+        broadcastId,
+        subject,
+        toEmail: label(result.rejected.map((r) => r.email)),
+        recipientCount: result.rejected.length,
+        status: 'failed',
+        error: result.error ?? result.rejected.map((r) => `${r.email}: ${r.reason}`).join('; '),
+      },
+    });
+  }
+
+  if (total === 0) {
+    await prisma.emailLog.create({
+      data: {
+        templateKey,
+        broadcastId,
+        subject,
+        toEmail: '0 مستلم',
+        recipientCount: 0,
+        status: 'failed',
+        error: result.error ?? 'no recipients',
+      },
     });
   }
 }
 
 /**
  * Send one already-rendered email outside the template system (broadcasts).
- * Returns counts for the caller to persist.
+ * Returns the per-recipient outcome for the caller to count and stamp.
  */
 export async function sendRawEmail(params: {
   config: SmtpConfig;
@@ -628,7 +684,7 @@ export async function sendRawEmail(params: {
   subject: string;
   bodyText: string;
   broadcastId?: string;
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<SendEmailResult> {
   const result = await sendEmail({
     config: params.config,
     to: params.to,
@@ -638,17 +694,7 @@ export async function sendRawEmail(params: {
     bodyText: params.bodyText,
   });
 
-  await prisma.emailLog.create({
-    data: {
-      broadcastId: params.broadcastId,
-      subject: params.subject,
-      toEmail: params.to ?? `${params.bcc?.length ?? 0} مستلم`,
-      recipientCount: params.to ? 1 : params.bcc?.length ?? 0,
-      status: result.ok ? 'sent' : 'failed',
-      error: result.error,
-      messageId: result.messageId,
-    },
-  });
+  await logSendResult({ broadcastId: params.broadcastId, subject: params.subject, result });
 
-  return { ok: result.ok, error: result.error };
+  return result;
 }

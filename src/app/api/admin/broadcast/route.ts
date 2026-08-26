@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
 import { getEmailSettings, toSmtpConfig, chunkRecipients } from '@/lib/mailer';
-import { sendRawEmail } from '@/lib/notify';
+import { sendRawEmail, partitionByOutcome, stampEmailStatus } from '@/lib/notify';
 
 export const dynamic = 'force-dynamic';
 
@@ -166,30 +166,52 @@ export async function POST(request: NextRequest) {
           },
         });
       } else {
-        const stamp = async (keys: string[], status: 'sent' | 'failed') => {
-          const ids = keys.map((k) => notificationIds.get(k)).filter(Boolean) as string[];
-          if (ids.length > 0) {
-            await prisma.notification.updateMany({
-              where: { id: { in: ids } },
-              data: { emailStatus: status },
-            });
-          }
+        // Every count below comes from the transport's PER-RECIPIENT verdict
+        // (result.accepted / result.rejected), never from a batch-level boolean —
+        // see mdfiles/email-per-recipient-accounting.md.
+        const stampOutcome = async (
+          batch: ResolvedRecipient[],
+          result: Awaited<ReturnType<typeof sendRawEmail>>
+        ) => {
+          const { sent, failed } = partitionByOutcome(batch, result);
+          const idsOf = (rows: ResolvedRecipient[]) =>
+            rows
+              .map((r) => notificationIds.get(`${r.recipientType}:${r.recipientId}`))
+              .filter(Boolean) as string[];
+          await stampEmailStatus(idsOf(sent), 'sent');
+          await stampEmailStatus(idsOf(failed), 'failed');
         };
 
         // admins -> ONE shared-inbox email covering all admin recipients
         const adminRecipients = recipients.filter((r) => r.recipientType === 'admin');
         if (adminRecipients.length > 0) {
           const inbox = settings!.adminInboxEmail.trim();
+          const adminKeys = adminRecipients.map((r) => `admin:${r.recipientId}`);
+          const adminIds = adminKeys.map((k) => notificationIds.get(k)).filter(Boolean) as string[];
           if (inbox) {
             const result = await sendRawEmail({
               config, to: inbox, subject: emailSubject, bodyText: message, broadcastId: broadcast.id,
             });
+            // One shared-inbox email stands for every admin recipient: counts as 1.
             if (result.ok) emailSentCount += 1;
             else emailFailedCount += 1;
-            await stamp(
-              adminRecipients.map((r) => `admin:${r.recipientId}`),
-              result.ok ? 'sent' : 'failed'
-            );
+            await stampEmailStatus(adminIds, result.ok ? 'sent' : 'failed');
+          } else {
+            // The admin explicitly asked for email to admins; a blank shared
+            // inbox is a failure worth showing (as the 1 email that could not
+            // be sent), not a silent skip.
+            emailFailedCount += 1;
+            await stampEmailStatus(adminIds, 'failed');
+            await prisma.emailLog.create({
+              data: {
+                broadcastId: broadcast.id,
+                toEmail: `${adminRecipients.length} مسؤول`,
+                recipientCount: adminRecipients.length,
+                subject: emailSubject,
+                status: 'failed',
+                error: 'admin inbox email (adminInboxEmail) is not configured',
+              },
+            });
           }
         }
 
@@ -200,9 +222,9 @@ export async function POST(request: NextRequest) {
           const result = await sendRawEmail({
             config, to: r.email!, subject: emailSubject, bodyText: message, broadcastId: broadcast.id,
           });
-          if (result.ok) emailSentCount += 1;
-          else emailFailedCount += 1;
-          await stamp([`${r.recipientType}:${r.recipientId}`], result.ok ? 'sent' : 'failed');
+          emailSentCount += result.accepted.length;
+          emailFailedCount += result.rejected.length;
+          await stampOutcome([r], result);
         } else if (direct.length > 1) {
           const batches = chunkRecipients(direct.map((r) => r.email!));
           let cursor = 0;
@@ -212,12 +234,13 @@ export async function POST(request: NextRequest) {
             cursor += batch.length;
 
             if (Date.now() - startedAt > 20_000) {
-              emailFailedCount += direct.length - cursor + batch.length;
+              const remaining = direct.length - cursor + batch.length;
+              emailFailedCount += remaining;
               await prisma.emailLog.create({
                 data: {
                   broadcastId: broadcast.id,
-                  toEmail: `${direct.length - cursor + batch.length} مستلم متبقٍ`,
-                  recipientCount: direct.length - cursor + batch.length,
+                  toEmail: `${remaining} مستلم متبقٍ`,
+                  recipientCount: remaining,
                   subject: emailSubject,
                   status: 'failed',
                   error: 'timeout: email time budget exceeded',
@@ -229,12 +252,10 @@ export async function POST(request: NextRequest) {
             const result = await sendRawEmail({
               config, bcc: batch, subject: emailSubject, bodyText: message, broadcastId: broadcast.id,
             });
-            if (result.ok) emailSentCount += batch.length;
-            else emailFailedCount += batch.length;
-            await stamp(
-              slice.map((r) => `${r.recipientType}:${r.recipientId}`),
-              result.ok ? 'sent' : 'failed'
-            );
+            // 3 accepted + 1 rejected => sent 3, failed 1 (was: failed 4).
+            emailSentCount += result.accepted.length;
+            emailFailedCount += result.rejected.length;
+            await stampOutcome(slice, result);
           }
         }
       }

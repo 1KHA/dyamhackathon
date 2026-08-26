@@ -2,7 +2,14 @@ import nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import { prisma } from './prisma';
 import { decryptSecret } from './crypto';
-import { isMandrillConfigured, sendViaMandrill } from './mandrill';
+import {
+  isMandrillConfigured,
+  sendViaMandrill,
+  summarizeRejections,
+  type RecipientFailure,
+} from './mandrill';
+
+export type { RecipientFailure } from './mandrill';
 
 /**
  * Email delivery. Transport is chosen per call, not at boot:
@@ -124,10 +131,21 @@ export function renderEmailHtml(title: string, bodyText: string): string {
 </div>`;
 }
 
+/**
+ * Per-recipient outcome of one send. `ok` is "at least one recipient was
+ * accepted"; callers that need counts read `accepted` / `rejected` instead of
+ * the boolean, so a 3-of-4 batch is never reported as 0-of-4.
+ * See mdfiles/email-per-recipient-accounting.md.
+ */
 export interface SendEmailResult {
   ok: boolean;
   messageId?: string;
+  /** Summary — set on total failure AND on partial success. */
   error?: string;
+  /** Requested recipients (to + bcc) the transport accepted. */
+  accepted: string[];
+  /** Requested recipients the transport rejected, with the reason. */
+  rejected: RecipientFailure[];
 }
 
 export interface SendEmailParams {
@@ -152,10 +170,12 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       text: bodyText,
       fromName: process.env.MAIL_FROM_NAME || config.fromName,
     });
-    if (!result.ok) console.error(`[email] mandrill send failed: ${result.error}`);
+    // `error` is also set on PARTIAL success (some recipients rejected) — log it either way.
+    if (result.error) console.error(`[email] mandrill ${result.ok ? 'partial' : 'failed'}: ${result.error}`);
     return result;
   }
 
+  const requested = [...(to ? [to] : []), ...(bcc ?? [])];
   const transport = buildTransport(config);
 
   try {
@@ -167,12 +187,44 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       html: renderEmailHtml(title, bodyText),
       text: bodyText,
     });
-    return { ok: true, messageId: info.messageId };
+
+    // nodemailer reports the SMTP envelope verdict per address. The sender
+    // self-copy (BCC-only sends) is deliberately excluded from accounting —
+    // only the addresses the caller asked for count.
+    const acceptedSet = new Set(info.accepted.map(addressOf));
+    const rejectedSet = new Set(info.rejected.map(addressOf));
+    const accepted: string[] = [];
+    const rejected: RecipientFailure[] = [];
+    for (const email of requested) {
+      const key = email.toLowerCase();
+      if (rejectedSet.has(key)) rejected.push({ email, reason: 'rejected by SMTP server' });
+      else if (acceptedSet.has(key)) accepted.push(email);
+      else rejected.push({ email, reason: 'not accepted by SMTP server' });
+    }
+
+    return {
+      ok: accepted.length > 0,
+      messageId: info.messageId,
+      error: rejected.length > 0 ? `SMTP ${summarizeRejections(rejected, requested.length)}` : undefined,
+      accepted,
+      rejected,
+    };
   } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    const reason = error instanceof Error ? error.message : String(error);
+    return {
+      ok: false,
+      error: reason,
+      accepted: [],
+      rejected: requested.map((email) => ({ email, reason })),
+    };
   } finally {
     transport.close();
   }
+}
+
+/** nodemailer's accepted/rejected entries are strings or {address} objects. */
+function addressOf(entry: string | { address: string }): string {
+  return (typeof entry === 'string' ? entry : entry.address).toLowerCase();
 }
 
 /** Split a recipient list into BCC batches. */
