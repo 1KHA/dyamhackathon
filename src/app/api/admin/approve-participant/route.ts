@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import { dispatchNotification } from '@/lib/notify'
+import { generatePassword, credentialVariables, participantDisplayName } from '@/lib/credentials'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
@@ -64,9 +65,9 @@ export async function POST(request: NextRequest) {
     let generatedPassword = null
 
     if (!passwordHash) {
-      // Generate a password based on email prefix
-      const emailPrefix = participant.email.split('@')[0]
-      generatedPassword = `${emailPrefix}123`
+      // Random password, delivered to the participant in the acceptance email
+      // (see mdfiles/acceptance-credentials-email.md)
+      generatedPassword = generatePassword()
       passwordHash = await bcrypt.hash(generatedPassword, 10)
     }
 
@@ -80,9 +81,16 @@ export async function POST(request: NextRequest) {
       select: PARTICIPANT_PUBLIC_FIELDS
     })
 
-    // Create notification for the participant
+    // Notify the participant with their login credentials (their own email only)
     await dispatchNotification({
       templateKey: 'participantApproval',
+      perRecipient: {
+        [participantId]: credentialVariables({
+          email: participant.email,
+          password: generatedPassword, // null => "unchanged" text when they already had one
+          participantName: participantDisplayName(participant),
+        }),
+      },
       audience: { kind: 'participant', id: participantId },
       relatedEntityType: 'participant',
       relatedEntityId: participantId,

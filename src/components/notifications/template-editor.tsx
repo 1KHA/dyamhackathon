@@ -128,6 +128,13 @@ function TemplateRow({
           ) : (
             <p className="text-xs text-muted-foreground">هذا القالب بدون متغيرات.</p>
           )}
+          {template.variables.includes("password") && (
+            <p className="text-xs text-blue-700">
+              يُرسل هذا البريد لكل مستلم على حدة ببياناته الخاصة: <code dir="ltr">{"{{email}}"}</code>{" "}
+              و <code dir="ltr">{"{{password}}"}</code> و <code dir="ltr">{"{{loginUrl}}"}</code> —
+              كلمة المرور تُنشأ عند القبول ولا تصل إلا لصاحبها.
+            </p>
+          )}
           {template.bulk && (
             <p className="text-xs text-amber-600">
               هذا الإشعار يُرسل بريدياً كمجموعات (نسخة مخفية) — نفس النص للجميع، لا يمكن استخدام

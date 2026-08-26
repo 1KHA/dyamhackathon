@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import { dispatchNotification } from '@/lib/notify';
+import bcrypt from 'bcryptjs';
+import { generatePassword, credentialVariables } from '@/lib/credentials';
 
 export const dynamic = 'force-dynamic';
 
@@ -137,9 +139,34 @@ export async function POST(request: NextRequest) {
       const participantName = joinRequest.fullName || 
         `${joinRequest.firstName} ${joinRequest.secondName} ${joinRequest.familyName}`.trim();
 
+      // A participant joining an approved team needs login credentials. If
+      // they never had a password (registered as an individual, not yet
+      // approved), issue one now and send it in their acceptance email.
+      const joiner = await prisma.participant.findUnique({
+        where: { id: joinRequest.participantId },
+        select: { email: true, passwordHash: true },
+      });
+      let issuedPassword: string | null = null;
+      if (joiner && !joiner.passwordHash) {
+        issuedPassword = generatePassword();
+        await prisma.participant.update({
+          where: { id: joinRequest.participantId },
+          data: { passwordHash: await bcrypt.hash(issuedPassword, 10) },
+        });
+      }
+
       await dispatchNotification({
         templateKey: 'joinRequestAccepted',
         variables: { teamName: joinRequest.teamName || '' },
+        perRecipient: joiner
+          ? {
+              [joinRequest.participantId]: credentialVariables({
+                email: joiner.email,
+                password: issuedPassword,
+                participantName,
+              }),
+            }
+          : undefined,
         audience: { kind: 'participant', id: joinRequest.participantId },
         relatedEntityType: 'team',
         relatedEntityId: joinRequest.teamId,

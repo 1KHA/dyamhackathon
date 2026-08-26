@@ -155,9 +155,13 @@ export default function TeamsPage() {
       });
 
       if (response.ok) {
+        const data = await response.json();
+        const n = Array.isArray(data.credentials) ? data.credentials.length : 0;
         toast({
           title: "نجح",
-          description: "تمت الموافقة على الفريق وإنشاء الحسابات بنجاح",
+          description: n > 0
+            ? `تمت الموافقة على الفريق وإنشاء ${n} حساب — أُرسلت بيانات الدخول (البريد وكلمة المرور) لكل عضو على بريده`
+            : "تمت الموافقة على الفريق وإنشاء الحسابات بنجاح",
         });
         fetchTeams(); // Refresh the list
       } else {

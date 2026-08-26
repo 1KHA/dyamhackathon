@@ -126,10 +126,15 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       key: 'teamApproval',
       label: 'قبول الفريق',
       category: 'participant',
-      variables: ['teamName'],
+      // email/password/loginUrl/participantName are PER RECIPIENT — each team
+      // member gets their own email with their own credentials.
+      variables: ['teamName', 'participantName', 'email', 'password', 'loginUrl'],
       type: 'success',
       dashboardTitle: 'تم قبول فريقك!',
       dashboardMessage: 'تهانينا! تم قبول فريق {{teamName}} في الهاكثون',
+      emailSubject: 'تم قبول فريق {{teamName}} — بيانات الدخول إلى حسابك',
+      emailBody:
+        'مرحباً {{participantName}}،\n\nتهانينا! تم قبول فريق {{teamName}} في الهاكثون.\n\nبيانات الدخول إلى لوحة المشارك:\nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\n\nرابط تسجيل الدخول: {{loginUrl}}\n\nهذه البيانات خاصة بك ولا تشاركها مع أحد. يمكنك تغيير كلمة المرور في أي وقت عبر خيار "نسيت كلمة المرور" في صفحة الدخول.',
       actionUrl: '/participant-dashboard',
     }),
     def({
@@ -145,10 +150,13 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       key: 'participantApproval',
       label: 'قبول المشارك',
       category: 'participant',
-      variables: [],
+      variables: ['participantName', 'email', 'password', 'loginUrl'],
       type: 'success',
       dashboardTitle: 'تم قبول طلبك!',
       dashboardMessage: 'تم قبول طلب مشاركتك في الهاكاثون. يمكنك الآن تسجيل الدخول إلى حسابك.',
+      emailSubject: 'تم قبول طلب مشاركتك — بيانات الدخول إلى حسابك',
+      emailBody:
+        'مرحباً {{participantName}}،\n\nتهانينا! تم قبول طلب مشاركتك في الهاكاثون.\n\nبيانات الدخول إلى لوحة المشارك:\nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\n\nرابط تسجيل الدخول: {{loginUrl}}\n\nهذه البيانات خاصة بك ولا تشاركها مع أحد. يمكنك تغيير كلمة المرور في أي وقت عبر خيار "نسيت كلمة المرور" في صفحة الدخول.',
       actionUrl: '/participant-dashboard',
     }),
     def({
@@ -262,10 +270,13 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       key: 'joinRequestAccepted',
       label: 'قبول طلب الانضمام',
       category: 'participant',
-      variables: ['teamName'],
+      variables: ['teamName', 'participantName', 'email', 'password', 'loginUrl'],
       type: 'success',
       dashboardTitle: 'تم قبول طلب الانضمام!',
       dashboardMessage: 'تهانينا! تم قبولك في فريق {{teamName}}',
+      emailSubject: 'تم قبولك في فريق {{teamName}} — بيانات الدخول إلى حسابك',
+      emailBody:
+        'مرحباً {{participantName}}،\n\nتهانينا! تم قبولك في فريق {{teamName}}.\n\nبيانات الدخول إلى لوحة المشارك:\nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\n\nرابط تسجيل الدخول: {{loginUrl}}\n\nهذه البيانات خاصة بك ولا تشاركها مع أحد. يمكنك تغيير كلمة المرور في أي وقت عبر خيار "نسيت كلمة المرور" في صفحة الدخول.',
       actionUrl: '/participant-dashboard/team',
     }),
     def({
@@ -383,6 +394,13 @@ export interface DispatchParams {
   relatedEntityId?: string;
   /** Overrides the template's actionUrl for this dispatch only. */
   actionUrl?: string;
+  /**
+   * Variables that differ per recipient, keyed by recipientId (participant /
+   * mentor id). Merged over `variables` for that recipient's dashboard text
+   * AND email. When present, emails are sent one per recipient (never BCC),
+   * so e.g. {{password}} only ever reaches its owner.
+   */
+  perRecipient?: Record<string, TemplateVariables>;
 }
 
 interface PlannedRecipient {
@@ -390,13 +408,15 @@ interface PlannedRecipient {
   recipientType: 'admin' | 'participant' | 'mentor';
   recipientId: string;
   email: string | null; // null => no email deliverable for this row
+  /** Fully merged variables for this recipient (shared + per-recipient). */
+  variables: TemplateVariables;
 }
 
 /** Wall-clock budget for email sending inside a request (Vercel cap is 30s). */
 const EMAIL_TIME_BUDGET_MS = 20_000;
 
 export async function dispatchNotification(params: DispatchParams): Promise<void> {
-  const { templateKey, variables = {}, audience, relatedEntityType, relatedEntityId } = params;
+  const { templateKey, variables = {}, audience, relatedEntityType, relatedEntityId, perRecipient } = params;
 
   const template = await getEffectiveTemplate(templateKey);
   if (!template) {
@@ -404,9 +424,11 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
     return;
   }
 
-  const title = renderTemplate(template.dashboardTitle, variables);
-  const message = renderTemplate(template.dashboardMessage, variables);
   const actionUrl = params.actionUrl ?? template.actionUrl;
+  const varsFor = (recipientId: string): TemplateVariables => ({
+    ...variables,
+    ...(perRecipient?.[recipientId] ?? {}),
+  });
 
   // ---- resolve recipients (dashboard rows + email addresses) --------------
   const recipients: PlannedRecipient[] = [];
@@ -427,6 +449,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
       recipientType: audience.kind,
       recipientId: audience.id,
       email,
+      variables: varsFor(audience.id),
     });
   } else if (audience.kind === 'admins') {
     // Mirrors notifyAllAdmins (notifications.ts): fall back to "admin-1" when
@@ -440,6 +463,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
           recipientType: 'admin',
           recipientId: id,
           email: null,
+          variables: varsFor(id),
         });
       }
     } catch (error) {
@@ -449,6 +473,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
         recipientType: 'admin',
         recipientId: 'admin-1',
         email: null,
+        variables: varsFor('admin-1'),
       });
     }
   } else if (audience.kind === 'team') {
@@ -464,6 +489,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
         recipientType: 'participant',
         recipientId: p.id,
         email: p.email,
+        variables: varsFor(p.id),
       });
     }
   } else {
@@ -475,6 +501,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
         recipientType: 'participant',
         recipientId: p.id,
         email: p.email,
+        variables: varsFor(p.id),
       });
     }
   }
@@ -485,8 +512,8 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
   await prisma.notification.createMany({
     data: recipients.map((r) => ({
       id: r.notificationId,
-      title,
-      message,
+      title: renderTemplate(template.dashboardTitle, r.variables),
+      message: renderTemplate(template.dashboardMessage, r.variables),
       type: template.type,
       recipientType: r.recipientType,
       recipientId: r.recipientId,
@@ -498,7 +525,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
 
   // ---- email (best-effort; never throws out of this function) -------------
   try {
-    await sendTemplateEmails(template, variables, recipients, audience.kind);
+    await sendTemplateEmails(template, variables, recipients, audience.kind, Boolean(perRecipient));
   } catch (error) {
     console.error(`Error sending emails for ${templateKey}:`, error);
   }
@@ -508,7 +535,8 @@ async function sendTemplateEmails(
   template: EffectiveTemplate,
   variables: TemplateVariables,
   recipients: PlannedRecipient[],
-  audienceKind: Audience['kind']
+  audienceKind: Audience['kind'],
+  individual: boolean = false
 ): Promise<void> {
   if (!template.emailEnabled) return;
 
@@ -521,6 +549,39 @@ async function sendTemplateEmails(
   const subject = renderTemplate(template.emailSubject, variables);
   const bodyText = renderTemplate(template.emailBody, variables);
   const startedAt = Date.now();
+
+  // Per-recipient content (credentials etc.): one email per address, each
+  // rendered with that recipient's own variables. Never BCC — a password must
+  // only ever reach its owner. Admin audiences have no per-recipient email.
+  if (individual && audienceKind !== 'admins') {
+    for (const r of recipients) {
+      if (!r.email) continue;
+      if (Date.now() - startedAt > EMAIL_TIME_BUDGET_MS) {
+        await prisma.emailLog.create({
+          data: {
+            templateKey: template.key,
+            subject,
+            toEmail: r.email,
+            recipientCount: 1,
+            status: 'failed',
+            error: 'timeout: email time budget exceeded, remaining recipients skipped',
+          },
+        });
+        continue;
+      }
+      const ownSubject = renderTemplate(template.emailSubject, r.variables);
+      const result = await sendEmail({
+        config,
+        to: r.email,
+        subject: ownSubject,
+        title: ownSubject,
+        bodyText: renderTemplate(template.emailBody, r.variables),
+      });
+      await stampEmailStatus([r.notificationId], result.ok ? 'sent' : 'failed');
+      await logSendResult({ templateKey: template.key, subject: ownSubject, result });
+    }
+    return;
+  }
 
   const stampOutcome = async (batch: PlannedRecipient[], result: SendEmailResult) => {
     const { sent, failed } = partitionByOutcome(batch, result);
