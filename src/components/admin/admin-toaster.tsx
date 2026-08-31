@@ -1,118 +1,49 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+/**
+ * Legacy admin toast API — now an adapter over the app-wide sonner toaster.
+ *
+ * This used to be a second, independent toast system (module-level array +
+ * CustomEvent + its own <AdminToaster /> fixed container mounted in the admin
+ * layout), so the admin dashboard rendered TWO toasters at once, in different
+ * corners with different styling. The rendering is gone; these exports remain
+ * so existing call sites keep working and now produce the same toasts as the
+ * rest of the app. See mdfiles/toast-system.md.
+ */
+
+import { toast } from "@/../../components/ui/use-toast";
 
 type ToastType = "success" | "error" | "warning" | "info";
 
-interface Toast {
-  id: number;
-  message: string;
-  type: ToastType;
-  timestamp: number;
-}
+const VARIANTS = {
+  success: "success",
+  error: "destructive",
+  warning: "warning",
+  info: "info",
+} as const;
 
-// Global state for toasts
-let toasts: Toast[] = [];
-let toastId = 0;
-
-// Function to add a toast
+/** Show a toast from a bare message + type. */
 export const addToast = (message: string, type: ToastType = "info") => {
-  const id = toastId++;
-  const newToast: Toast = {
-    id,
-    message,
-    type,
-    timestamp: Date.now(),
-  };
-  
-  toasts = [...toasts, newToast];
-  
-  // Dispatch a custom event to notify the toaster component
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("toast-added"));
-  }
-  
-  // Auto-remove after 5 seconds
-  setTimeout(() => {
-    removeToast(id);
-  }, 5000);
-  
-  return id;
+  toast({ title: message, variant: VARIANTS[type] });
+  return 0; // legacy call sites ignore the return value
 };
 
-// Function to remove a toast
-export const removeToast = (id: number) => {
-  toasts = toasts.filter((toast) => toast.id !== id);
-  
-  // Dispatch a custom event to notify the toaster component
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("toast-removed"));
-  }
-};
+/** No-op: sonner owns dismissal (each toast has its own close button). */
+export const removeToast = (_id: number) => {};
 
-// Helper function to show toast with the same interface as in components/admin/admin-toaster.tsx
-export function showAdminToast(toast: { title?: string; description?: string; variant?: "default" | "destructive" }) {
-  const type = toast.variant === "destructive" ? "error" : "success";
-  const message = toast.title ? (toast.description ? `${toast.title}: ${toast.description}` : toast.title) : toast.description || "";
-  addToast(message, type);
+/** Same shape as useToast()'s toast() — forwarded as-is. */
+export function showAdminToast(toastProps: {
+  title?: string;
+  description?: string;
+  variant?: "default" | "destructive";
+}) {
+  toast(toastProps);
 }
 
+/**
+ * Renders nothing. The single <Toaster /> in the root layout draws all toasts;
+ * kept as an export so any stale import does not break the build.
+ */
 export function AdminToaster() {
-  const [localToasts, setLocalToasts] = useState<Toast[]>([]);
-  
-  useEffect(() => {
-    // Update local state when toasts change
-    const updateToasts = () => {
-      setLocalToasts([...toasts]);
-    };
-    
-    // Listen for toast events
-    window.addEventListener("toast-added", updateToasts);
-    window.addEventListener("toast-removed", updateToasts);
-    
-    // Initial state
-    updateToasts();
-    
-    return () => {
-      window.removeEventListener("toast-added", updateToasts);
-      window.removeEventListener("toast-removed", updateToasts);
-    };
-  }, []);
-  
-  const getToastClasses = (type: ToastType) => {
-    const baseClasses = "p-4 rounded-md shadow-md flex justify-between items-center mb-2";
-    
-    switch (type) {
-      case "success":
-        return `${baseClasses} bg-green-100 text-green-800 border-l-4 border-green-500`;
-      case "error":
-        return `${baseClasses} bg-red-100 text-red-800 border-l-4 border-red-500`;
-      case "warning":
-        return `${baseClasses} bg-yellow-100 text-yellow-800 border-l-4 border-yellow-500`;
-      case "info":
-      default:
-        return `${baseClasses} bg-blue-100 text-blue-800 border-l-4 border-blue-500`;
-    }
-  };
-  
-  if (localToasts.length === 0) {
-    return null;
-  }
-  
-  return (
-    <div className="fixed bottom-4 right-4 z-50 w-80 max-w-full">
-      {localToasts.map((toast) => (
-        <div key={toast.id} className={getToastClasses(toast.type)}>
-          <div>{toast.message}</div>
-          <button
-            onClick={() => removeToast(toast.id)}
-            className="ml-2 text-gray-500 hover:text-gray-700"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
+  return null;
 }

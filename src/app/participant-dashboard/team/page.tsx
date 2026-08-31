@@ -249,21 +249,21 @@ export default function TeamManagementPage() {
   const { currentUser } = teamData;
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-2 sm:p-6" dir="rtl">
+    <div className="w-full max-w-full space-y-4 sm:space-y-6 p-0 sm:p-2 md:p-4" dir="rtl">
       <Tabs defaultValue="team-info" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="team-info">معلومات الفريق</TabsTrigger>
-          <TabsTrigger value="members">الأعضاء</TabsTrigger>
+        <TabsList className="grid w-full h-auto grid-cols-2 p-1">
+          <TabsTrigger value="team-info" className="whitespace-normal py-2 text-xs sm:text-sm">معلومات الفريق</TabsTrigger>
+          <TabsTrigger value="members" className="whitespace-normal py-2 text-xs sm:text-sm">الأعضاء</TabsTrigger>
         </TabsList>
 
         <TabsContent value="team-info" className="mt-6">
           <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <CardTitle className="text-xl sm:text-2xl">فريق: {teamData.teamName}</CardTitle>
+          <div className="min-w-0">
+            <CardTitle className="text-xl sm:text-2xl leading-snug break-words">فريق: {teamData.teamName}</CardTitle>
             <CardDescription>تفاصيل الفريق والفكرة</CardDescription>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto sm:shrink-0">
             {currentUser.isLeader && (
               <Button 
                 onClick={() => {
@@ -291,54 +291,54 @@ export default function TeamManagementPage() {
         </CardHeader>
         <CardContent className="p-3 sm:p-6">
             <div className="space-y-4 sm:space-y-6 text-right">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-3 sm:p-4 border rounded-lg bg-muted/10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 p-3 sm:p-4 border rounded-lg bg-muted/10 min-w-0 [&>div]:min-w-0">
                     <div className="space-y-2">
                         <Label>اسم الفكرة</Label>
-                        <p className="font-medium">{teamData.ideaName}</p>
+                        <p className="font-medium break-words">{teamData.ideaName}</p>
                     </div>
                     <div className="space-y-2">
                         <Label>التحدي</Label>
-                        <p className="font-medium">{teamData.challenge}</p>
+                        <p className="font-medium break-words">{teamData.challenge}</p>
                     </div>
                     <div className="space-y-2">
                         <Label>مرحلة الفكرة</Label>
-                        <p className="font-medium">{teamData.ideaStage}</p>
+                        <p className="font-medium break-words">{teamData.ideaStage}</p>
                     </div>
                     <div className="space-y-2">
                         <Label>حالة الفريق</Label>
-                        <p className="font-medium">{teamData.status}</p>
+                        <p className="font-medium break-words">{teamData.status}</p>
                     </div>
                 </div>
 
                 <div className="space-y-4 p-3 sm:p-4 border rounded-lg bg-muted/10">
                     <div className="space-y-2">
                         <Label>وصف الفكرة</Label>
-                        <p className="font-medium leading-relaxed">{teamData.ideaDescription}</p>
+                        <p className="font-medium leading-relaxed break-words whitespace-pre-wrap">{teamData.ideaDescription}</p>
                     </div>
                     <div className="space-y-2">
                         <Label>سبب اختيار التحدي</Label>
-                        <p className="font-medium leading-relaxed">{teamData.challengeReason}</p>
+                        <p className="font-medium leading-relaxed break-words whitespace-pre-wrap">{teamData.challengeReason}</p>
                     </div>
                     <div className="space-y-2">
                         <Label>الحل المقترح</Label>
-                        <p className="font-medium leading-relaxed">{teamData.ideaSolution}</p>
+                        <p className="font-medium leading-relaxed break-words whitespace-pre-wrap">{teamData.ideaSolution}</p>
                     </div>
                     <div className="space-y-2">
                         <Label>النتائج المتوقعة</Label>
-                        <p className="font-medium leading-relaxed">{teamData.ideaResults}</p>
+                        <p className="font-medium leading-relaxed break-words whitespace-pre-wrap">{teamData.ideaResults}</p>
                     </div>
                 </div>
 
                 <div className="p-3 sm:p-4 border rounded-lg bg-muted/10">
                     <div className="space-y-4">
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                             <Label>هل شاركت الفكرة من قبل؟</Label>
                             <span className="font-medium">{teamData.hasParticipated ? 'نعم' : 'لا'}</span>
                         </div>
                         {teamData.hasParticipated && (
                             <div className="space-y-2">
                                 <Label>تفاصيل المشاركة السابقة</Label>
-                                <p className="font-medium">{teamData.participationDetails}</p>
+                                <p className="font-medium break-words">{teamData.participationDetails}</p>
                             </div>
                         )}
                         {teamData.attachmentPath && (
@@ -363,33 +363,33 @@ export default function TeamManagementPage() {
         <TabsContent value="members" className="mt-6">
           <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <CardTitle>أعضاء الفريق</CardTitle>
+          <CardTitle>أعضاء الفريق <span className="text-sm font-normal text-muted-foreground">({teamData.participants.length})</span></CardTitle>
         </CardHeader>
         <CardContent className="p-2 sm:p-6">
-          {/* Mobile Card View */}
-          <div className="block md:hidden space-y-4">
+          {/* Card view: phones, tablets and small laptops (below xl) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 xl:hidden">
             {teamData.participants.map((participant) => {
               const canDelete = currentUser.isLeader && currentUser.id !== participant.id;
               
               return (
-                <Card key={participant.id} className="overflow-hidden">
+                <Card key={participant.id} className="overflow-hidden min-w-0">
                   <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg">{participant.fullName}</h3>
-                        <p className="text-sm text-muted-foreground">{participant.email}</p>
+                    <div className="flex justify-between items-start gap-2 mb-3">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-lg leading-snug break-words">{participant.fullName}</h3>
+                        <p className="text-sm text-muted-foreground break-all">{participant.email}</p>
                       </div>
-                      <div className="flex flex-col items-end gap-1">
+                      <div className="flex flex-col items-end gap-1 shrink-0">
                         {participant.isLeader && (
-                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">قائد</span>
+                          <span className="px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800 whitespace-nowrap">قائد</span>
                         )}
-                        <span className={`px-2 py-1 rounded-full text-xs ${participant.canAttend ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                        <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${participant.canAttend ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                           {participant.canAttend ? 'يمكنه الحضور' : 'لا يمكنه الحضور'}
                         </span>
                       </div>
                     </div>
                     
-                    <div className="grid grid-cols-2 gap-x-2 gap-y-3 text-sm">
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-3 text-sm break-words [&>div]:min-w-0">
                       <div>
                         <span className="text-muted-foreground">رقم الهوية:</span>
                         <p>{participant.nationalId}</p>
@@ -438,26 +438,25 @@ export default function TeamManagementPage() {
             })}
           </div>
           
-          {/* Desktop Table View */}
-          <div className="hidden md:block overflow-x-auto -mx-4 sm:mx-0 rounded-lg border">
-            <div className="w-full overflow-x-auto">
-              <table className="w-full min-w-[1000px]">
+          {/* Table view: wide desktops only (xl and up) */}
+          <div className="hidden xl:block w-full overflow-x-auto rounded-lg border">
+              <table className="w-full min-w-[1000px] text-sm">
               <thead className="bg-muted/50">
                 <tr>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">الاسم الكامل</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">البريد الإلكتروني</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">رقم الهوية</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">تاريخ الميلاد</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">رقم الهاتف</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">المؤهل</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">الجامعة</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">التخصص</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">الحالة الوظيفية</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">الجنسية</th>
-                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground">الإقامة</th>
-                  <th className="p-2 sm:p-4 text-center font-medium text-muted-foreground">يمكنه الحضور</th>
-                  <th className="p-2 sm:p-4 text-center font-medium text-muted-foreground">قائد</th>
-                  <th className="p-2 sm:p-4 text-center font-medium text-muted-foreground">الإجراءات</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">الاسم الكامل</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">البريد الإلكتروني</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">رقم الهوية</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">تاريخ الميلاد</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">رقم الهاتف</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">المؤهل</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">الجامعة</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">التخصص</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">الحالة الوظيفية</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">الجنسية</th>
+                  <th className="p-2 sm:p-4 text-right font-medium text-muted-foreground whitespace-nowrap">الإقامة</th>
+                  <th className="p-2 sm:p-4 text-center font-medium text-muted-foreground whitespace-nowrap">يمكنه الحضور</th>
+                  <th className="p-2 sm:p-4 text-center font-medium text-muted-foreground whitespace-nowrap">قائد</th>
+                  <th className="p-2 sm:p-4 text-center font-medium text-muted-foreground whitespace-nowrap">الإجراءات</th>
                 </tr>
               </thead>
               <tbody>
@@ -511,7 +510,6 @@ export default function TeamManagementPage() {
                 })}
               </tbody>
             </table>
-            </div>
           </div>
         </CardContent>
       </Card>
