@@ -1112,7 +1112,7 @@ export default function EventsPage() {
           </DialogHeader>
           {selectedEvent && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-semibold mb-2">معلومات الفعالية</h3>
                   <div className="space-y-2">
@@ -1159,7 +1159,7 @@ export default function EventsPage() {
 
               <div>
                 <h3 className="font-semibold mb-2">معلومات إضافية</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="bg-gray-50 p-3 rounded">
                     <p className="text-sm text-gray-500">المسؤول</p>
                     <p className="font-medium">{selectedEvent.facilitator}</p>
@@ -1262,7 +1262,7 @@ export default function EventsPage() {
           
           {eventToEdit && (
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">اسم الفعالية</Label>
                   <Input 
@@ -1284,7 +1284,7 @@ export default function EventsPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="type">نوع الفعالية</Label>
                   <Select 
@@ -1325,7 +1325,7 @@ export default function EventsPage() {
                   required
                 />
               </div>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="date">تاريخ الفعالية</Label>
                   <Input 
@@ -1357,7 +1357,7 @@ export default function EventsPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="location">المكان</Label>
                   <Input 
@@ -1429,7 +1429,7 @@ export default function EventsPage() {
           )}
           
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="title">اسم الفعالية</Label>
                 <Input 
@@ -1451,7 +1451,7 @@ export default function EventsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="type">نوع الفعالية</Label>
                 <Select onValueChange={(value) => handleSelectChange("type", value)}>
@@ -1489,7 +1489,7 @@ export default function EventsPage() {
                 required
               />
             </div>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">تاريخ البداية</Label>
                 <Input 
@@ -1519,7 +1519,7 @@ export default function EventsPage() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="endTime">وقت النهاية</Label>
                 <Input 
