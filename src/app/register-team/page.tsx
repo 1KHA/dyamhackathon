@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CHALLENGES } from '@/lib/challenges'
 import { Checkbox } from '@/../../components/ui/checkbox'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { useToast } from '@/../../components/ui/use-toast'
@@ -555,12 +556,11 @@ export default function RegisterTeamPage() {
                         <SelectValue placeholder="اختر المسار..." />
                       </SelectTrigger>
                       <SelectContent className="text-right" dir="rtl">
-                        <SelectItem value="النفايات الحضرية (البلدية والمنزلية)" className="text-lg py-3 text-right" style={{ fontFamily: 'PingAR, Arial, sans-serif' }}>
-                          النفايات الحضرية (البلدية والمنزلية)
-                        </SelectItem>
-                        <SelectItem value="النفايات الصناعية" className="text-lg py-3 text-right" style={{ fontFamily: 'PingAR, Arial, sans-serif' }}>
-                          النفايات الصناعية
-                        </SelectItem>
+                        {CHALLENGES.map((challenge) => (
+                          <SelectItem key={challenge} value={challenge} className="text-lg py-3 text-right" style={{ fontFamily: 'PingAR, Arial, sans-serif' }}>
+                            {challenge}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
