@@ -54,11 +54,13 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useToast } from '../../../../components/ui/use-toast';
+import MentorMessageDialog from '@/components/admin/MentorMessageDialog';
 import { Label } from '@/components/ui/label';
 import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/ar'; // Import Arabic locale
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { SLOT_STEP_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
 
 moment.locale('ar'); // Set moment to use Arabic
 const localizer = momentLocalizer(moment);
@@ -117,6 +119,7 @@ export default function MentorsPage() {
   const [mentorForAvailability, setMentorForAvailability] = useState<Mentor | null>(null);
   const [availabilityEvents, setAvailabilityEvents] = useState<AvailabilityEvent[]>([]);
   const [slotToAdd, setSlotToAdd] = useState<{ start: Date; end: Date } | null>(null);
+  const [mentorToMessage, setMentorToMessage] = useState<Mentor | null>(null);
   const [eventToDelete, setEventToDelete] = useState<AvailabilityEvent | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
@@ -885,6 +888,14 @@ export default function MentorsPage() {
                         <Clock className="h-4 w-4" />
                         <span>إدارة الوقت</span>
                       </Button>
+                      <Button
+                        variant="outline"
+                        className="bg-purple-50 text-purple-600 hover:bg-purple-100 border-purple-200 flex items-center gap-1"
+                        onClick={() => setMentorToMessage(mentor)}
+                      >
+                        <Mail className="h-4 w-4" />
+                        <span>إرسال رسالة</span>
+                      </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" className="h-8 w-8 p-0">
@@ -1293,6 +1304,8 @@ export default function MentorsPage() {
           <div style={{ height: '70vh', backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
             <BigCalendar
               localizer={localizer}
+              step={SLOT_STEP_MINUTES}
+              timeslots={SLOT_TIMESLOTS_PER_HOUR}
               events={availabilityEvents}
               startAccessor="start"
               endAccessor="end"
@@ -1362,6 +1375,7 @@ export default function MentorsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <MentorMessageDialog mentor={mentorToMessage} onClose={() => setMentorToMessage(null)} />
     </div>
   );
 }

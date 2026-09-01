@@ -21,8 +21,12 @@ function loadEnv() {
         const key = match[1].trim();
         const value = match[2].trim().replace(/^["'](.*)["']$/, '$1'); // Remove quotes if present
         
-        // Set environment variable
-        process.env[key] = value;
+        // Set environment variable — but never clobber one that is already
+        // set in the environment (standard dotenv semantics; lets test runs
+        // point DATABASE_URL at a dedicated test database).
+        if (!(key in process.env)) {
+          process.env[key] = value;
+        }
       }
     });
     

@@ -17,3 +17,8 @@ export const ALLOWED_FILE_TYPES = [
   "image/jpeg",
   "image/png",
 ];
+
+// Mentor availability slot granularity (minutes). One knob for every calendar:
+// change to 30 later to widen the booking grid everywhere at once.
+export const SLOT_STEP_MINUTES = 15;
+export const SLOT_TIMESLOTS_PER_HOUR = 60 / SLOT_STEP_MINUTES;

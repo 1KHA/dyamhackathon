@@ -108,22 +108,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if the participant already has a booking with this mentor at the same time
+    // One active booking per mentor per participant: a participant may book
+    // several mentors, but only one (non-cancelled) session with each mentor.
     const existingBooking = await prisma.mentorBooking.findFirst({
       where: {
         participantId: participant.id,
+        status: { not: 'cancelled' },
         availability: {
           mentorId: availability.mentorId,
-          startTime: {
-            equals: availability.startTime,
-          },
         },
       },
     });
 
     if (existingBooking) {
       return NextResponse.json(
-        { message: 'لديك حجز موجود بالفعل مع هذا الموجه في نفس الوقت' },
+        { message: 'لديك حجز بالفعل مع هذا الموجه. يمكنك حجز جلسة واحدة فقط مع كل موجه.' },
         { status: 400 }
       );
     }

@@ -16,6 +16,7 @@ const path = require('path');
 const SUITES = [
   'verify-notifications',
   'verify-mentor-flows',
+  'e2e-mentor-features',
   'e2e-notifications',
   'e2e-milestone',
   'e2e-phase1',

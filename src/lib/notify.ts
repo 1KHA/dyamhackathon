@@ -198,6 +198,17 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       dashboardMessage: 'فعالية {{eventTitle}} ستبدأ خلال ساعة في {{location}}',
     }),
     def({
+      key: 'newEventAvailable',
+      label: 'فعالية جديدة (لكل المشاركين)',
+      category: 'participant',
+      variables: ['eventTitle', 'eventDate', 'location'],
+      type: 'info',
+      dashboardTitle: 'فعالية جديدة',
+      dashboardMessage: 'تمت إضافة فعالية جديدة: {{eventTitle}} بتاريخ {{eventDate}} في {{location}}',
+      actionUrl: '/participant-dashboard/events',
+      bulk: true,
+    }),
+    def({
       key: 'newMilestoneAvailable',
       label: 'مرحلة جديدة متاحة (لكل المشاركين)',
       category: 'participant',

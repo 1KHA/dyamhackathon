@@ -9,42 +9,50 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const mentorId = searchParams.get('mentorId');
-    
-    // If mentorId is provided, use it directly
-    // Otherwise, try to get the logged-in mentor's ID from JWT
-    let targetMentorId = mentorId;
-    
-    if (!targetMentorId) {
-      // Check if this is a mentor requesting their own bookings
-      const cookieStore = cookies();
-      const token = cookieStore.get('token')?.value;
-      
-      if (!token) {
-        return NextResponse.json(
-          { error: 'غير مصرح. يرجى تسجيل الدخول.' },
-          { status: 401 }
-        );
-      }
-      
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id: string, role: string };
-        
-        if (decoded.role !== 'mentor') {
-          return NextResponse.json(
-            { error: 'غير مصرح. هذه الخدمة متاحة للموجهين فقط.' },
-            { status: 403 }
-          );
-        }
-        
-        targetMentorId = decoded.id;
-      } catch (error) {
-        return NextResponse.json(
-          { error: 'رمز المصادقة غير صالح.' },
-          { status: 401 }
-        );
-      }
+
+    // Booking rows include participant names/emails/phones, so access is
+    // restricted: admins may query any mentor via ?mentorId=, a mentor may
+    // only read their own bookings, and participants are not allowed at all.
+    const cookieStore = cookies();
+    const token = cookieStore.get('token')?.value;
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'غير مصرح. يرجى تسجيل الدخول.' },
+        { status: 401 }
+      );
     }
-    
+
+    let decoded: { id?: string; role?: string };
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { id?: string; role?: string };
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'رمز المصادقة غير صالح.' },
+        { status: 401 }
+      );
+    }
+
+    let targetMentorId: string | null = null;
+    if (decoded.role === 'admin') {
+      targetMentorId = mentorId;
+    } else if (decoded.role === 'mentor' && decoded.id) {
+      // A mentor always reads their own bookings; a mentorId param, if sent,
+      // must be their own.
+      if (mentorId && mentorId !== decoded.id) {
+        return NextResponse.json(
+          { error: 'غير مصرح. لا يمكنك عرض حجوزات موجه آخر.' },
+          { status: 403 }
+        );
+      }
+      targetMentorId = decoded.id;
+    } else {
+      return NextResponse.json(
+        { error: 'غير مصرح. هذه الخدمة متاحة للموجهين والمسؤولين فقط.' },
+        { status: 403 }
+      );
+    }
+
     if (!targetMentorId) {
       return NextResponse.json(
         { error: 'يجب توفير معرف الموجه.' },

@@ -6,6 +6,7 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/ar'; // Import Arabic locale
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import { SLOT_STEP_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
 import { Button } from '../../../../components/ui/button';
 import { useToast } from "../../../../components/ui/use-toast"
 
@@ -247,6 +248,8 @@ const AvailabilityPage = () => {
       <div style={{ height: '70vh', backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
         <Calendar
           localizer={localizer}
+          step={SLOT_STEP_MINUTES}
+          timeslots={SLOT_TIMESLOTS_PER_HOUR}
           events={events}
           startAccessor="start"
           endAccessor="end"
