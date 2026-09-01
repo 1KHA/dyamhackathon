@@ -164,6 +164,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Disabled by an admin — after the password check, same as participants.
+    if (mentor.isDisabled) {
+      console.log(`\u274c Mentor account disabled: ${email}`);
+      return NextResponse.json({ error: DISABLED_ACCOUNT_MESSAGE }, { status: 403 });
+    }
+
     // Generate JWT token for mentor
     const token = jwt.sign(
       {

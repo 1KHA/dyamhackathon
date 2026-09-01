@@ -106,6 +106,10 @@ model Mentor {
   specialty      String
   phone          String
   status         String               @default("pending") // pending, active, inactive
+  // Disabled by an admin: cannot log in, cannot act, receives no transactional
+  // email, and is not bookable. See src/lib/account-status.ts.
+  isDisabled     Boolean              @default(false)
+  disabledAt     DateTime?
   passwordHash   String?
   createdAt      DateTime             @default(now())
   updatedAt      DateTime             @updatedAt

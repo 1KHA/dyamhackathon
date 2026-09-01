@@ -5,7 +5,12 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
 import { waitUntil } from '@vercel/functions';
 import { getEmailSettings, toSmtpConfig } from '@/lib/mailer';
-import { ACTIVE_PARTICIPANT_WHERE, DISABLED_PARTICIPANT_WHERE } from '@/lib/account-status';
+import {
+  ACTIVE_PARTICIPANT_WHERE,
+  DISABLED_PARTICIPANT_WHERE,
+  ACTIVE_MENTOR_WHERE,
+  DISABLED_MENTOR_WHERE,
+} from '@/lib/account-status';
 import {
   enqueueBroadcastRecipients,
   drainEmailQueue,
@@ -59,16 +64,24 @@ async function resolveAudience(audience: AudienceInput): Promise<ResolvedRecipie
   }
 
   if (audience.type === 'disabled-accounts') {
-    // Participants disabled directly OR through a disabled team.
-    const rows = await prisma.participant.findMany({
-      where: DISABLED_PARTICIPANT_WHERE,
-      select: { id: true, email: true },
-    });
-    return rows.map((r) => ({ recipientType: 'participant', recipientId: r.id, email: r.email }));
+    // Participants disabled directly OR through a disabled team, plus
+    // disabled mentors. This is the one channel that still reaches them.
+    const [participants, mentors] = await Promise.all([
+      prisma.participant.findMany({ where: DISABLED_PARTICIPANT_WHERE, select: { id: true, email: true } }),
+      prisma.mentor.findMany({ where: DISABLED_MENTOR_WHERE, select: { id: true, email: true } }),
+    ]);
+    return [
+      ...participants.map((r) => ({ recipientType: 'participant' as const, recipientId: r.id, email: r.email })),
+      ...mentors.map((r) => ({ recipientType: 'mentor' as const, recipientId: r.id, email: r.email })),
+    ];
   }
 
   if (audience.type === 'all-mentors') {
-    const rows = await prisma.mentor.findMany({ select: { id: true, email: true } });
+    // Disabled mentors excluded, like participants.
+    const rows = await prisma.mentor.findMany({
+      where: ACTIVE_MENTOR_WHERE,
+      select: { id: true, email: true },
+    });
     return rows.map((r) => ({ recipientType: 'mentor', recipientId: r.id, email: r.email }));
   }
 

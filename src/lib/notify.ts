@@ -459,7 +459,12 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
         if (isEffectivelyDisabled(row)) return;
         email = row?.email ?? null;
       } else {
-        const row = await prisma.mentor.findUnique({ where: { id: audience.id }, select: { email: true } });
+        const row = await prisma.mentor.findUnique({
+          where: { id: audience.id },
+          select: { email: true, isDisabled: true },
+        });
+        // Disabled mentors get no transactional notification either.
+        if (row?.isDisabled) return;
         email = row?.email ?? null;
       }
     } catch {

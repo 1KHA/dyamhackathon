@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
+import { requireActiveMentor } from '@/lib/account-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,6 +47,9 @@ export async function GET(request: NextRequest) {
         );
       }
       targetMentorId = decoded.id;
+      const blocked_ = await requireActiveMentor(decoded.id);
+      if (blocked_) return blocked_;
+
     } else {
       return NextResponse.json(
         { error: 'غير مصرح. هذه الخدمة متاحة للموجهين والمسؤولين فقط.' },

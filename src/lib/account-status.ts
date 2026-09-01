@@ -12,6 +12,9 @@
  *
  * A disabled account:
  *   - cannot log in (src/app/api/login/route.ts)
+ *
+ * Mentors have the same flag (`Mentor.isDisabled`). A disabled mentor also
+ * disappears from the participant-facing mentor list and cannot be booked.
  *   - cannot perform any participant action — every participant-facing API
  *     goes through requireActiveParticipant() below
  *   - receives NO transactional email or dashboard notification
@@ -110,5 +113,41 @@ export async function requireActiveParticipant(
 ): Promise<NextResponse | null> {
   if (!participantId) return null; // the route's own auth check handles this
   if (!(await isParticipantDisabled(participantId))) return null;
+  return NextResponse.json({ error: DISABLED_ACCOUNT_MESSAGE, disabled: true }, { status: 403 });
+}
+
+// ---------------------------------------------------------------------------
+// Mentors — same feature, simpler because a mentor has no parent record.
+// ---------------------------------------------------------------------------
+
+/** Prisma `where` fragment: mentors who are NOT disabled. */
+export const ACTIVE_MENTOR_WHERE: Prisma.MentorWhereInput = { isDisabled: false };
+
+/** Prisma `where` fragment: mentors who ARE disabled. */
+export const DISABLED_MENTOR_WHERE: Prisma.MentorWhereInput = { isDisabled: true };
+
+/** Look up a mentor's disabled state by id. Fails open like the participant version. */
+export async function isMentorDisabled(mentorId: string): Promise<boolean> {
+  if (!mentorId) return false;
+  try {
+    const row = await prisma.mentor.findUnique({
+      where: { id: mentorId },
+      select: { isDisabled: true },
+    });
+    return Boolean(row?.isDisabled);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Route guard for mentor-facing endpoints — mirrors requireActiveParticipant().
+ * Returns a ready 403 response, or null to continue.
+ */
+export async function requireActiveMentor(
+  mentorId: string | undefined | null
+): Promise<NextResponse | null> {
+  if (!mentorId) return null;
+  if (!(await isMentorDisabled(mentorId))) return null;
   return NextResponse.json({ error: DISABLED_ACCOUNT_MESSAGE, disabled: true }, { status: 403 });
 }

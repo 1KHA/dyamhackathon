@@ -18,6 +18,8 @@ const MENTOR_PUBLIC_FIELDS = {
   status: true,
   createdAt: true,
   updatedAt: true,
+  isDisabled: true,
+  disabledAt: true,
 } as const;
 
 /**
@@ -26,17 +28,23 @@ const MENTOR_PUBLIC_FIELDS = {
  * user rather than admins only. It never returns passwordHash.
  */
 export async function GET(request: NextRequest) {
-  if (!verifyToken(cookies().get('token')?.value)) {
+  const claims = verifyToken(cookies().get('token')?.value);
+  if (!claims) {
     return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
   }
+
+  // Admins must still see disabled mentors (to re-enable them); everyone else
+  // — i.e. participants browsing before booking — must not.
+  const isAdmin = claims.role === 'admin';
+  const visibility = isAdmin ? {} : { isDisabled: false };
 
   const searchParams = request.nextUrl.searchParams;
   const id = searchParams.get('id');
 
   try {
     if (id) {
-      const mentor = await prisma.mentor.findUnique({
-        where: { id },
+      const mentor = await prisma.mentor.findFirst({
+        where: { id, ...visibility },
         select: MENTOR_PUBLIC_FIELDS,
       });
 
@@ -47,6 +55,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(mentor);
     } else {
       const mentors = await prisma.mentor.findMany({
+        where: visibility,
         select: MENTOR_PUBLIC_FIELDS,
         orderBy: {
           createdAt: 'desc',

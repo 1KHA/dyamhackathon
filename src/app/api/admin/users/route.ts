@@ -37,7 +37,7 @@ export async function GET() {
         orderBy: { createdAt: 'desc' },
       }),
       prisma.mentor.findMany({
-        select: { id: true, email: true, name: true },
+        select: { id: true, email: true, name: true, isDisabled: true },
         orderBy: { createdAt: 'desc' },
       }),
     ]);
@@ -61,7 +61,7 @@ export async function GET() {
         name: m.name,
         email: m.email,
         hasTeam: false,
-        isDisabled: false,
+        isDisabled: Boolean(m.isDisabled),
       })),
     ];
 

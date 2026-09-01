@@ -20,6 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
   Search, 
   Filter, 
@@ -34,7 +35,9 @@ import {
   Edit,
   Trash2,
   UserCheck,
-  UserX
+  UserX,
+  Ban,
+  RotateCcw
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -95,6 +98,7 @@ interface Mentor {
   specialty: string;
   phone: string;
   status: 'pending' | 'active' | 'inactive';
+  isDisabled?: boolean;
   createdAt: string;
   updatedAt: string;
   // The following fields are for display and might not be in the DB model directly
@@ -107,6 +111,9 @@ interface Mentor {
 
 export default function MentorsPage() {
   const [mentors, setMentors] = useState<Mentor[]>([]);
+  // Bulk disable/enable selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
@@ -416,6 +423,47 @@ export default function MentorsPage() {
     setMentorForAvailability(mentor);
     fetchMentorAvailability(mentor.id);
     setAvailabilityDialogOpen(true);
+  };
+
+  const toggleRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  /** Disable or re-enable every ticked mentor in one request. */
+  const handleBulkDisable = async (disabled: boolean) => {
+    if (selectedIds.size === 0) return;
+    try {
+      setBulkBusy(true);
+      const res = await fetch('/api/admin/accounts/disable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ mentorIds: Array.from(selectedIds), disabled }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'فشل تنفيذ العملية');
+      toast({
+        title: 'نجح',
+        description: disabled
+          ? `تم تعطيل ${data.mentorsUpdated} موجه`
+          : `تم تفعيل ${data.mentorsUpdated} موجه`,
+      });
+      setSelectedIds(new Set());
+      fetchMentors();
+    } catch (err) {
+      toast({
+        title: 'خطأ',
+        description: err instanceof Error ? err.message : 'فشل تنفيذ العملية',
+        variant: 'destructive',
+      });
+    } finally {
+      setBulkBusy(false);
+    }
   };
 
   const filteredMentors = mentors.filter(mentor => {
@@ -806,12 +854,39 @@ export default function MentorsPage() {
         </CardContent>
       </Card>
 
+      {/* Bulk disable/enable bar — appears once any mentor is ticked */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 p-3">
+          <span className="text-sm font-medium">تم اختيار {selectedIds.size} موجه</span>
+          <Button size="sm" variant="destructive" disabled={bulkBusy} onClick={() => handleBulkDisable(true)}>
+            <Ban className="ml-1 h-4 w-4" />
+            تعطيل المحدد
+          </Button>
+          <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => handleBulkDisable(false)}>
+            <RotateCcw className="ml-1 h-4 w-4" />
+            إعادة التفعيل
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+            إلغاء التحديد
+          </Button>
+        </div>
+      )}
+
       {/* Mentors Table */}
       <Card className="border-0 shadow-sm overflow-hidden">
         <CardContent className="p-0">
           <Table className="border-collapse">
             <TableHeader>
               <TableRow className="bg-blue-50 hover:bg-blue-50">
+                <TableHead className="w-10">
+                  <Checkbox
+                    aria-label="تحديد الكل"
+                    checked={filteredMentors.length > 0 && filteredMentors.every((m) => selectedIds.has(m.id))}
+                    onCheckedChange={(checked: boolean | 'indeterminate') =>
+                      setSelectedIds(checked === true ? new Set(filteredMentors.map((m) => m.id)) : new Set())
+                    }
+                  />
+                </TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead>التخصص</TableHead>
                 <TableHead>الفرق المعينة</TableHead>
@@ -824,9 +899,24 @@ export default function MentorsPage() {
             </TableHeader>
             <TableBody>
               {filteredMentors.map((mentor) => (
-                <TableRow key={mentor.id} className="hover:bg-gray-50 transition-colors duration-150">
+                <TableRow
+                  key={mentor.id}
+                  className={`hover:bg-gray-50 transition-colors duration-150 ${mentor.isDisabled ? 'bg-red-50/60' : ''}`}
+                >
+                  <TableCell>
+                    <Checkbox
+                      aria-label="تحديد الموجه"
+                      checked={selectedIds.has(mentor.id)}
+                      onCheckedChange={() => toggleRow(mentor.id)}
+                    />
+                  </TableCell>
                   <TableCell className="font-medium">
-                    <div>{mentor.name}</div>
+                    <div className="flex items-center gap-2">
+                      <span>{mentor.name}</span>
+                      {mentor.isDisabled && (
+                        <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">معطل</span>
+                      )}
+                    </div>
                     <div className="text-sm text-gray-500">{mentor.email}</div>
                   </TableCell>
                   <TableCell>{mentor.specialty}</TableCell>

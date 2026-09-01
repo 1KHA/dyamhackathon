@@ -90,6 +90,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // A disabled mentor is not bookable, regardless of their status field.
+    if (availability.mentor.isDisabled) {
+      return NextResponse.json(
+        { error: 'هذا الموجه غير متاح حالياً' },
+        { status: 403 }
+      );
+    }
+
     // Check if the mentor is active
     if (availability.mentor.status !== 'active') {
       return NextResponse.json(
