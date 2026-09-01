@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +13,10 @@ import {
   LogOut,
   Settings,
   HelpCircle,
+  Home,
+  ListChecks,
+  CalendarClock,
+  Bell,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -23,10 +28,24 @@ import {
 import NotificationDropdown from "@/components/ui/notification-dropdown";
 import { useAuth } from "@/contexts/auth-context";
 
+const MOBILE_NAV_ITEMS = [
+  { name: "لوحة التحكم", href: "/mentor-dashboard", icon: Home },
+  { name: "جلسات الإرشاد", href: "/mentor-dashboard/sessions", icon: ListChecks },
+  { name: "إدارة التوفر", href: "/mentor-dashboard/availability", icon: CalendarClock },
+  { name: "الإشعارات", href: "/mentor-dashboard/notifications", icon: Bell },
+  { name: "الملف الشخصي", href: "/mentor-dashboard/profile", icon: User },
+];
+
 export default function TopBar() {
   const { logout } = useAuth();
+  const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Close the mobile drawer whenever navigation happens.
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,18 +145,64 @@ export default function TopBar() {
         </div>
       </div>
 
+      {/* Mobile navigation drawer — same pattern as the admin dashboard */}
       {isMobileMenuOpen && (
-        <div className="border-t border-primary-foreground/20 p-4 md:hidden">
-          <form onSubmit={handleSearch} className="relative mb-4">
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-foreground/60" />
-            <input
-              type="search"
-              placeholder="بحث في لوحة التحكم..."
-              className="w-full rounded-md border border-primary-foreground/20 bg-primary-foreground/10 py-2 pr-10 pl-4 text-right text-primary-foreground placeholder:text-primary-foreground/60"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </form>
+        <div className="fixed inset-0 z-50 md:hidden" dir="rtl">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="absolute inset-y-0 right-0 w-72 max-w-[85vw] overflow-y-auto bg-background text-foreground shadow-xl">
+            <div className="flex items-center justify-between border-b p-4">
+              <span className="text-base font-semibold">لوحة المرشد</span>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="rounded-md p-2 hover:bg-muted"
+                aria-label="إغلاق القائمة"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="p-4">
+              <form onSubmit={handleSearch} className="relative mb-4">
+                <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <input
+                  type="search"
+                  placeholder="بحث في لوحة التحكم..."
+                  className="w-full rounded-md border bg-muted/40 py-2 pr-10 pl-4 text-right"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </form>
+              <nav className="space-y-1">
+                {MOBILE_NAV_ITEMS.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium ${
+                      pathname === item.href
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <item.icon className="h-5 w-5 shrink-0" />
+                    {item.name}
+                  </Link>
+                ))}
+              </nav>
+              <div className="mt-4 border-t pt-4">
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                >
+                  <LogOut className="h-5 w-5 shrink-0" />
+                  تسجيل الخروج
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </header>

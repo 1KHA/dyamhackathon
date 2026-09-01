@@ -45,6 +45,26 @@ import { Alert, AlertDescription } from '../../../../components/ui/alert';
 moment.locale('ar'); // Set moment to use Arabic
 const localizer = momentLocalizer(moment);
 
+// ---- mobile slot-list helpers (the week calendar is unusable on phones) ----
+const fmtSlotTime = (d: Date | string) =>
+  new Date(d).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+
+function groupSlotsByDay(events: AvailabilityEvent[]) {
+  const sorted = [...events].sort(
+    (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()
+  );
+  const groups: { day: string; slots: AvailabilityEvent[] }[] = [];
+  for (const e of sorted) {
+    const day = new Date(e.start).toLocaleDateString('ar-SA', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+    });
+    const last = groups[groups.length - 1];
+    if (last && last.day === day) last.slots.push(e);
+    else groups.push({ day, slots: [e] });
+  }
+  return groups;
+}
+
 const messages = {
   allDay: 'يوم كامل',
   previous: 'السابق',
@@ -581,7 +601,71 @@ export default function MentorsPage() {
               المواعيد المتاحة للموجه خلال الأسبوع الحالي
             </DialogDescription>
           </DialogHeader>
-          <div style={{ height: '70vh', backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
+          {/* Mobile: tappable slot list grouped by day */}
+          <div className="md:hidden max-h-[65vh] overflow-y-auto space-y-4 py-1">
+            {availabilityEvents.length > 0 ? (
+              <>
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#60a5fa]"></span>متاح</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#f87171]"></span>محجوز</span>
+                  <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-[#4ade80]"></span>محجوز بواسطتك</span>
+                </div>
+                {groupSlotsByDay(availabilityEvents).map((group) => (
+                  <div key={group.day}>
+                    <div className="text-sm font-semibold text-muted-foreground mb-2">{group.day}</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      {group.slots.map((ev) => {
+                        const isSelected = selectedEvent?.id === ev.id;
+                        return (
+                          <button
+                            key={ev.id}
+                            type="button"
+                            onClick={() => handleSelectEvent(ev)}
+                            className={`rounded-lg border p-2 text-center transition-colors ${
+                              isSelected
+                                ? 'bg-blue-600 border-blue-600 text-white'
+                                : ev.isBooked
+                                  ? ev.isOwnBooking
+                                    ? 'bg-green-50 border-green-300 text-green-700'
+                                    : 'bg-red-50 border-red-200 text-red-400'
+                                  : 'bg-blue-50 border-blue-200 text-blue-700 active:bg-blue-100'
+                            }`}
+                          >
+                            <span className="block text-sm font-medium" dir="ltr">
+                              {fmtSlotTime(ev.start)} – {fmtSlotTime(ev.end)}
+                            </span>
+                            <span className="block text-[11px] mt-0.5">
+                              {ev.isBooked ? (ev.isOwnBooking ? 'محجوز بواسطتك' : 'محجوز') : isSelected ? 'تم الاختيار' : 'متاح'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {selectedEvent && !selectedEvent.isBooked && (
+                  <div className="sticky bottom-0 bg-background border-t pt-3 pb-1">
+                    <Button
+                      onClick={bookAppointment}
+                      disabled={bookingLoading}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                    >
+                      {bookingLoading ? 'جاري الحجز...' : 'حجز هذا الموعد'}
+                    </Button>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10">
+                <Calendar className="h-12 w-12 text-gray-300 mb-3" />
+                <p className="text-gray-500">لا توجد مواعيد متاحة حالياً</p>
+                <p className="text-gray-400 text-sm mt-1">يرجى التحقق لاحقاً أو التواصل مع الموجه مباشرة</p>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: week calendar (unchanged) */}
+          <div className="hidden md:block" style={{ height: '70vh', backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
             {availabilityEvents.length > 0 ? (
               <>
                 <BigCalendar
