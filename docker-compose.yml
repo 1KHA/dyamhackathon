@@ -56,7 +56,9 @@ services:
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
     ports:
-      - "${APP_PORT:-3000}:3000"
+      # Host port 3011 by default: 3000/3001 are commonly taken by other local
+      # projects (and by `npm run dev`), so the stack never fights for them.
+      - "${APP_PORT:-3011}:3000"
 
 volumes:
   pgdata:
