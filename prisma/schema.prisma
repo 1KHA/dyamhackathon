@@ -182,6 +182,9 @@ model Event {
   status       String             @default("upcoming") // upcoming, active, completed, cancelled
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
+  // Last time an admin sent a manual reminder for this event — powers the
+  // "already sent X ago" warning and the server-side re-send cooldown.
+  lastReminderAt DateTime?
   registrations EventRegistration[]
 }
 

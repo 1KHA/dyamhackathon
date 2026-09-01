@@ -210,6 +210,21 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       bulk: true,
     }),
     def({
+      key: 'eventReminderManual',
+      label: 'تذكير بفعالية (إرسال يدوي من المشرف)',
+      category: 'participant',
+      variables: ['eventTitle', 'eventDate', 'eventLocation'],
+      type: 'info',
+      dashboardTitle: 'تذكير بفعالية: {{eventTitle}}',
+      dashboardMessage: 'نذكرك بفعالية {{eventTitle}} بتاريخ {{eventDate}} في {{eventLocation}}.',
+      emailSubject: 'تذكير بفعالية {{eventTitle}}',
+      emailBody:
+        'نذكرك بأنك مسجّل في فعالية {{eventTitle}}.\n\nالتاريخ: {{eventDate}}\nالمكان: {{eventLocation}}\n\nنتطلع لحضورك.',
+      actionUrl: '/participant-dashboard/events',
+      // BCC fan-out: same text for everyone, so no per-recipient variables.
+      bulk: true,
+    }),
+    def({
       key: 'newMilestoneAvailable',
       label: 'مرحلة جديدة متاحة (لكل المشاركين)',
       category: 'participant',
@@ -396,7 +411,9 @@ export type Audience =
   | { kind: 'mentor'; id: string }
   | { kind: 'admins' }
   | { kind: 'team'; teamId: string }
-  | { kind: 'allParticipants' };
+  | { kind: 'allParticipants' }
+  /** Everyone still registered for a given event (admin-triggered reminders). */
+  | { kind: 'eventRegistrants'; eventId: string };
 
 export interface DispatchParams {
   templateKey: string;
@@ -524,6 +541,26 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
         recipientId: p.id,
         email: p.email,
         variables: varsFor(p.id),
+      });
+    }
+  } else if (audience.kind === 'eventRegistrants') {
+    // Participants with a live registration for this event. Cancelled
+    // registrations and disabled accounts are excluded.
+    const registrations = await prisma.eventRegistration.findMany({
+      where: {
+        eventId: audience.eventId,
+        status: 'registered',
+        participant: ACTIVE_PARTICIPANT_WHERE,
+      },
+      select: { participant: { select: { id: true, email: true } } },
+    });
+    for (const reg of registrations) {
+      recipients.push({
+        notificationId: crypto.randomUUID(),
+        recipientType: 'participant',
+        recipientId: reg.participant.id,
+        email: reg.participant.email,
+        variables: varsFor(reg.participant.id),
       });
     }
   } else {

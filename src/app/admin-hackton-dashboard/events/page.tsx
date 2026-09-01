@@ -37,6 +37,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "../../../../components/ui/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -165,6 +166,7 @@ export default function EventsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
+  const { toast } = useToast();
   const [selectedEvent, setSelectedEvent] = useState<EventForDisplay | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
@@ -180,6 +182,16 @@ export default function EventsPage() {
   
   // State for delete confirmation dialog
   const [isDeleteConfirmDialogOpen, setIsDeleteConfirmDialogOpen] = useState(false);
+  const [remindingEventId, setRemindingEventId] = useState<string | null>(null);
+  // Reminder confirmation dialog. A reminder is irreversible and goes to
+  // everyone at once, so it is never sent straight from a menu click.
+  const [reminderTarget, setReminderTarget] = useState<{ id: string; name: string } | null>(null);
+  const [reminderPreview, setReminderPreview] = useState<{
+    recipientCount: number;
+    lastReminderAt: string | null;
+    cooldownMinutes: number;
+  } | null>(null);
+  const [reminderLoading, setReminderLoading] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   
   // State for edit dialog
@@ -288,6 +300,69 @@ export default function EventsPage() {
   };
   
   // Handle opening edit dialog
+  /**
+   * Step 1 — open the confirmation dialog and fetch a preview (how many people
+   * would be notified, and whether a reminder went out recently).
+   */
+  const openReminderDialog = async (eventId: string, eventName: string) => {
+    setReminderTarget({ id: eventId, name: eventName });
+    setReminderPreview(null);
+    setReminderLoading(true);
+    try {
+      const res = await fetch(`/api/admin/events/${eventId}/remind`, { credentials: 'include' });
+      const data = await res.json();
+      if (res.ok) setReminderPreview(data);
+    } catch {
+      /* the dialog still works; it just cannot show a count */
+    } finally {
+      setReminderLoading(false);
+    }
+  };
+
+  /**
+   * Step 2 — actually send. `force` re-sends inside the server's cooldown,
+   * which is only offered after the server refuses with 409.
+   */
+  const confirmSendReminder = async (force = false) => {
+    if (!reminderTarget) return;
+    const { id, name } = reminderTarget;
+    try {
+      setRemindingEventId(id);
+      const res = await fetch(`/api/admin/events/${id}/remind`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ force }),
+      });
+      const data = await res.json();
+
+      if (res.status === 409 && data.cooldown) {
+        // Keep the dialog open and let the admin decide to send anyway.
+        setReminderPreview((prev) =>
+          prev ? { ...prev, lastReminderAt: data.lastReminderAt } : prev
+        );
+        toast({ title: 'تم الإرسال مؤخراً', description: data.error, variant: 'destructive' });
+        return;
+      }
+      if (!res.ok) throw new Error(data.error || 'فشل إرسال التذكير');
+
+      toast({
+        title: 'تم إرسال التذكير',
+        description: `تم إشعار ${data.recipientCount} مشارك مسجل في «${name}» عبر لوحة التحكم والبريد الإلكتروني`,
+      });
+      setReminderTarget(null);
+      setReminderPreview(null);
+    } catch (err) {
+      toast({
+        title: 'خطأ',
+        description: err instanceof Error ? err.message : 'فشل إرسال التذكير',
+        variant: 'destructive',
+      });
+    } finally {
+      setRemindingEventId(null);
+    }
+  };
+
   const handleEditEvent = (event: EventForDisplay) => {
     setEventToEdit(event);
     setIsEditDialogOpen(true);
@@ -1059,7 +1134,12 @@ export default function EventsPage() {
                             <Edit className="ml-2 h-4 w-4" />
                             تعديل
                           </DropdownMenuItem>
-                          <DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              openReminderDialog(event.id, event.name);
+                            }}
+                          >
                             <Bell className="ml-2 h-4 w-4" />
                             إرسال تذكير
                           </DropdownMenuItem>
@@ -1210,7 +1290,10 @@ export default function EventsPage() {
                   <Edit className="ml-2 h-4 w-4" />
                   تعديل
                 </Button>
-                <Button variant="outline">
+                <Button
+                  variant="outline"
+                  onClick={() => openReminderDialog(selectedEvent.id, selectedEvent.name)}
+                >
                   <Bell className="ml-2 h-4 w-4" />
                   إرسال تذكير
                 </Button>
@@ -1753,7 +1836,85 @@ export default function EventsPage() {
       </Dialog>
       
       {/* Delete Confirmation Dialog */}
-      <Dialog 
+      <Dialog
+        open={reminderTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !remindingEventId) {
+            setReminderTarget(null);
+            setReminderPreview(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md" dir="rtl">
+          <DialogHeader>
+            <DialogTitle>تأكيد إرسال التذكير</DialogTitle>
+            <DialogDescription>
+              سيتم إرسال إشعار في لوحة التحكم <strong>و</strong> رسالة بريد إلكتروني لكل المشاركين
+              المسجلين في «{reminderTarget?.name}». لا يمكن التراجع عن هذا الإجراء.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            {reminderLoading ? (
+              <p className="text-muted-foreground">جاري حساب عدد المستلمين...</p>
+            ) : reminderPreview ? (
+              <>
+                <div className="rounded-md border bg-muted/40 p-3">
+                  سيصل التذكير إلى{' '}
+                  <strong className="text-base">{reminderPreview.recipientCount}</strong> مشارك مسجل.
+                  {reminderPreview.recipientCount === 0 && (
+                    <span className="block mt-1 text-red-600">
+                      لا يوجد مشاركون مسجلون — لن يتم إرسال شيء.
+                    </span>
+                  )}
+                </div>
+                {reminderPreview.lastReminderAt && (
+                  <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800">
+                    سبق إرسال تذكير لهذه الفعالية بتاريخ{' '}
+                    {new Date(reminderPreview.lastReminderAt).toLocaleString('ar-SA')}. إرسال تذكير
+                    آخر سيصل للمشاركين مرة ثانية.
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-muted-foreground">تعذر حساب عدد المستلمين — يمكنك المتابعة.</p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2 sm:justify-center sm:space-x-0">
+            <Button
+              variant="outline"
+              disabled={remindingEventId !== null}
+              onClick={() => {
+                setReminderTarget(null);
+                setReminderPreview(null);
+              }}
+            >
+              إلغاء
+            </Button>
+            <Button
+              disabled={remindingEventId !== null || reminderPreview?.recipientCount === 0}
+              onClick={() => confirmSendReminder(false)}
+            >
+              <Bell className="ml-2 h-4 w-4" />
+              {remindingEventId ? 'جاري الإرسال...' : 'تأكيد الإرسال'}
+            </Button>
+            {reminderPreview?.lastReminderAt && (
+              <Button
+                variant="destructive"
+                disabled={remindingEventId !== null || reminderPreview?.recipientCount === 0}
+                onClick={() => confirmSendReminder(true)}
+                title="تجاهل مهلة إعادة الإرسال"
+              >
+                إرسال مرة أخرى على أي حال
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+       
         open={isDeleteConfirmDialogOpen} 
         onOpenChange={(open) => {
           if (!open) {
