@@ -193,8 +193,8 @@ export default function MentorSessionsPage() {
   }
 
   return (
-    <div className="p-8" dir="rtl">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-0 md:p-8" dir="rtl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
         <h1 className="text-3xl font-bold text-blue-800">الجلسات المحجوزة</h1>
         <Button 
           variant="outline" 
@@ -278,7 +278,7 @@ export default function MentorSessionsPage() {
       {/* Search and Filter */}
       <Card className="mb-8 border-0 shadow-sm overflow-hidden">
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-500 h-4 w-4" />

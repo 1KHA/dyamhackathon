@@ -278,7 +278,7 @@ export default function AllMilestoneSubmissionsPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">جميع التسليمات</h1>
           <p className="text-muted-foreground mt-1">
@@ -369,7 +369,7 @@ export default function AllMilestoneSubmissionsPage() {
         </div>
         
         <Select value={selectedMilestone} onValueChange={setSelectedMilestone}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full md:w-[200px]">
             <SelectValue placeholder="المرحلة" />
           </SelectTrigger>
           <SelectContent>
@@ -383,7 +383,7 @@ export default function AllMilestoneSubmissionsPage() {
         </Select>
         
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full md:w-[200px]">
             <SelectValue placeholder="الحالة" />
           </SelectTrigger>
           <SelectContent>

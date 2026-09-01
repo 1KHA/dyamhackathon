@@ -223,7 +223,7 @@ export default function MilestonesPage() {
 
   return (
     <div className="space-y-6" dir="rtl">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-3xl font-bold">التسليمات</h1>
         <Link href="/admin-hackton-dashboard/milestones/create">
           <Button className="gap-2">

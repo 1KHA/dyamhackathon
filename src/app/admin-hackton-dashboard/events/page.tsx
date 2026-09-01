@@ -819,7 +819,7 @@ export default function EventsPage() {
   });
 
   return (
-    <div className="p-8" dir="rtl">
+    <div className="p-0 md:p-8" dir="rtl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">إدارة الفعاليات</h1>
         <p className="text-gray-600">جدولة وإدارة جميع فعاليات الهاكاثون</p>
@@ -879,8 +879,8 @@ export default function EventsPage() {
       </div>
 
       {/* Actions and View Toggle */}
-      <div className="flex justify-between items-center mb-6">
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+      <div className="flex flex-wrap gap-2">
           <Button onClick={() => setIsCreateDialogOpen(true)}>
             <Plus className="ml-2 h-4 w-4" />
             إضافة فعالية جديدة
@@ -930,7 +930,7 @@ export default function EventsPage() {
           </div>
         </div>
         <Select value={selectedType} onValueChange={setSelectedType}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full md:w-[200px]">
             <SelectValue placeholder="نوع الفعالية" />
           </SelectTrigger>
           <SelectContent>
@@ -942,7 +942,7 @@ export default function EventsPage() {
           </SelectContent>
         </Select>
         <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full md:w-[200px]">
             <SelectValue placeholder="الحالة" />
           </SelectTrigger>
           <SelectContent>
@@ -1633,7 +1633,7 @@ export default function EventsPage() {
                   </div>
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-full md:w-[200px]">
                     <SelectValue placeholder="حالة التسجيل" />
                   </SelectTrigger>
                   <SelectContent>

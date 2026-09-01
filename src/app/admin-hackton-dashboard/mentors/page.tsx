@@ -654,8 +654,8 @@ export default function MentorsPage() {
   };
 
   return (
-    <div className="p-8" dir="rtl">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-0 md:p-8" dir="rtl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-8">
         <h1 className="text-3xl font-bold text-blue-800">إدارة الموجهين</h1>
         <div className="flex gap-4">
           <Dialog open={isAddDialogOpen} onOpenChange={setAddDialogOpen}>
@@ -674,7 +674,7 @@ export default function MentorsPage() {
               </DialogHeader>
               <form onSubmit={handleAddMentor}>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                     <Label htmlFor="name" className="text-right">
                       الاسم
                     </Label>
@@ -686,7 +686,7 @@ export default function MentorsPage() {
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                     <Label htmlFor="email" className="text-right">
                       البريد الإلكتروني
                     </Label>
@@ -699,7 +699,7 @@ export default function MentorsPage() {
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                     <Label htmlFor="specialty" className="text-right">
                       التخصص
                     </Label>
@@ -711,7 +711,7 @@ export default function MentorsPage() {
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                     <Label htmlFor="phone" className="text-right">
                       رقم الجوال
                     </Label>
@@ -723,7 +723,7 @@ export default function MentorsPage() {
                       required
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                     <Label htmlFor="password" className="text-right">
                       كلمة المرور
                     </Label>
@@ -823,7 +823,7 @@ export default function MentorsPage() {
       {/* Filters and Search */}
       <Card className="mb-8 border-0 shadow-sm overflow-hidden">
         <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-blue-500 h-4 w-4" />
@@ -836,7 +836,7 @@ export default function MentorsPage() {
               </div>
             </div>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-[180px] border-blue-100 focus:border-blue-300 rounded-full">
+              <SelectTrigger className="w-full md:w-[180px] border-blue-100 focus:border-blue-300 rounded-full">
                 <SelectValue placeholder="حالة الموجه" />
               </SelectTrigger>
               <SelectContent>
@@ -1131,7 +1131,7 @@ export default function MentorsPage() {
           {selectedBooking && (
             <form onSubmit={handleEditBooking}>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                   <Label htmlFor="edit-status" className="text-right">
                     الحالة
                   </Label>
@@ -1149,7 +1149,7 @@ export default function MentorsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                   <Label htmlFor="edit-availability" className="text-right">
                     إعادة جدولة الموعد
                   </Label>
@@ -1238,7 +1238,7 @@ export default function MentorsPage() {
           {mentorToEdit && (
             <form onSubmit={handleUpdateMentor}>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                   <Label htmlFor="edit-name" className="text-right">
                     الاسم
                   </Label>
@@ -1250,7 +1250,7 @@ export default function MentorsPage() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                   <Label htmlFor="edit-email" className="text-right">
                     البريد الإلكتروني
                   </Label>
@@ -1263,7 +1263,7 @@ export default function MentorsPage() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                   <Label htmlFor="edit-specialty" className="text-right">
                     التخصص
                   </Label>
@@ -1275,7 +1275,7 @@ export default function MentorsPage() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                   <Label htmlFor="edit-phone" className="text-right">
                     رقم الجوال
                   </Label>
@@ -1287,7 +1287,7 @@ export default function MentorsPage() {
                     required
                   />
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                   <Label htmlFor="edit-status" className="text-right">
                     الحالة
                   </Label>
@@ -1349,7 +1349,7 @@ export default function MentorsPage() {
             </Button>
           </div>
           {showDatePicker && (
-            <div className="flex justify-center gap-4 mb-4 p-4 bg-gray-100 rounded-md">
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-4 p-4 bg-gray-100 rounded-md">
               <Select
                 value={String(calendarDate.getFullYear())}
                 onValueChange={(value) => handleDateChange(new Date(parseInt(value), calendarDate.getMonth(), calendarDate.getDate()))}
