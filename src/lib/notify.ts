@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { prisma } from './prisma';
+import { ACTIVE_PARTICIPANT_WHERE, isEffectivelyDisabled } from './account-status';
 import {
   getEmailSettings,
   toSmtpConfig,
@@ -447,11 +448,20 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
   if (audience.kind === 'participant' || audience.kind === 'mentor') {
     let email: string | null = null;
     try {
-      const row =
-        audience.kind === 'participant'
-          ? await prisma.participant.findUnique({ where: { id: audience.id }, select: { email: true } })
-          : await prisma.mentor.findUnique({ where: { id: audience.id }, select: { email: true } });
-      email = row?.email ?? null;
+      if (audience.kind === 'participant') {
+        const row = await prisma.participant.findUnique({
+          where: { id: audience.id },
+          select: { email: true, isDisabled: true, team: { select: { isDisabled: true } } },
+        });
+        // Disabled accounts get NO transactional notification at all — not the
+        // email and not the dashboard row. Admin broadcasts are the one channel
+        // that can still reach them (see account-status.ts).
+        if (isEffectivelyDisabled(row)) return;
+        email = row?.email ?? null;
+      } else {
+        const row = await prisma.mentor.findUnique({ where: { id: audience.id }, select: { email: true } });
+        email = row?.email ?? null;
+      }
     } catch {
       email = null;
     }
@@ -491,9 +501,17 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
     // Mirrors notifyTeamMembers: silently no-op when the team is missing.
     const team = await prisma.team.findUnique({
       where: { id: audience.teamId },
-      include: { participants: { select: { id: true, email: true } } },
+      include: {
+        participants: {
+          where: { isDisabled: false },
+          select: { id: true, email: true },
+        },
+      },
     });
     if (!team) return;
+    // A disabled team notifies nobody, and individually disabled members are
+    // already filtered out by the `where` above.
+    if (team.isDisabled) return;
     for (const p of team.participants) {
       recipients.push({
         notificationId: crypto.randomUUID(),
@@ -505,7 +523,10 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
     }
   } else {
     // allParticipants — bulk fan-out (milestone creation)
-    const participants = await prisma.participant.findMany({ select: { id: true, email: true } });
+    const participants = await prisma.participant.findMany({
+      where: ACTIVE_PARTICIPANT_WHERE,
+      select: { id: true, email: true },
+    });
     for (const p of participants) {
       recipients.push({
         notificationId: crypto.randomUUID(),

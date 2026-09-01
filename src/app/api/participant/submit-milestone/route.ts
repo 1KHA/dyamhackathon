@@ -4,6 +4,7 @@ import crypto from "crypto";
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { dispatchNotification } from '@/lib/notify';
+import { requireActiveParticipant, isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -65,6 +66,9 @@ export async function POST(request: NextRequest) {
 
     // Get participantId directly from the decoded token
     const participantId = decoded.participantId;
+    const blocked_ = await requireActiveParticipant(participantId);
+    if (blocked_) return blocked_;
+
 
     // Get the participant with team information
     const participant = await prisma.participant.findUnique({

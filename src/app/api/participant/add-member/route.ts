@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+import { requireActiveParticipant, isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -38,6 +39,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { teamId } = decoded;
+    const blocked_ = await requireActiveParticipant(decoded.participantId);
+    if (blocked_) return blocked_;
+
     const newMemberData = await request.json();
 
     // Validation

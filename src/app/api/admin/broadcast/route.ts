@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
 import { waitUntil } from '@vercel/functions';
 import { getEmailSettings, toSmtpConfig } from '@/lib/mailer';
+import { ACTIVE_PARTICIPANT_WHERE, DISABLED_PARTICIPANT_WHERE } from '@/lib/account-status';
 import {
   enqueueBroadcastRecipients,
   drainEmailQueue,
@@ -30,7 +31,13 @@ interface SelectedUser {
 }
 
 interface AudienceInput {
-  type: 'all-participants' | 'all-mentors' | 'all-admins' | 'selected';
+  /**
+   * `all-participants` covers ACTIVE participants only. `disabled-accounts`
+   * is the deliberate exception that lets an admin reach disabled accounts
+   * (e.g. "you did not qualify") — they receive no transactional mail, but a
+   * broadcast aimed at them still goes out. See mdfiles/disable-accounts.md.
+   */
+  type: 'all-participants' | 'all-mentors' | 'all-admins' | 'disabled-accounts' | 'selected';
   selected?: SelectedUser[];
 }
 
@@ -42,7 +49,21 @@ interface ResolvedRecipient {
 
 async function resolveAudience(audience: AudienceInput): Promise<ResolvedRecipient[]> {
   if (audience.type === 'all-participants') {
-    const rows = await prisma.participant.findMany({ select: { id: true, email: true } });
+    // Disabled accounts are excluded here on purpose; target them with the
+    // 'disabled-accounts' audience instead.
+    const rows = await prisma.participant.findMany({
+      where: ACTIVE_PARTICIPANT_WHERE,
+      select: { id: true, email: true },
+    });
+    return rows.map((r) => ({ recipientType: 'participant', recipientId: r.id, email: r.email }));
+  }
+
+  if (audience.type === 'disabled-accounts') {
+    // Participants disabled directly OR through a disabled team.
+    const rows = await prisma.participant.findMany({
+      where: DISABLED_PARTICIPANT_WHERE,
+      select: { id: true, email: true },
+    });
     return rows.map((r) => ({ recipientType: 'participant', recipientId: r.id, email: r.email }));
   }
 
@@ -110,7 +131,7 @@ export async function POST(request: NextRequest) {
     if (channels.length === 0 || !channels.every((c) => c === 'dashboard' || c === 'email')) {
       return NextResponse.json({ error: 'يرجى اختيار قناة إرسال واحدة على الأقل' }, { status: 400 });
     }
-    if (!audience || !['all-participants', 'all-mentors', 'all-admins', 'selected'].includes(audience.type)) {
+    if (!audience || !['all-participants', 'all-mentors', 'all-admins', 'disabled-accounts', 'selected'].includes(audience.type)) {
       return NextResponse.json({ error: 'جمهور الإرسال غير صالح' }, { status: 400 });
     }
     if (audience.type === 'selected' && (!audience.selected || audience.selected.length === 0)) {

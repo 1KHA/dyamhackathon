@@ -31,6 +31,8 @@ export async function GET() {
           secondName: true,
           familyName: true,
           teamId: true,
+          isDisabled: true,
+          team: { select: { isDisabled: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -50,6 +52,8 @@ export async function GET() {
           p.email,
         email: p.email,
         hasTeam: Boolean(p.teamId),
+        // disabled directly, or through a disabled team
+        isDisabled: Boolean(p.isDisabled || p.team?.isDisabled),
       })),
       ...mentors.map((m) => ({
         id: m.id,
@@ -57,6 +61,7 @@ export async function GET() {
         name: m.name,
         email: m.email,
         hasTeam: false,
+        isDisabled: false,
       })),
     ];
 

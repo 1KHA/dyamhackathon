@@ -15,6 +15,7 @@ interface PickerUser {
   type: "participant" | "mentor";
   name: string;
   email: string;
+  isDisabled?: boolean;
 }
 
 interface BroadcastRow {
@@ -40,12 +41,20 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
 /** Poll the history while any broadcast is still being drained. */
 const PROGRESS_POLL_MS = 3000;
 
-type AudienceType = "all-participants" | "all-mentors" | "all-admins" | "selected";
+type AudienceType =
+  | "all-participants"
+  | "all-mentors"
+  | "all-admins"
+  | "disabled-accounts"
+  | "selected";
 
 const AUDIENCE_LABELS: Record<string, string> = {
   "all-participants": "جميع المشاركين",
   "all-mentors": "جميع المرشدين",
   "all-admins": "جميع المشرفين",
+  // The one channel that still reaches disabled accounts — they receive no
+  // transactional email, but an admin can send them e.g. a rejection notice.
+  "disabled-accounts": "الحسابات المعطلة",
   selected: "مستخدمون محددون",
 };
 
@@ -264,6 +273,14 @@ export default function BroadcastComposer() {
             </div>
           </div>
 
+          {audienceType === "disabled-accounts" && (
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+              سيتم الإرسال إلى الحسابات المعطلة فقط (المشاركون المعطلون مباشرة أو أعضاء الفرق
+              المعطلة). هذه الحسابات لا تصلها أي رسائل تلقائية — هذه الرسالة الجماعية هي الوسيلة
+              الوحيدة للتواصل معها.
+            </p>
+          )}
+
           {audienceType === "selected" && (
             <div className="border rounded-lg p-3 space-y-3">
               <div className="relative">
@@ -294,6 +311,11 @@ export default function BroadcastComposer() {
                         <span className="text-muted-foreground" dir="ltr">
                           {u.email}
                         </span>
+                        {u.isDisabled && (
+                          <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
+                            معطل
+                          </span>
+                        )}
                         <span className="mr-auto px-1.5 py-0.5 rounded-full text-xs bg-muted">
                           {u.type === "participant" ? "مشارك" : "مرشد"}
                         </span>

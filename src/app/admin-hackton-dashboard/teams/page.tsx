@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, Filter, Download, Trash, Edit, Eye, UserPlus, Check, X, Users } from "lucide-react";
+import { Plus, Search, Filter, Download, Trash, Edit, Eye, UserPlus, Check, X, Users, Ban, RotateCcw } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/../../components/ui/use-toast";
 import * as XLSX from 'xlsx';
 import AutoTeamCreationModal from "@/../../components/admin/AutoTeamCreationModal";
@@ -58,6 +59,7 @@ interface Participant {
 }
 
 interface Team {
+  isDisabled?: boolean;
   id: string;
   teamName?: string;
   status: string;
@@ -90,6 +92,9 @@ export default function TeamsPage() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  // Bulk disable/enable selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -389,6 +394,50 @@ export default function TeamsPage() {
   };
 
   // Function to handle exporting teams data to Excel
+  const toggleRow = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  /**
+   * Disable or re-enable every ticked team in one request. Disabling a team
+   * disables all of its members with it (see src/lib/account-status.ts).
+   */
+  const handleBulkDisable = async (disabled: boolean) => {
+    if (selectedIds.size === 0) return;
+    try {
+      setBulkBusy(true);
+      const res = await fetch('/api/admin/accounts/disable', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ teamIds: Array.from(selectedIds), disabled }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'فشل تنفيذ العملية');
+      toast({
+        title: 'نجح',
+        description: disabled
+          ? `تم تعطيل ${data.teamsUpdated} فريق (وجميع أعضائه)`
+          : `تم تفعيل ${data.teamsUpdated} فريق`,
+      });
+      setSelectedIds(new Set());
+      fetchTeams();
+    } catch (err) {
+      toast({
+        title: 'خطأ',
+        description: err instanceof Error ? err.message : 'فشل تنفيذ العملية',
+        variant: 'destructive',
+      });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const handleExportToExcel = () => {
     try {
       // Create a detailed worksheet with all teams data
@@ -654,10 +703,36 @@ export default function TeamsPage() {
             </div>
           </div>
 
+          {selectedIds.size > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 p-3">
+              <span className="text-sm font-medium">تم اختيار {selectedIds.size} فريق</span>
+              <Button size="sm" variant="destructive" disabled={bulkBusy} onClick={() => handleBulkDisable(true)}>
+                <Ban className="ml-1 h-4 w-4" />
+                تعطيل المحدد
+              </Button>
+              <Button size="sm" variant="outline" disabled={bulkBusy} onClick={() => handleBulkDisable(false)}>
+                <RotateCcw className="ml-1 h-4 w-4" />
+                إعادة التفعيل
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
+                إلغاء التحديد
+              </Button>
+            </div>
+          )}
+
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-muted">
+                  <th className="border p-2 w-10 text-center">
+                    <Checkbox
+                      aria-label="تحديد الكل"
+                      checked={filteredTeams.length > 0 && filteredTeams.every((t) => selectedIds.has(t.id))}
+                      onCheckedChange={(checked: boolean | 'indeterminate') =>
+                        setSelectedIds(checked === true ? new Set(filteredTeams.map((t) => t.id)) : new Set())
+                      }
+                    />
+                  </th>
                   <th className="border p-2 text-right">اسم الفريق</th>
                   <th className="border p-2 text-right">اسم الفكرة</th>
                   <th className="border p-2 text-right">المسار</th>
@@ -673,8 +748,22 @@ export default function TeamsPage() {
                   const leader = team.participants.find(p => p.isLeader);
                   return (
                     <React.Fragment key={team.id}>
-                      <tr className="hover:bg-muted/50">
-                        <td className="border p-2">{team.teamName}</td>
+                      <tr className={`hover:bg-muted/50 ${team.isDisabled ? 'bg-red-50/60' : ''}`}>
+                        <td className="border p-2 text-center">
+                          <Checkbox
+                            aria-label="تحديد الفريق"
+                            checked={selectedIds.has(team.id)}
+                            onCheckedChange={() => toggleRow(team.id)}
+                          />
+                        </td>
+                        <td className="border p-2">
+                          {team.teamName}
+                          {team.isDisabled && (
+                            <span className="mr-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
+                              معطل
+                            </span>
+                          )}
+                        </td>
                         <td className="border p-2">{team.ideaName}</td>
                         <td className="border p-2">{team.hackathonTrack}</td>
                         <td className="border p-2">

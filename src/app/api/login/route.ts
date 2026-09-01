@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status'
 import jwt from 'jsonwebtoken'
 
 // Ensure this route is dynamic
@@ -61,6 +62,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'Invalid credentials' },
           { status: 401 }
+        );
+      }
+
+      // Disabled by an admin — checked AFTER the password so this cannot be
+      // used to enumerate which emails exist. Covers both a directly disabled
+      // participant and a member of a disabled team.
+      if (isEffectivelyDisabled(participant)) {
+        console.log(`\u274c Account disabled: ${email}`);
+        return NextResponse.json(
+          { error: DISABLED_ACCOUNT_MESSAGE },
+          { status: 403 }
         );
       }
 

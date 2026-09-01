@@ -16,6 +16,9 @@ model Team {
   id                   String    @id @default(cuid())
   teamName             String?
   status               String    @default("pending") // pending, approved, rejected
+  // Disabling a team disables every member with it (see src/lib/account-status.ts).
+  isDisabled           Boolean   @default(false)
+  disabledAt           DateTime?
   hackathonTrack       String?   // NEW: أي مسار من مسارات الهاكاثون؟
   ideaDescription      String?   // SIMPLIFIED: صف الفكرة
   hearAboutUs          String?   // NEW: من أين سمعت عنا
@@ -57,6 +60,13 @@ model Participant {
   isLeader             Boolean               @default(false)
   passwordHash         String?
   status               String                @default("pending") // pending, approved, rejected (for individual participants)
+  // Account disabled by an admin: cannot log in, cannot act, and receives no
+  // transactional email/notifications. Independent of `status` (which is the
+  // application review outcome) so re-enabling restores the previous state.
+  // A participant is EFFECTIVELY disabled when this is true OR their team is
+  // disabled — see src/lib/account-status.ts.
+  isDisabled           Boolean               @default(false)
+  disabledAt           DateTime?
   teamId               String?               // Make optional for individual participants
   team                 Team?                 @relation(fields: [teamId], references: [id])
   createdAt            DateTime              @default(now())

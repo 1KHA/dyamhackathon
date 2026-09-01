@@ -23,6 +23,8 @@ export const PARTICIPANT_PUBLIC_FIELDS = {
   university: true,
   isLeader: true,
   status: true,
+  isDisabled: true,
+  disabledAt: true,
   teamId: true,
   createdAt: true,
   updatedAt: true,
