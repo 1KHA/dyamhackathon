@@ -12,6 +12,9 @@ import { Input } from "@/../../components/ui/input";
 import { Label } from "@/../../components/ui/label";
 import { Textarea } from "@/../../components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/../../components/ui/select";
+// Single source of truth, shared with the registration form and the admin
+// create-team form — see src/lib/challenges.ts
+import { CHALLENGES } from "@/lib/challenges";
 import { Checkbox } from "@/../../components/ui/checkbox";
 import { Search, UserPlus, Users, Check } from "lucide-react";
 import { useToast } from "@/../../components/ui/use-toast";
@@ -257,12 +260,6 @@ export default function AutoTeamCreationModal({
     return Array.from(uniqueUniversities).sort();
   }, [participants]);
 
-  // Static list of Arabic tracks
-  const ARABIC_TRACKS = [
-    "إحياء اللغة العربية بحلول رقمية مبتكرة",
-    "تحسين جودة الحياة لكبار السن والمكفوفين",
-    "تطوير كفاءة العاملين بقطاع السياحة الدينية (الحج والعمرة)"
-  ];
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -402,7 +399,7 @@ export default function AutoTeamCreationModal({
                   <SelectValue placeholder="اختر المسار" />
                 </SelectTrigger>
                 <SelectContent>
-                  {ARABIC_TRACKS.map((track) => (
+                  {CHALLENGES.map((track) => (
                     <SelectItem key={track} value={track}>
                       {track}
                     </SelectItem>
