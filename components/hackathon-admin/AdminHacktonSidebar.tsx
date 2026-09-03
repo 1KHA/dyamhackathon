@@ -16,8 +16,7 @@ import {
   Flag,
   Settings,
   ScanLine,
-  LogOut
-} from "lucide-react";
+  LogOut, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -29,6 +28,7 @@ const navItems = [
   { name: "التسليمات", href: "/admin-hackton-dashboard/milestones", icon: Flag },
   { name: "تسجيل الحضور", href: "/admin-hackton-dashboard/attendance", icon: ScanLine },
   { name: "الإشعارات", href: "/admin-hackton-dashboard/notifications", icon: Bell },
+  { name: "استيراد البيانات", href: "/admin-hackton-dashboard/import", icon: Upload },
   { name: "الإعدادات والرسائل", href: "/admin-hackton-dashboard/settings", icon: Settings },
 ];
 

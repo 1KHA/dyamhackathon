@@ -24,44 +24,27 @@ const REPO = path.resolve(__dirname, '..');
 const OUT = path.join(REPO, 'imports');
 const XLSX = require(path.join(REPO, 'node_modules/xlsx'));
 
-const CHALLENGES = [
-  'إنتاج المياه واستدامة الموارد المائية',
-  'البنية التحتية للمياه',
-  'إعادة الاستخدام والاقتصاد الدائري',
-  'الاستدامة وتجربة المستفيد وجودة الحياة',
-  'التقنيات الرقمية والذكاء الاصطناعي',
-];
-const PROFESSIONAL_FIELDS = ['ذكاء اصناعي', 'علم البيانات', 'برمجة'];
+// Column specs come from src/lib/import-schema.ts — the SAME definitions the
+// import API validates against, compiled on the fly so the templates and the
+// validator can never disagree about a column.
+const { execFileSync } = require('child_process');
+const CACHE = path.join(REPO, 'node_modules', '.cache', 'import-templates');
+fs.mkdirSync(CACHE, { recursive: true });
+fs.writeFileSync(path.join(CACHE, 'tsconfig.json'), JSON.stringify({
+  compilerOptions: { module: 'commonjs', target: 'es2020', esModuleInterop: true, skipLibCheck: true,
+                     moduleResolution: 'node', outDir: CACHE, rootDir: path.join(REPO, 'src'), strict: false },
+  files: [path.join(REPO, 'src/lib/import-schema.ts')],
+}));
+execFileSync(path.join(REPO, 'node_modules/.bin/tsc'), ['-p', path.join(CACHE, 'tsconfig.json')], { stdio: 'inherit' });
+const { IMPORT_SPECS, PROFESSIONAL_FIELDS } = require(path.join(CACHE, 'lib/import-schema.js'));
+const { CHALLENGES } = require(path.join(CACHE, 'lib/challenges.js'));
 
-/** column, Arabic label, required?, note */
-const PARTICIPANTS = [
-  ['email',               'البريد الإلكتروني',        'مطلوب',  'فريد — لا يتكرر بين المشاركين ولا مع موجه'],
-  ['fullName',            'الاسم كاملًا',              'مطلوب',  'يظهر في لوحة التحكم وفي رسائل البريد'],
-  ['contactNumber',       'رقم التواصل',              'اختياري', 'أرقام فقط، مثال 0500000000'],
-  ['gender',              'الجنس',                    'اختياري', 'ذكر أو أنثى'],
-  ['isUniversityStudent', 'هل هو طالب جامعي؟',        'اختياري', 'TRUE أو FALSE'],
-  ['university',          'الجامعة',                  'اختياري', ''],
-  ['universityMajor',     'التخصص الجامعي',           'اختياري', ''],
-  ['professionalField',   'المجال المهني',            'اختياري', PROFESSIONAL_FIELDS.join(' | ')],
-  ['city',                'المدينة / رابط Github',    'اختياري', 'تنبيه: نموذج التسجيل العام يستخدم هذا الحقل لرابط Github'],
-  ['canAttendHackathon',  'يستطيع الحضور؟',           'اختياري', 'TRUE أو FALSE'],
-  ['teamName',            'اسم الفريق',               'اختياري', 'اتركه فارغاً للمشارك الفردي. إذا عُبِّئ فيجب أن يطابق اسم فريق في ملف الفرق'],
-  ['isLeader',            'قائد الفريق؟',             'اختياري', 'TRUE لعضو واحد فقط في كل فريق، والباقي FALSE'],
-];
-
-const TEAMS = [
-  ['teamName',        'اسم الفريق',     'مطلوب',  'فريد — وهو المفتاح الذي يربط المشاركين بالفريق'],
-  ['hackathonTrack',  'المسار',         'مطلوب',  'يجب أن يكون أحد المسارات الخمسة المعتمدة (انظر ورقة القيم المسموحة)'],
-  ['ideaDescription', 'وصف الفكرة',     'اختياري', ''],
-  ['hearAboutUs',     'من أين سمعت عنا','اختياري', ''],
-];
-
-const MENTORS = [
-  ['name',      'الاسم',            'مطلوب', ''],
-  ['email',     'البريد الإلكتروني','مطلوب', 'فريد — لا يتكرر بين الموجهين'],
-  ['specialty', 'التخصص',           'مطلوب', 'مثال: الذكاء الاصطناعي'],
-  ['phone',     'رقم الجوال',       'مطلوب', 'أرقام فقط'],
-];
+/** [column, Arabic label, required?, note] rows, derived from the shared spec. */
+const toRows = (entity) =>
+  IMPORT_SPECS[entity].columns.map((c) => [c.key, c.labelAr, c.required ? 'مطلوب' : 'اختياري', c.note]);
+const PARTICIPANTS = toRows('participants');
+const TEAMS = toRows('teams');
+const MENTORS = toRows('mentors');
 
 const EXAMPLES = {
   participants: [
