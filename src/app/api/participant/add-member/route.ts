@@ -4,6 +4,8 @@ import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { requireActiveParticipant, isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status';
+import { getTeamSettings, memberAddWindowState } from '@/lib/team-settings';
+import { TEAM_MAX_MEMBERS } from '@/lib/constants';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -41,6 +43,27 @@ export async function POST(request: NextRequest) {
     const { teamId } = decoded;
     const blocked_ = await requireActiveParticipant(decoded.participantId);
     if (blocked_) return blocked_;
+
+    if (!teamId) {
+      return NextResponse.json({ error: 'لا يوجد فريق مرتبط بحسابك.' }, { status: 400 });
+    }
+
+    // Admin-controlled window: leaders may only add members between the
+    // start/end dates configured in TeamSettings.
+    const settings = await getTeamSettings();
+    const windowState = memberAddWindowState(settings);
+    if (!windowState.allowed) {
+      return NextResponse.json({ error: windowState.message }, { status: 403 });
+    }
+
+    // Team size cap (leader + members).
+    const memberCount = await prisma.participant.count({ where: { teamId } });
+    if (memberCount >= TEAM_MAX_MEMBERS) {
+      return NextResponse.json(
+        { error: `وصل الفريق إلى الحد الأقصى لعدد الأعضاء (${TEAM_MAX_MEMBERS} عضواً).` },
+        { status: 400 }
+      );
+    }
 
     const newMemberData = await request.json();
 

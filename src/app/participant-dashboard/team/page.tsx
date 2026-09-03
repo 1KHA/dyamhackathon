@@ -18,6 +18,7 @@ import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs";
+import { TEAM_MAX_MEMBERS } from "@/lib/constants";
 import { Alert, AlertDescription } from "../../../../components/ui/alert";
 import { Progress } from "../../../../components/ui/progress";
 import { Textarea } from "../../../../components/ui/textarea";
@@ -91,6 +92,13 @@ export default function TeamManagementPage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isTeamEditModalOpen, setIsTeamEditModalOpen] = useState(false);
+  // Admin-controlled window for adding members (fetched once; the server
+  // enforces it again on submit)
+  const [addWindow, setAddWindow] = useState<{
+    allowed: boolean;
+    message?: string;
+    memberAddEnd?: string | null;
+  } | null>(null);
   const [editedParticipant, setEditedParticipant] = useState<Participant | null>(null);
   const [newParticipant, setNewParticipant] = useState(initialParticipantState);
   const [editedTeam, setEditedTeam] = useState<Partial<TeamData> | null>(null);
@@ -119,6 +127,10 @@ export default function TeamManagementPage() {
 
   useEffect(() => {
     fetchTeamDetails();
+    fetch('/api/participant/member-add-window')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setAddWindow(d))
+      .catch(() => {});
   }, []);
 
   const handleDeleteParticipant = async (participantId: string) => {
@@ -197,6 +209,26 @@ export default function TeamManagementPage() {
         toast({ title: "خطأ في التحديث", description: (error as Error).message, variant: "destructive" });
       }
     }
+  };
+
+  const openAddMemberDialog = () => {
+    if (addWindow && !addWindow.allowed) {
+      toast({
+        title: "غير مسموح",
+        description: addWindow.message || 'انتهى الوقت المسموح ولا يمكن إضافة أعضاء للفريق بعد الآن.',
+        variant: "destructive",
+      });
+      return;
+    }
+    if (teamData && teamData.participants.length >= TEAM_MAX_MEMBERS) {
+      toast({
+        title: "غير مسموح",
+        description: `وصل الفريق إلى الحد الأقصى لعدد الأعضاء (${TEAM_MAX_MEMBERS} عضواً).`,
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsAddModalOpen(true);
   };
 
   const handleAddParticipant = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -287,6 +319,12 @@ export default function TeamManagementPage() {
                 تعديل معلومات الفريق
               </Button>
             )}
+            {currentUser.isLeader && (
+              <Button onClick={openAddMemberDialog} className="w-full sm:w-auto">
+                <Plus className="ml-2 h-4 w-4" />
+                إضافة عضو
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent className="p-3 sm:p-6">
@@ -363,7 +401,23 @@ export default function TeamManagementPage() {
         <TabsContent value="members" className="mt-6">
           <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <CardTitle>أعضاء الفريق <span className="text-sm font-normal text-muted-foreground">({teamData.participants.length})</span></CardTitle>
+          <div className="min-w-0">
+            <CardTitle>أعضاء الفريق <span className="text-sm font-normal text-muted-foreground">({teamData.participants.length}/{TEAM_MAX_MEMBERS})</span></CardTitle>
+            {addWindow?.allowed && addWindow.memberAddEnd && (
+              <p className="text-xs text-muted-foreground mt-1">
+                إضافة الأعضاء متاحة حتى {new Date(addWindow.memberAddEnd).toLocaleString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
+            {addWindow && !addWindow.allowed && (
+              <p className="text-xs text-red-600 mt-1">{addWindow.message}</p>
+            )}
+          </div>
+          {currentUser.isLeader && (
+            <Button onClick={openAddMemberDialog} className="w-full sm:w-auto shrink-0">
+              <Plus className="ml-2 h-4 w-4" />
+              إضافة عضو
+            </Button>
+          )}
         </CardHeader>
         <CardContent className="p-2 sm:p-6">
           {/* Card view: phones, tablets and small laptops (below xl) */}

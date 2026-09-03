@@ -339,3 +339,12 @@ model AttendanceRecord {
   @@index([eventId])
   @@index([checkinDate])
 }
+
+// Admin-controlled window during which team leaders may add members.
+// Null start/end = unrestricted on that side. Single default row.
+model TeamSettings {
+  id             String    @id @default(cuid())
+  memberAddStart DateTime?
+  memberAddEnd   DateTime?
+  updatedAt      DateTime  @updatedAt
+}
