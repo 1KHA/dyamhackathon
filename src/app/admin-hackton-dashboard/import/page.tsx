@@ -16,10 +16,15 @@ import { Input } from "@/components/ui/input";
 import { Upload, CheckCircle, AlertTriangle, XCircle, FileSpreadsheet } from "lucide-react";
 import { useToast } from "../../../../components/ui/use-toast";
 
-type EntityKey = "teams" | "participants" | "mentors";
+type EntityKey = "teams-with-leader" | "teams" | "participants" | "mentors";
 
 const ENTITIES: { key: EntityKey; label: string; hint: string }[] = [
-  { key: "teams", label: "الفرق", hint: "استوردها أولاً — المشاركون يشيرون إليها بالاسم" },
+  {
+    key: "teams-with-leader",
+    label: "الفرق مع القائد (ملف واحد)",
+    hint: "الأسهل: كل صف يُنشئ الفريق وقائده معاً. لإضافة بقية الأعضاء لاحقاً استخدم «المشاركون».",
+  },
+  { key: "teams", label: "الفرق فقط", hint: "استوردها أولاً — المشاركون يشيرون إليها بالاسم" },
   { key: "participants", label: "المشاركون", hint: "يرتبطون بالفرق عبر عمود teamName" },
   { key: "mentors", label: "الموجهون", hint: "مستقلون — أي وقت" },
 ];
@@ -47,7 +52,7 @@ interface Preview {
 
 export default function ImportPage() {
   const { toast } = useToast();
-  const [entity, setEntity] = useState<EntityKey>("teams");
+  const [entity, setEntity] = useState<EntityKey>("teams-with-leader");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
   const [busy, setBusy] = useState(false);

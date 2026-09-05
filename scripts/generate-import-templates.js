@@ -45,6 +45,7 @@ const toRows = (entity) =>
 const PARTICIPANTS = toRows('participants');
 const TEAMS = toRows('teams');
 const MENTORS = toRows('mentors');
+const TEAMS_WITH_LEADER = toRows('teams-with-leader');
 
 const EXAMPLES = {
   participants: [
@@ -59,6 +60,14 @@ const EXAMPLES = {
     ['د. أحمد الزهراني', 'ahmed.mentor@example.com', 'الذكاء الاصطناعي', '0504444444'],
     ['م. ليلى الحربي',   'laila.mentor@example.com', 'هندسة المياه',     '0505555555'],
   ],
+  'teams-with-leader': [
+    ['فريق المياه', CHALLENGES[1], 'حل ذكي لرصد تسربات شبكات المياه', 'تويتر',
+     'sara@example.com', 'سارة عبدالله', '0501111111', 'أنثى', 'TRUE',
+     'جامعة الملك سعود', 'علوم حاسب', 'برمجة', 'https://github.com/sara', 'TRUE'],
+    ['فريق الاستدامة', CHALLENGES[3], 'منصة لترشيد الاستهلاك المنزلي', 'صديق',
+     'omar@example.com', 'عمر خالد', '0502222222', 'ذكر', 'FALSE',
+     '', '', 'علم البيانات', 'https://github.com/omar', 'TRUE'],
+  ],
 };
 
 const csvCell = (v) => {
@@ -71,7 +80,7 @@ const writeCsv = (file, rows) =>
 
 fs.mkdirSync(OUT, { recursive: true });
 
-const SPECS = { participants: PARTICIPANTS, teams: TEAMS, mentors: MENTORS };
+const SPECS = { 'teams-with-leader': TEAMS_WITH_LEADER, participants: PARTICIPANTS, teams: TEAMS, mentors: MENTORS };
 for (const [name, spec] of Object.entries(SPECS)) {
   const headers = spec.map((c) => c[0]);
   writeCsv(path.join(OUT, `${name}-template.csv`), [headers]);
@@ -95,6 +104,7 @@ const instructions = [
   ['7. القيم المنطقية تُكتب TRUE أو FALSE.'],
   ['8. البريد الإلكتروني يجب أن يكون فريداً؛ أي تكرار سيُرفض.'],
   ['9. استورد الفرق أولاً ثم المشاركين، لأن المشاركين يشيرون إلى أسماء الفرق.'],
+  ['10. الأسهل: استخدم ورقة «الفرق مع القائد» — كل صف يُنشئ الفريق وقائده معاً في خطوة واحدة.'],
   [],
   ['ملاحظة: الحقل city يُستخدم في نموذج التسجيل العام لرابط Github — راجع imports/README.md.'],
 ];
@@ -106,12 +116,13 @@ const sheetFor = (spec, examples) => {
   ws['!cols'] = spec.map(() => ({ wch: 26 }));
   return rtl(ws);
 };
+XLSX.utils.book_append_sheet(wb, sheetFor(TEAMS_WITH_LEADER, EXAMPLES['teams-with-leader']), 'الفرق مع القائد');
 XLSX.utils.book_append_sheet(wb, sheetFor(TEAMS, EXAMPLES.teams), 'الفرق');
 XLSX.utils.book_append_sheet(wb, sheetFor(PARTICIPANTS, EXAMPLES.participants), 'المشاركون');
 XLSX.utils.book_append_sheet(wb, sheetFor(MENTORS, EXAMPLES.mentors), 'الموجهون');
 
 const dict = [['الملف', 'العمود', 'الاسم بالعربية', 'إلزامي؟', 'ملاحظات']];
-for (const [file, spec] of [['المشاركون', PARTICIPANTS], ['الفرق', TEAMS], ['الموجهون', MENTORS]])
+for (const [file, spec] of [['الفرق مع القائد', TEAMS_WITH_LEADER], ['المشاركون', PARTICIPANTS], ['الفرق', TEAMS], ['الموجهون', MENTORS]])
   for (const c of spec) dict.push([file, c[0], c[1], c[2], c[3]]);
 const dictWs = XLSX.utils.aoa_to_sheet(dict);
 dictWs['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 26 }, { wch: 10 }, { wch: 70 }];

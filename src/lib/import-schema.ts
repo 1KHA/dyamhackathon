@@ -12,7 +12,7 @@
  */
 import { CHALLENGES } from './challenges';
 
-export type EntityKey = 'teams' | 'participants' | 'mentors';
+export type EntityKey = 'teams' | 'participants' | 'mentors' | 'teams-with-leader';
 
 export interface ColumnSpec {
   /** Exact Prisma field name — used verbatim as the CSV/Excel header. */
@@ -55,6 +55,30 @@ export const IMPORT_SPECS: Record<EntityKey, { labelAr: string; columns: ColumnS
       { key: 'canAttendHackathon', labelAr: 'يستطيع الحضور؟', required: false, type: 'boolean', note: 'TRUE أو FALSE' },
       { key: 'teamName', labelAr: 'اسم الفريق', required: false, type: 'string', note: 'اتركه فارغاً للمشارك الفردي؛ وإلا يجب أن يكون الفريق موجوداً' },
       { key: 'isLeader', labelAr: 'قائد الفريق؟', required: false, type: 'boolean', note: 'TRUE لعضو واحد فقط في كل فريق' },
+    ],
+  },
+  /**
+   * One row = one team AND its leader. Creates both, links them, and marks the
+   * participant as the leader — so a typical registration export can be
+   * imported from a single file instead of two.
+   */
+  'teams-with-leader': {
+    labelAr: 'الفرق مع القائد',
+    columns: [
+      { key: 'teamName', labelAr: 'اسم الفريق', required: true, type: 'string', note: 'فريد' },
+      { key: 'hackathonTrack', labelAr: 'المسار', required: true, type: 'string', oneOf: CHALLENGES, note: 'أحد المسارات الخمسة المعتمدة' },
+      { key: 'ideaDescription', labelAr: 'وصف الفكرة', required: false, type: 'string', note: '' },
+      { key: 'hearAboutUs', labelAr: 'من أين سمعت عنا', required: false, type: 'string', note: '' },
+      { key: 'leaderEmail', labelAr: 'بريد قائد الفريق', required: true, type: 'string', note: 'فريد — يُنشأ كمشارك وقائد للفريق' },
+      { key: 'leaderFullName', labelAr: 'اسم قائد الفريق', required: true, type: 'string', note: '' },
+      { key: 'leaderContactNumber', labelAr: 'رقم تواصل القائد', required: false, type: 'string', note: 'أرقام فقط' },
+      { key: 'leaderGender', labelAr: 'جنس القائد', required: false, type: 'string', oneOf: GENDERS, softOneOf: true, note: 'ذكر أو أنثى' },
+      { key: 'leaderIsUniversityStudent', labelAr: 'القائد طالب جامعي؟', required: false, type: 'boolean', note: 'TRUE أو FALSE' },
+      { key: 'leaderUniversity', labelAr: 'جامعة القائد', required: false, type: 'string', note: '' },
+      { key: 'leaderUniversityMajor', labelAr: 'تخصص القائد', required: false, type: 'string', note: '' },
+      { key: 'leaderProfessionalField', labelAr: 'المجال المهني للقائد', required: false, type: 'string', oneOf: PROFESSIONAL_FIELDS, softOneOf: true, note: PROFESSIONAL_FIELDS.join(' | ') },
+      { key: 'leaderCity', labelAr: 'مدينة القائد / رابط Github', required: false, type: 'string', note: '' },
+      { key: 'leaderCanAttendHackathon', labelAr: 'القائد يستطيع الحضور؟', required: false, type: 'boolean', note: 'TRUE أو FALSE' },
     ],
   },
   mentors: {

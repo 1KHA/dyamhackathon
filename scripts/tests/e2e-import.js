@@ -168,8 +168,125 @@ async function waitForServer() {
   r = await upload('teams', exBuf, { cookie: aCookie, filename: 'teams-example.csv' });
   check('teams-example.csv validates with 0 errors', r.json.errorCount === 0, JSON.stringify(r.json.rows?.map(x => x.errors)));
 
+
+  section('teams-with-leader: one row creates the team AND its leader');
+  const combined = csv([
+    ['teamName','hackathonTrack','ideaDescription','hearAboutUs','leaderEmail','leaderFullName','leaderContactNumber','leaderGender','leaderCanAttendHackathon'],
+    [`${TAG} فريق مدمج`, TRACK, 'فكرة مدمجة', 'تويتر', `${TAG}-lead@t.local`, 'قائد الفريق', '0507777777', 'ذكر', 'TRUE'],
+  ]);
+  r = await upload('teams-with-leader', combined, { cookie: aCookie });
+  check('combined preview: 1 valid row', r.json.validCount === 1 && r.json.errorCount === 0, JSON.stringify(r.json.rows?.map(x=>x.errors)));
+  r = await upload('teams-with-leader', combined, { commit: true, cookie: aCookie });
+  check('combined commit 200', r.status === 200 && r.json.committed === true, JSON.stringify(r.json).slice(0,140));
+  const ct = await prisma.team.findFirst({ where: { teamName: `${TAG} فريق مدمج` }, include: { participants: true } });
+  check('team created pending with the track', ct && ct.status === 'pending' && ct.hackathonTrack === TRACK, ct && ct.status);
+  check('leader created inside that team', ct && ct.participants.length === 1, ct && String(ct.participants.length));
+  const ld = ct && ct.participants[0];
+  check('leader is flagged isLeader', ld && ld.isLeader === true);
+  check('leader pending, no password, not disabled', ld && ld.status === 'pending' && ld.passwordHash === null && ld.isDisabled === false);
+  check('leader phone kept leading zero', ld && ld.contactNumber === '0507777777', ld && ld.contactNumber);
+
+  section('teams-with-leader: validation');
+  r = await upload('teams-with-leader', csv([
+    ['teamName','hackathonTrack','leaderEmail','leaderFullName'],
+    [`${TAG} فريق مدمج`, TRACK, `${TAG}-new@t.local`, 'x']]), { cookie: aCookie });
+  check('duplicate team name -> error', rowErrors(r.json,2).some(e=>e.includes('مستخدم مسبقاً')), JSON.stringify(rowErrors(r.json,2)));
+  r = await upload('teams-with-leader', csv([
+    ['teamName','hackathonTrack','leaderEmail','leaderFullName'],
+    [`${TAG} جديد1`, TRACK, `${TAG}-lead@t.local`, 'x']]), { cookie: aCookie });
+  check('leader email already used -> error', rowErrors(r.json,2).some(e=>e.includes('مسجل مسبقاً')), JSON.stringify(rowErrors(r.json,2)));
+  r = await upload('teams-with-leader', csv([
+    ['teamName','hackathonTrack','leaderEmail','leaderFullName'],
+    [`${TAG} ج2`, TRACK, `${TAG}-same@t.local`, 'a'],
+    [`${TAG} ج3`, TRACK, `${TAG}-same@t.local`, 'b']]), { cookie: aCookie });
+  check('duplicate leader email in file -> error', rowErrors(r.json,3).some(e=>e.includes('مكرر داخل الملف')), JSON.stringify(rowErrors(r.json,3)));
+  r = await upload('teams-with-leader', csv([
+    ['teamName','hackathonTrack','leaderEmail','leaderFullName'],
+    [`${TAG} ج4`, TRACK, 'bad-email', 'x']]), { cookie: aCookie });
+  check('invalid leader email -> error', rowErrors(r.json,2).some(e=>e.includes('غير صالح')), JSON.stringify(rowErrors(r.json,2)));
+  r = await upload('teams-with-leader', csv([
+    ['teamName','hackathonTrack','leaderEmail','leaderFullName'],
+    [`${TAG} ج5`, TRACK, `${TAG}-nolead@t.local`, '']]), { cookie: aCookie });
+  check('missing leader name -> error', rowErrors(r.json,2).some(e=>e.includes('مطلوب')), JSON.stringify(rowErrors(r.json,2)));
+  const beforeAtomic = await prisma.team.count({ where: { teamName: { startsWith: `${TAG} atomic` } } });
+  r = await upload('teams-with-leader', csv([
+    ['teamName','hackathonTrack','leaderEmail','leaderFullName'],
+    [`${TAG} atomic-ok`, TRACK, `${TAG}-at1@t.local`, 'ok'],
+    [`${TAG} atomic-bad`, 'مسار وهمي', `${TAG}-at2@t.local`, 'bad']]), { commit: true, cookie: aCookie });
+  check('combined: bad row blocks the whole commit', r.status === 400 && r.json.committed === false);
+  check('combined: no team created from the good row either',
+        (await prisma.team.count({ where: { teamName: { startsWith: `${TAG} atomic` } } })) === beforeAtomic);
+
+  section('converter: real export layout -> import file -> upload');
+  const fs2 = require('fs');
+  const os = require('os');
+  const { execFileSync } = require('child_process');
+  // Rebuild the exact awkward shape of user_template/users.xlsx:
+  // 3 metadata lines, blank column A, header on row 6.
+  const srcHeader = ['', 'Author Id','Author','Author - Email','Number of Team Members','Phone number','Full Name',
+    'Submitted On','Date of birth','Gender','Professional Status','City','Team / Company Name (if any)',
+    "Team Members’ Information",'Path','Sub Track','Project Name','Brief Description (2-4 lines)'];
+  const mkSrcRow = (o) => { const r = new Array(srcHeader.length).fill('');
+    r[3]=o.email; r[5]=o.phone; r[6]=o.name; r[9]=o.gender; r[15]=o.subTrack; r[16]=o.project; r[17]=o.brief;
+    r[18]=o.attend; return r; };
+  const srcAoa = [[], ['', 'Digital Technologies & AI'], ['', 'Active'], ['', 'Exported on: 3/9/2026'], [], srcHeader,
+    mkSrcRow({ email:`${TAG}-C1@T.LOCAL`, phone:'0501234567', name:'محمد علي', gender:'Male',
+               subTrack:'Digital Technologies & AI', project:`${TAG} مشروع واحد`, brief:'وصف المشروع الأول', attend:'Yes' }),
+    mkSrcRow({ email:`${TAG}-c2@t.local`, phone:'0559876543', name:'نورة سعد', gender:'Female',
+               subTrack:'Water Infrastructure', project:`${TAG} مشروع اثنان`, brief:'وصف المشروع الثاني', attend:'No' }),
+    mkSrcRow({ email:`${TAG}-c3@t.local`, phone:'0500000003', name:'خالد', gender:'Male',
+               subTrack:'Totally Unknown Track', project:`${TAG} مشروع ثلاثة`, brief:'وصف ثالث', attend:'Maybe later' }),
+  ];
+  // the attendance question header sits at index 18 in our synthetic sheet
+  srcAoa[5][18] = 'If you qualify for the final phase, does attending the final hackathon in Jeddah from December 14 to 16 suit you?';
+  const srcWb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(srcWb, XLSX.utils.aoa_to_sheet(srcAoa), 'Ideas');
+  const srcPath = path.join(os.tmpdir(), `${TAG}-src.xlsx`);
+  const outBase = path.join(os.tmpdir(), `${TAG}-out`);
+  XLSX.writeFile(srcWb, srcPath);
+
+  const conv = execFileSync('node', [path.join(REPO, 'scripts/convert-users-export.js'), srcPath, outBase], { encoding: 'utf8' });
+  check('converter located the header row by name (not a fixed index)', /Header found on sheet "Ideas", row \d+/.test(conv), conv.split('\n')[0]);
+  check('converter read 3 data rows', /Data rows: 3/.test(conv));
+  // the REAL export from the client: header genuinely sits on row 6
+  const realSrc = path.join(REPO, 'user_template/users.xlsx');
+  if (fs2.existsSync(realSrc)) {
+    const realOut = execFileSync('node', [path.join(REPO, 'scripts/convert-users-export.js'), realSrc, path.join(os.tmpdir(), `${TAG}-real`)], { encoding: 'utf8' });
+    check('real users.xlsx: header found on row 6', /row 6/.test(realOut), realOut.split('\n')[0]);
+    check('real users.xlsx: reported as having no data rows', /Data rows: 0/.test(realOut));
+    for (const ext of ['.csv', '.xlsx']) { try { fs2.unlinkSync(path.join(os.tmpdir(), `${TAG}-real${ext}`)); } catch {} }
+  }
+  check('converter flagged the unknown track', /مسار غير معروف/.test(conv), conv.slice(-300));
+
+  const convOut = XLSX.utils.sheet_to_json(XLSX.readFile(`${outBase}.xlsx`).Sheets['الفرق مع القائد'], { defval:'', raw:false });
+  check('converted 3 rows', convOut.length === 3, String(convOut.length));
+  const c1 = convOut.find(x => x.teamName === `${TAG} مشروع واحد`);
+  check('English sub-track mapped to the Arabic challenge', c1 && c1.hackathonTrack === 'التقنيات الرقمية والذكاء الاصطناعي', c1 && c1.hackathonTrack);
+  check('Male -> ذكر, Yes -> TRUE', c1 && c1.leaderGender === 'ذكر' && c1.leaderCanAttendHackathon === 'TRUE', JSON.stringify(c1));
+  check('email lower-cased', c1 && c1.leaderEmail === `${TAG}-c1@t.local`.toLowerCase(), c1 && c1.leaderEmail);
+  check('phone leading zero preserved through conversion', c1 && c1.leaderContactNumber === '0501234567', c1 && c1.leaderContactNumber);
+  const c2 = convOut.find(x => x.teamName === `${TAG} مشروع اثنان`);
+  check('Water Infrastructure mapped, Female -> أنثى, No -> FALSE',
+        c2 && c2.hackathonTrack === 'البنية التحتية للمياه' && c2.leaderGender === 'أنثى' && c2.leaderCanAttendHackathon === 'FALSE', JSON.stringify(c2));
+  const c3 = convOut.find(x => x.teamName === `${TAG} مشروع ثلاثة`);
+  check('unknown track left BLANK (not guessed)', c3 && c3.hackathonTrack === '', JSON.stringify(c3));
+
+  // the converter output must be directly importable once the blank track is filled
+  const fixed = convOut.map(x => ({ ...x, hackathonTrack: x.hackathonTrack || TRACK }));
+  const fixedAoa = [Object.keys(convOut[0]), ...fixed.map(o => Object.keys(convOut[0]).map(k => o[k]))];
+  const fixedWb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(fixedWb, XLSX.utils.aoa_to_sheet(fixedAoa), 'الفرق مع القائد');
+  r = await upload('teams-with-leader', XLSX.write(fixedWb, { type:'buffer', bookType:'xlsx' }),
+                   { commit: true, cookie: aCookie, filename: 'converted.xlsx' });
+  check('converter output imports cleanly: 3 teams created', r.status === 200 && r.json.created === 3, JSON.stringify(r.json).slice(0,160));
+  const madeTeams = await prisma.team.findMany({ where: { teamName: { startsWith: `${TAG} مشروع` } }, include: { participants: true } });
+  check('each converted team has exactly one leader', madeTeams.length === 3 && madeTeams.every(t => t.participants.length === 1 && t.participants[0].isLeader), String(madeTeams.length));
+  check('all converted records are pending', madeTeams.every(t => t.status === 'pending' && t.participants[0].status === 'pending'));
+  fs2.unlinkSync(srcPath); fs2.unlinkSync(`${outBase}.xlsx`); fs2.unlinkSync(`${outBase}.csv`);
+
   section('cleanup');
   await prisma.participant.deleteMany({ where: { email: { startsWith: TAG } } });
+  await prisma.participant.deleteMany({ where: { team: { is: { teamName: { startsWith: TAG } } } } });
   await prisma.team.deleteMany({ where: { teamName: { startsWith: TAG } } });
   await prisma.mentor.deleteMany({ where: { email: { startsWith: TAG } } });
   await prisma.admin.delete({ where: { id: admin.id } });

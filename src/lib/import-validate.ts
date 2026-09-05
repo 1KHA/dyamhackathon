@@ -102,7 +102,7 @@ export async function validateImport(
 
   // ---- duplicates inside the file ----
   const seen = new Map<string, number>();
-  const dupKey = entity === 'teams' ? 'teamName' : 'email';
+  const dupKey = entity === 'teams' || entity === 'teams-with-leader' ? 'teamName' : 'email';
   for (const row of rows) {
     const key = dupKey === 'email' ? normalizeEmail(row.data.email || '') : (row.data.teamName || '').trim();
     if (!key) continue;
@@ -152,6 +152,37 @@ export async function validateImport(
       if (leadersInFile.length + existingLeaders === 0) {
         for (const r of teamRows) r.warnings.push(`الفريق «${teamName}» بدون قائد`);
       }
+    }
+  }
+
+  if (entity === 'teams-with-leader') {
+    // Team names must be free, and each leader email must be unique in the
+    // file and unused — the row creates a Team AND a Participant together.
+    const names = Array.from(new Set(rows.map((r) => r.data.teamName).filter(Boolean)));
+    if (names.length > 0) {
+      const existingTeams = await prisma.team.findMany({ where: { teamName: { in: names } }, select: { teamName: true } });
+      const takenTeams = new Set(existingTeams.map((t) => t.teamName));
+      for (const row of rows) if (takenTeams.has(row.data.teamName)) row.errors.push('اسم الفريق مستخدم مسبقاً');
+    }
+
+    const emails = rows.map((r) => normalizeEmail(r.data.leaderEmail || '')).filter(Boolean);
+    const seenEmail = new Map<string, number>();
+    for (const row of rows) {
+      const e = normalizeEmail(row.data.leaderEmail || '');
+      if (!e) continue;
+      if (seenEmail.has(e)) row.errors.push(`بريد القائد مكرر داخل الملف (الصف ${seenEmail.get(e)})`);
+      else seenEmail.set(e, row.rowNumber);
+    }
+    if (emails.length > 0) {
+      const existing = await prisma.participant.findMany({ where: { email: { in: emails } }, select: { email: true } });
+      const taken = new Set(existing.map((p) => p.email.toLowerCase()));
+      for (const row of rows) {
+        if (taken.has(normalizeEmail(row.data.leaderEmail || ''))) row.errors.push('بريد القائد مسجل مسبقاً كمشارك');
+      }
+    }
+    for (const row of rows) {
+      const e = row.data.leaderEmail;
+      if (e && !isValidEmail(e)) row.errors.push(`بريد قائد الفريق غير صالح: ${e}`);
     }
   }
 
@@ -205,6 +236,44 @@ export async function commitImport(entity: EntityKey, rows: RowResult[]): Promis
             email: normalizeEmail(r.data.email),
             specialty: r.data.specialty,
             phone: r.data.phone || '',
+            status: 'pending',
+            isDisabled: false,
+            passwordHash: null,
+          },
+        });
+      }
+      return rows.length;
+    }
+
+    if (entity === 'teams-with-leader') {
+      // One row -> a Team plus its leader Participant, linked, both pending.
+      for (const r of rows) {
+        const team = await tx.team.create({
+          data: {
+            teamName: r.data.teamName,
+            hackathonTrack: r.data.hackathonTrack,
+            ideaDescription: r.data.ideaDescription || '',
+            hearAboutUs: r.data.hearAboutUs || '',
+            isTeamRegistration: true,
+            status: 'pending',
+            isDisabled: false,
+            challenge: r.data.hackathonTrack,
+          },
+        });
+        await tx.participant.create({
+          data: {
+            email: normalizeEmail(r.data.leaderEmail),
+            fullName: r.data.leaderFullName,
+            contactNumber: r.data.leaderContactNumber || '',
+            gender: r.data.leaderGender || '',
+            isUniversityStudent: b(r.data.leaderIsUniversityStudent),
+            university: r.data.leaderUniversity || '',
+            universityMajor: r.data.leaderUniversityMajor || '',
+            professionalField: r.data.leaderProfessionalField || '',
+            city: r.data.leaderCity || '',
+            canAttendHackathon: b(r.data.leaderCanAttendHackathon),
+            isLeader: true,
+            teamId: team.id,
             status: 'pending',
             isDisabled: false,
             passwordHash: null,
