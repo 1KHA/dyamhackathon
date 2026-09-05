@@ -242,19 +242,22 @@ async function waitForServer() {
   const srcWb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(srcWb, XLSX.utils.aoa_to_sheet(srcAoa), 'Ideas');
   const srcPath = path.join(os.tmpdir(), `${TAG}-src.xlsx`);
-  const outBase = path.join(os.tmpdir(), `${TAG}-out`);
+  const outDir = path.join(os.tmpdir(), `${TAG}-out`);          // directory now
+  const outBase = path.join(outDir, 'teams-with-leader');       // files land here
   XLSX.writeFile(srcWb, srcPath);
 
-  const conv = execFileSync('node', [path.join(REPO, 'scripts/convert-users-export.js'), srcPath, outBase], { encoding: 'utf8' });
+  const conv = execFileSync('node', [path.join(REPO, 'scripts/convert-users-export.js'), srcPath, outDir], { encoding: 'utf8' });
   check('converter located the header row by name (not a fixed index)', /Header found on sheet "Ideas", row \d+/.test(conv), conv.split('\n')[0]);
   check('converter read 3 data rows', /Data rows: 3/.test(conv));
+  check('converter wrote into the given DIRECTORY', fs2.existsSync(`${outBase}.xlsx`) && fs2.existsSync(`${outBase}.csv`), outDir);
   // the REAL export from the client: header genuinely sits on row 6
   const realSrc = path.join(REPO, 'user_template/users.xlsx');
   if (fs2.existsSync(realSrc)) {
-    const realOut = execFileSync('node', [path.join(REPO, 'scripts/convert-users-export.js'), realSrc, path.join(os.tmpdir(), `${TAG}-real`)], { encoding: 'utf8' });
+    const realDir = path.join(os.tmpdir(), `${TAG}-real`);
+    const realOut = execFileSync('node', [path.join(REPO, 'scripts/convert-users-export.js'), realSrc, realDir], { encoding: 'utf8' });
     check('real users.xlsx: header found on row 6', /row 6/.test(realOut), realOut.split('\n')[0]);
-    check('real users.xlsx: reported as having no data rows', /Data rows: 0/.test(realOut));
-    for (const ext of ['.csv', '.xlsx']) { try { fs2.unlinkSync(path.join(os.tmpdir(), `${TAG}-real${ext}`)); } catch {} }
+    check('real users.xlsx: converter reports a row count', /Data rows: \d+/.test(realOut), realOut.match(/Data rows: \d+/)?.[0]);
+    try { fs2.rmSync(realDir, { recursive: true, force: true }); } catch {}
   }
   check('converter flagged the unknown track', /مسار غير معروف/.test(conv), conv.slice(-300));
 
@@ -282,7 +285,7 @@ async function waitForServer() {
   const madeTeams = await prisma.team.findMany({ where: { teamName: { startsWith: `${TAG} مشروع` } }, include: { participants: true } });
   check('each converted team has exactly one leader', madeTeams.length === 3 && madeTeams.every(t => t.participants.length === 1 && t.participants[0].isLeader), String(madeTeams.length));
   check('all converted records are pending', madeTeams.every(t => t.status === 'pending' && t.participants[0].status === 'pending'));
-  fs2.unlinkSync(srcPath); fs2.unlinkSync(`${outBase}.xlsx`); fs2.unlinkSync(`${outBase}.csv`);
+  fs2.unlinkSync(srcPath); fs2.rmSync(outDir, { recursive: true, force: true });
 
   section('cleanup');
   await prisma.participant.deleteMany({ where: { email: { startsWith: TAG } } });

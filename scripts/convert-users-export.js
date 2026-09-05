@@ -26,7 +26,14 @@ const REPO = path.resolve(__dirname, '..');
 const XLSX = require(path.join(REPO, 'node_modules/xlsx'));
 
 const INPUT = process.argv[2] || path.join(REPO, 'user_template/users.xlsx');
-const OUT_BASE = process.argv[3] || path.join(REPO, 'imports/converted-teams-with-leader');
+/**
+ * Output location. An argument without a file extension is treated as a
+ * DIRECTORY and the files are written inside it, so
+ *   node scripts/convert-users-export.js user_template/users.xlsx imports/converted
+ * produces imports/converted/teams-with-leader.csv|.xlsx
+ */
+const OUT_ARG = process.argv[3] || path.join(REPO, 'imports/converted');
+const OUT_BASE = path.extname(OUT_ARG) === '' ? path.join(OUT_ARG, 'teams-with-leader') : OUT_ARG.replace(/\.(csv|xlsx)$/i, '');
 
 /** Source column -> our template column. Matched case/space-insensitively. */
 const COLUMN_MAP = {
@@ -40,14 +47,19 @@ const COLUMN_MAP = {
   'If you qualify for the final phase, does attending the final hackathon in Jeddah from December 14 to 16 suit you?': 'leaderCanAttendHackathon',
 };
 
-/** Our five approved challenges, keyed by distinctive words in the English name. */
-const TRACK_MAP = [
-  { ar: 'التقنيات الرقمية والذكاء الاصطناعي',        any: ['digital', 'ai', 'artificial'] },
-  { ar: 'إنتاج المياه واستدامة الموارد المائية',      any: ['production', 'resources'] },
-  { ar: 'البنية التحتية للمياه',                      any: ['infrastructure'] },
-  { ar: 'إعادة الاستخدام والاقتصاد الدائري',          any: ['reuse', 'circular'] },
-  { ar: 'الاستدامة وتجربة المستفيد وجودة الحياة',     any: ['beneficiary', 'quality of life', 'experience'] },
-];
+// Track resolution comes from src/lib/challenges.ts — the SAME resolver the
+// import validator uses, so a track maps identically whether you convert the
+// file here or upload the English export directly to the website.
+const { execFileSync } = require('child_process');
+const CACHE = path.join(REPO, 'node_modules', '.cache', 'convert-users');
+fs.mkdirSync(CACHE, { recursive: true });
+fs.writeFileSync(path.join(CACHE, 'tsconfig.json'), JSON.stringify({
+  compilerOptions: { module: 'commonjs', target: 'es2020', esModuleInterop: true, skipLibCheck: true,
+                     moduleResolution: 'node', outDir: CACHE, rootDir: path.join(REPO, 'src'), strict: false },
+  files: [path.join(REPO, 'src/lib/challenges.ts')],
+}));
+execFileSync(path.join(REPO, 'node_modules/.bin/tsc'), ['-p', path.join(CACHE, 'tsconfig.json')], { stdio: 'inherit' });
+const { resolveChallenge } = require(path.join(CACHE, 'lib/challenges.js'));
 
 const OUT_COLUMNS = [
   'teamName', 'hackathonTrack', 'ideaDescription', 'hearAboutUs',
@@ -60,13 +72,11 @@ const norm = (v) => String(v ?? '').replace(/\s+/g, ' ').replace(/[‏‎]/g, ''
 const key = (v) => norm(v).toLowerCase();
 
 function mapTrack(raw) {
-  const v = key(raw);
-  if (!v) return { value: '', note: null };
-  // already one of ours?
-  const exact = TRACK_MAP.find((t) => t.ar === norm(raw));
-  if (exact) return { value: exact.ar, note: null };
-  const hit = TRACK_MAP.find((t) => t.any.some((w) => v.includes(w)));
-  return hit ? { value: hit.ar, note: null } : { value: '', note: `مسار غير معروف: "${norm(raw)}"` };
+  if (!norm(raw)) return { value: '', note: null };
+  const hit = resolveChallenge(norm(raw));
+  return hit
+    ? { value: hit, note: null }
+    : { value: '', note: `مسار غير معروف: "${norm(raw)}" — يجب أن يكون أحد المسارات الخمسة الرئيسية` };
 }
 
 function mapGender(raw) {
@@ -85,8 +95,26 @@ function mapYesNo(raw) {
   return { value: '', note: `إجابة غير واضحة للحضور: "${norm(raw).slice(0, 40)}"` };
 }
 
-/** Phone numbers must stay text so a leading zero survives. */
-const cleanPhone = (raw) => norm(raw).replace(/[^\d+]/g, '');
+/**
+ * Normalise a Saudi phone number.
+ *
+ * The source export stores phones as NUMBERS, so "0551721007" arrives as
+ * 551721007 — the leading zero is already gone before we see it. Saudi mobiles
+ * are 10 digits beginning 05, so a bare 9-digit number starting with 5 is
+ * restored to its 05… form. International forms are normalised too. Anything
+ * that does not fit a known shape is left exactly as-is and reported.
+ */
+function cleanPhone(raw) {
+  const digits = norm(raw).replace(/[^\d+]/g, '');
+  if (!digits) return { value: '', note: null };
+  const bare = digits.replace(/^\+/, '');
+  if (/^9665\d{8}$/.test(bare)) return { value: '0' + bare.slice(3), note: null };      // +966 5XXXXXXXX
+  if (/^05\d{8}$/.test(bare)) return { value: bare, note: null };                        // already correct
+  if (/^5\d{8}$/.test(bare)) {
+    return { value: '0' + bare, note: `أُضيف صفر مفقود لرقم الجوال: ${bare} ← 0${bare}` };
+  }
+  return { value: bare, note: `رقم جوال بصيغة غير معتادة: ${bare}` };
+}
 
 // ---------------------------------------------------------------------------
 if (!fs.existsSync(INPUT)) {
@@ -137,7 +165,8 @@ dataRows.forEach((row, i) => {
   const track = mapTrack(get('hackathonTrack'));
   const gender = mapGender(get('leaderGender'));
   const attend = mapYesNo(get('leaderCanAttendHackathon'));
-  for (const n of [track.note, gender.note, attend.note].filter(Boolean)) {
+  const phone = cleanPhone(get('leaderContactNumber'));
+  for (const n of [track.note, gender.note, attend.note, phone.note].filter(Boolean)) {
     issues.push({ row: srcRowNumber, issue: n });
   }
 
@@ -148,7 +177,7 @@ dataRows.forEach((row, i) => {
     hearAboutUs: '',
     leaderEmail: get('leaderEmail').toLowerCase(),
     leaderFullName: get('leaderFullName'),
-    leaderContactNumber: cleanPhone(get('leaderContactNumber')),
+    leaderContactNumber: phone.value,
     leaderGender: gender.value,
     leaderIsUniversityStudent: '',
     leaderUniversity: '',

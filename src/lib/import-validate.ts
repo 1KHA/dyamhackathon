@@ -8,6 +8,7 @@
  * half-imported file is worse than a rejected one.
  */
 import { prisma } from './prisma';
+import { resolveChallenge } from './challenges';
 import {
   IMPORT_SPECS,
   type EntityKey,
@@ -77,6 +78,18 @@ export async function validateImport(
     for (const col of spec.columns) data[col.key] = clean(raw[col.key]);
     const errors: string[] = [];
     const warnings: string[] = [];
+
+    // The registration platform exports tracks in English. Resolve them to the
+    // canonical Arabic challenge here, so a file uploaded straight from that
+    // export validates instead of failing with "unknown track". Anything
+    // unresolvable is left alone and fails the oneOf check below.
+    if (data.hackathonTrack) {
+      const resolved = resolveChallenge(data.hackathonTrack);
+      if (resolved && resolved !== data.hackathonTrack) {
+        warnings.push(`تم تحويل المسار «${data.hackathonTrack}» إلى «${resolved}»`);
+        data.hackathonTrack = resolved;
+      }
+    }
 
     for (const col of spec.columns) {
       const value = data[col.key];

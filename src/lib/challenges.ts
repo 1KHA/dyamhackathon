@@ -24,3 +24,101 @@ export const CHALLENGES = [
 ] as const;
 
 export type Challenge = (typeof CHALLENGES)[number];
+
+// ---------------------------------------------------------------------------
+// English → Arabic track resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * The registration platform exports sub-tracks in English. These are the
+ * confirmed source names, mapped to our canonical Arabic challenges.
+ *
+ * Used in TWO places so behaviour is identical everywhere:
+ *   - scripts/convert-users-export.js when converting an export
+ *   - the import validator, so a file uploaded with English track names is
+ *     accepted and normalised instead of rejected as "unknown track"
+ *
+ * `keywords` are the DISTINCTIVE words for each track. "water" is deliberately
+ * absent — it appears in four of the five names and would match everything.
+ */
+export const TRACK_ALIASES: { ar: Challenge; en: string; keywords: string[] }[] = [
+  {
+    ar: 'التقنيات الرقمية والذكاء الاصطناعي',
+    en: 'Digital Technologies & AI',
+    keywords: ['digital', 'ai', 'artificial', 'technologies'],
+  },
+  {
+    ar: 'إنتاج المياه واستدامة الموارد المائية',
+    en: 'Water Production & Water Resources',
+    keywords: ['production', 'resources'],
+  },
+  {
+    ar: 'البنية التحتية للمياه',
+    en: 'Smart Water Infrastructure',
+    keywords: ['infrastructure', 'smart'],
+  },
+  {
+    ar: 'إعادة الاستخدام والاقتصاد الدائري',
+    en: 'Water Reuse & Circular Economy',
+    keywords: ['reuse', 'circular', 'economy'],
+  },
+  {
+    ar: 'الاستدامة وتجربة المستفيد وجودة الحياة',
+    en: 'Sustainability & Customer Experience',
+    keywords: ['sustainability', 'customer', 'experience'],
+  },
+];
+
+/** Lowercase, drop punctuation and "&"/"and", collapse whitespace. */
+export function normalizeTrackText(raw: string): string {
+  return String(raw ?? '')
+    .toLowerCase()
+    .replace(/[&]/g, ' ')
+    .replace(/\band\b/g, ' ')
+    // strip punctuation without the /u flag (tsconfig targets es5):
+    // keep letters (incl. Arabic block), digits and whitespace
+    .replace(/[^0-9a-z\u0600-\u06FF\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Resolve any spelling of a track — Arabic, English, or a near variant — to the
+ * canonical Arabic challenge. Returns null when it cannot decide, so the caller
+ * reports it instead of guessing (a wrong track is worse than a blank one).
+ */
+export function resolveChallenge(raw: string): Challenge | null {
+  const trimmed = String(raw ?? '').trim();
+  if (!trimmed) return null;
+
+  // already canonical Arabic
+  const exactAr = CHALLENGES.find((c) => c === trimmed);
+  if (exactAr) return exactAr;
+
+  const input = normalizeTrackText(trimmed);
+  if (!input) return null;
+
+  const tokens = new Set(input.split(' '));
+  /** Does the input carry at least one word unique to this track? */
+  const hasDistinctive = (a: (typeof TRACK_ALIASES)[number]) => a.keywords.some((k) => tokens.has(k));
+
+  // whole-string match against the known English names, either direction.
+  // A containment match still has to carry a distinctive word, otherwise a
+  // bare "Water" would match the first name that happens to contain it —
+  // "water" appears in four of the five tracks and decides nothing.
+  for (const a of TRACK_ALIASES) {
+    const en = normalizeTrackText(a.en);
+    if (input === en) return a.ar;
+    if ((input.includes(en) || en.includes(input)) && hasDistinctive(a)) return a.ar;
+  }
+
+  // fall back to distinctive keywords; ambiguity => null
+  const scored = TRACK_ALIASES
+    .map((a) => ({ ar: a.ar, score: a.keywords.filter((k) => tokens.has(k)).length }))
+    .filter((x) => x.score > 0)
+    .sort((x, y) => y.score - x.score);
+
+  if (scored.length === 0) return null;
+  if (scored.length > 1 && scored[0].score === scored[1].score) return null; // ambiguous
+  return scored[0].ar;
+}
