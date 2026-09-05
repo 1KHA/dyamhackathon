@@ -243,7 +243,7 @@ export default function TeamManagementPage() {
             const errorData = await response.json();
             throw new Error(errorData.error || 'Failed to add member');
         }
-        toast({ title: "تمت الإضافة بنجاح", description: "تمت إضافة العضو الجديد للفريق." });
+        toast({ title: "تمت الإضافة بنجاح", description: "تمت إضافة العضو الجديد للفريق، وسيصله بريد إلكتروني ببيانات الدخول إلى حسابه." });
         fetchTeamDetails();
         setIsAddModalOpen(false);
         setNewParticipant(initialParticipantState);

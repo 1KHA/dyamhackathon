@@ -42,6 +42,19 @@ async function api(pathname, { cookie: ck, method = 'GET', body } = {}) {
   return { status: res.status, json };
 }
 
+const MAILPIT = 'http://localhost:8025';
+const mp = async (p) => (await fetch(MAILPIT + p)).json();
+const clearMp = async () => { await fetch(MAILPIT + '/api/v1/messages', { method: 'DELETE' }); };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+async function inboxFor(addr) {
+  const data = await mp('/api/v1/messages?limit=200');
+  return (data.messages || []).filter(
+    (m) =>
+      (m.To || []).some((t) => t.Address === addr) ||
+      (m.Bcc || []).some((t) => t.Address === addr)
+  );
+}
+
 let seq = 0;
 const memberBody = () => ({
   firstName: 'عضو', secondName: 'جديد', familyName: `${TAG}`, nationalId: `10${Date.now()}${seq}`,
@@ -109,6 +122,63 @@ async function main() {
   const add4 = await api('/api/participant/add-member', { method: 'POST', cookie: lCookie, body: memberBody() });
   check('add inside the window succeeds', add4.status === 201, `status=${add4.status} ${JSON.stringify(add4.json)}`);
   if (add4.json?.id) made.participants.push(add4.json.id);
+  check('  response does not leak passwordHash', !('passwordHash' in (add4.json || {})));
+  const added4 = await prisma.participant.findUnique({ where: { id: add4.json.id } });
+  check('  new member has a stored passwordHash', !!added4?.passwordHash);
+  check('  new member is auto-approved', added4?.status === 'approved', added4?.status);
+  const welcome = await prisma.notification.findFirst({
+    where: { recipientType: 'participant', recipientId: add4.json.id },
+  });
+  check('  dashboard notification created for the new member',
+    !!welcome && welcome.title === 'تمت إضافتك إلى الفريق!', welcome?.title);
+
+  // ============ credentials email -> member can actually log in ============
+  section('credentials email through Mailpit + real login');
+  const settingsRow = await prisma.emailSettings.findFirst();
+  const originalSettings = settingsRow ? { ...settingsRow } : null;
+  await prisma.emailSettings.update({
+    where: { id: settingsRow.id },
+    data: {
+      host: 'localhost', port: 1025, secure: false, username: '', password: '',
+      fromEmail: 'noreply@miyahthone.test', fromName: 'منصة دِيَم',
+      adminInboxEmail: '', enabled: true,
+    },
+  });
+  await clearMp();
+
+  const mailAdd = await api('/api/participant/add-member', { method: 'POST', cookie: lCookie, body: memberBody() });
+  check('add with email enabled succeeds', mailAdd.status === 201, `status=${mailAdd.status} ${JSON.stringify(mailAdd.json)}`);
+  if (mailAdd.json?.id) made.participants.push(mailAdd.json.id);
+  await wait(900);
+
+  const newEmail = mailAdd.json?.email;
+  const inbox = await inboxFor(newEmail);
+  check('new member received exactly one email', inbox.length === 1, `count=${inbox.length}`);
+  check('  subject carries the credentials wording',
+    !!inbox[0] && inbox[0].Subject.includes('بيانات الدخول'), inbox[0]?.Subject);
+
+  let mailedPassword = null;
+  if (inbox[0]) {
+    const full = await mp(`/api/v1/message/${inbox[0].ID}`);
+    const text = (full.Text || '') + (full.HTML || '');
+    mailedPassword = (/كلمة المرور:\s*([A-Za-z0-9]{10})/.exec(text) || [])[1] || null;
+    check('  email contains the member email + a 10-char password',
+      text.includes(newEmail) && !!mailedPassword, `password=${mailedPassword}`);
+  } else {
+    check('  email contains the member email + a 10-char password', false, 'no mail');
+  }
+
+  const loginRes = await api('/api/login', {
+    method: 'POST', body: { email: newEmail, password: mailedPassword || 'x' },
+  });
+  check('member logs in with the mailed password', loginRes.status === 200 && loginRes.json?.user?.role === 'participant',
+    `status=${loginRes.status} ${JSON.stringify(loginRes.json).slice(0, 100)}`);
+
+  // restore email settings before the remaining sections
+  if (originalSettings) {
+    const { id, updatedAt, ...restore } = originalSettings;
+    await prisma.emailSettings.update({ where: { id: settingsRow.id }, data: restore });
+  }
 
   // ============ 30-member cap ============
   section('30-member cap');
@@ -138,6 +208,10 @@ main()
     try {
       // restore the shared singleton so other suites see an open window
       await prisma.teamSettings.updateMany({ data: { memberAddStart: null, memberAddEnd: null } });
+      // the credentials-email section writes an EmailLog row and a Mailpit
+      // message — remove both (phase2 asserts a clean EmailLog table)
+      await prisma.emailLog.deleteMany({ where: { templateKey: 'memberAddedByLeader' } });
+      await clearMp().catch(() => {});
       await prisma.participant.deleteMany({ where: { OR: [{ id: { in: made.participants } }, { email: { startsWith: TAG } }] } });
       await prisma.team.deleteMany({ where: { id: { in: made.teams } } });
     } catch (e) {

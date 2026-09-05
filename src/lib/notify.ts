@@ -307,6 +307,21 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       actionUrl: '/participant-dashboard/team',
     }),
     def({
+      key: 'memberAddedByLeader',
+      label: 'إضافة عضو بواسطة قائد الفريق (بيانات الدخول)',
+      category: 'participant',
+      // email/password/loginUrl/participantName are PER RECIPIENT — the new
+      // member gets their own credentials, exactly like teamApproval.
+      variables: ['teamName', 'participantName', 'email', 'password', 'loginUrl'],
+      type: 'success',
+      dashboardTitle: 'تمت إضافتك إلى الفريق!',
+      dashboardMessage: 'تمت إضافتك إلى فريق {{teamName}} بواسطة قائد الفريق',
+      emailSubject: 'تمت إضافتك إلى فريق {{teamName}} — بيانات الدخول إلى حسابك',
+      emailBody:
+        'مرحباً {{participantName}}،\n\nتمت إضافتك إلى فريق {{teamName}} في الهاكثون بواسطة قائد الفريق.\n\nبيانات الدخول إلى لوحة المشارك:\nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\n\nرابط تسجيل الدخول: {{loginUrl}}\n\nهذه البيانات خاصة بك ولا تشاركها مع أحد. يمكنك تغيير كلمة المرور في أي وقت عبر خيار "نسيت كلمة المرور" في صفحة الدخول.',
+      actionUrl: '/participant-dashboard/team',
+    }),
+    def({
       key: 'joinRequestRejected',
       label: 'رفض طلب الانضمام',
       category: 'participant',
