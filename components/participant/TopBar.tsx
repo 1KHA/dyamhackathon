@@ -5,7 +5,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
-  Search,
   Menu,
   X,
   User,
@@ -23,21 +22,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import EventTimeline from "@/components/ui/event-timeline";
 import NotificationDropdown from "@/components/ui/notification-dropdown";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function TopBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const { user, logout } = useAuth();
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      // Handle search functionality
-      setSearchQuery("");
-    }
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -61,23 +53,18 @@ export default function TopBar() {
 
           <Link href="/participant-dashboard" className="flex items-center">
             <Image src="/logo2.png" alt="miyahthone" width={120} height={40} className="h-7 w-auto" />
-            <span className="ml-1 rounded-md bg-primary-foreground/20 px-1.5 py-0.5 text-xs font-medium">
+            <span className="ml-1 hidden sm:inline rounded-md bg-primary-foreground/20 px-1.5 py-0.5 text-xs font-medium">
               لوحة المشارك
             </span>
           </Link>
         </div>
 
-        <div className="hidden md:flex md:flex-1 md:justify-center md:px-4">
-          <form onSubmit={handleSearch} className="relative w-full max-w-md">
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-foreground/60" />
-            <input
-              type="search"
-              placeholder="بحث في لوحة التحكم..."
-              className="w-full rounded-md border border-primary-foreground/20 bg-primary-foreground/10 py-2 pr-10 pl-4 text-right text-primary-foreground placeholder:text-primary-foreground/60"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </form>
+        {/* Hackathon journey timeline (replaces the old search bar) */}
+        <div className="hidden md:flex md:flex-1 md:justify-center md:px-4 min-w-0">
+          <EventTimeline />
+        </div>
+        <div className="flex flex-1 justify-center px-2 min-w-0 md:hidden">
+          <EventTimeline variant="chip" />
         </div>
 
         <div className="flex items-center gap-2">
@@ -152,16 +139,8 @@ export default function TopBar() {
 
       {isMobileMenuOpen && (
         <div className="border-t border-primary-foreground/20 p-4 md:hidden">
-          <form onSubmit={handleSearch} className="relative mb-4">
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary-foreground/60" />
-            <input
-              type="search"
-              placeholder="بحث في لوحة التحكم..."
-              className="w-full rounded-md border border-primary-foreground/20 bg-primary-foreground/10 py-2 pr-10 pl-4 text-right text-primary-foreground placeholder:text-primary-foreground/60"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </form>
+          <p className="mb-2 text-xs font-semibold text-primary-foreground/70">رحلة مياهثون</p>
+          <EventTimeline variant="list" />
         </div>
       )}
     </header>
