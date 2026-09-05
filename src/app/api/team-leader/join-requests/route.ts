@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
         email: req.email,
         university: req.university,
         professionalField: req.professionalField,
-        displayName: req.fullName || `${req.firstName} ${req.secondName} ${req.familyName}`.trim()
+        displayName: req.fullName || [req.firstName, req.secondName, req.familyName].filter(Boolean).join(' ').trim() || req.email
       }
     }));
 

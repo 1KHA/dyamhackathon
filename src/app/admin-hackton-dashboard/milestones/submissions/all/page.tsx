@@ -36,6 +36,7 @@ type Submission = {
   reviewedAt: string | null;
   participant: {
     id: string;
+    fullName?: string | null;
     firstName: string;
     secondName: string;
     familyName: string;
@@ -132,7 +133,7 @@ export default function AllMilestoneSubmissionsPage() {
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       result = result.filter(sub => 
-        `${sub.participant.firstName} ${sub.participant.secondName} ${sub.participant.familyName}`.toLowerCase().includes(searchLower) ||
+        [sub.participant.fullName, sub.participant.firstName, sub.participant.secondName, sub.participant.familyName].filter(Boolean).join(' ').toLowerCase().includes(searchLower) ||
         sub.participant.team.teamName.toLowerCase().includes(searchLower) ||
         sub.milestone.title.toLowerCase().includes(searchLower)
       );
@@ -253,7 +254,7 @@ export default function AllMilestoneSubmissionsPage() {
 
   // Get participant full name
   const getParticipantName = (participant: Submission['participant']) => {
-    return `${participant.firstName} ${participant.secondName} ${participant.familyName}`;
+    return participant.fullName || [participant.firstName, participant.secondName, participant.familyName].filter(Boolean).join(' ').trim() || participant.email || 'غير متوفر';
   };
 
   // Format file size

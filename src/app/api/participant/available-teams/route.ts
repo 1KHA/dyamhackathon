@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       .map(team => {
         const leader = team.participants.find(p => p.isLeader);
         const leaderName = leader?.fullName || 
-                          (leader ? `${leader.firstName} ${leader.secondName} ${leader.familyName}`.trim() : 'غير محدد');
+                          (leader ? (leader.fullName || [leader.firstName, leader.secondName, leader.familyName].filter(Boolean).join(' ').trim() || 'غير محدد') : 'غير محدد');
         
         return {
           id: team.id,

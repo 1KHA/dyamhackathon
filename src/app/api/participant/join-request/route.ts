@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     
     if (teamLeader) {
       const participantName = currentParticipant.fullName || 
-        `${currentParticipant.firstName} ${currentParticipant.secondName} ${currentParticipant.familyName}`.trim();
+        (currentParticipant.fullName || [currentParticipant.firstName, currentParticipant.secondName, currentParticipant.familyName].filter(Boolean).join(' ').trim());
       
       // Send notification to team leader
       await dispatchNotification({

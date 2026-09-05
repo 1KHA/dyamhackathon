@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 
       // Send notification to the accepted participant
       const participantName = joinRequest.fullName || 
-        `${joinRequest.firstName} ${joinRequest.secondName} ${joinRequest.familyName}`.trim();
+        [joinRequest.firstName, joinRequest.secondName, joinRequest.familyName].filter(Boolean).join(' ').trim();
 
       // A participant joining an approved team needs login credentials. If
       // they never had a password (registered as an individual, not yet

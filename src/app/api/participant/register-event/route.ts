@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Notify admins about new registration
-      const participantName = `${participant.firstName} ${participant.familyName}`;
+      const participantName = participant.fullName || [participant.firstName, participant.secondName, participant.familyName].filter(Boolean).join(' ').trim() || participant.email;
       await dispatchNotification({
         templateKey: 'newEventRegistration',
         variables: { participantName, eventTitle: event.title },

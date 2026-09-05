@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     // Add a computed fullName to each participant
     const participantsWithFullName = updatedTeam.participants.map(p => ({
       ...p,
-      fullName: `${p.firstName} ${p.secondName} ${p.familyName}`,
+      fullName: p.fullName || [p.firstName, p.secondName, p.familyName].filter(Boolean).join(' ').trim() || p.email || 'غير متوفر',
     }));
 
     return NextResponse.json({

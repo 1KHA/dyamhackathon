@@ -287,6 +287,33 @@ async function waitForServer() {
   check('all converted records are pending', madeTeams.every(t => t.status === 'pending' && t.participants[0].status === 'pending'));
   fs2.unlinkSync(srcPath); fs2.rmSync(outDir, { recursive: true, force: true });
 
+
+  section('imported users are readable everywhere (no "null null null")');
+  // The dashboards still read the DEPRECATED columns, and several endpoints
+  // concatenate them without null guards. The import must mirror the new
+  // fields into them exactly as /api/register-team does.
+  const mirrored = await prisma.participant.findFirst({ where: { email: `${TAG}-lead@t.local` } });
+  check('deprecated firstName mirrored from fullName', mirrored.firstName === 'قائد الفريق', JSON.stringify(mirrored.firstName));
+  check('deprecated phoneNumber mirrored from contactNumber', mirrored.phoneNumber === '0507777777', JSON.stringify(mirrored.phoneNumber));
+  check('deprecated name parts are empty strings, never null',
+        mirrored.secondName === '' && mirrored.familyName === '' && mirrored.nationalId === '' && mirrored.dob === '',
+        JSON.stringify({ s: mirrored.secondName, f: mirrored.familyName }));
+  check('deprecated nationality/residence/canAttend mirrored',
+        mirrored.nationality === 'ذكر' && mirrored.residence === '' && mirrored.canAttend === true,
+        JSON.stringify({ n: mirrored.nationality, r: mirrored.residence, c: mirrored.canAttend }));
+
+  // and the endpoint that actually rendered "null null null"
+  await prisma.participant.update({ where: { id: mirrored.id }, data: { passwordHash: 'x', status: 'approved' } });
+  await prisma.team.update({ where: { id: mirrored.teamId }, data: { status: 'approved' } });
+  const leadCookie = cookie({ id: mirrored.id, participantId: mirrored.id, email: mirrored.email, role: 'participant', teamId: mirrored.teamId, isLeader: true });
+  const tdRes = await fetch(BASE + '/api/participant/team-details', { headers: { cookie: leadCookie } });
+  const td = await tdRes.json().catch(() => ({}));
+  const mems = td?.participants || td?.members || td?.team?.participants || [];
+  check('team-details shows the real name, not "null null null"',
+        mems.length > 0 && mems[0].fullName === 'قائد الفريق', JSON.stringify(mems[0] && mems[0].fullName));
+  check('no member name contains the string "null"',
+        mems.every((m) => !String(m.fullName).includes('null')), JSON.stringify(mems.map((m) => m.fullName)));
+
   section('cleanup');
   await prisma.participant.deleteMany({ where: { email: { startsWith: TAG } } });
   await prisma.participant.deleteMany({ where: { team: { is: { teamName: { startsWith: TAG } } } } });

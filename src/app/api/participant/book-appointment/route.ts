@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
 
     // Create notifications for the booking
     try {
-      const participantName = `${participant.firstName} ${participant.familyName}`;
+      const participantName = participant.fullName || [participant.firstName, participant.secondName, participant.familyName].filter(Boolean).join(' ').trim() || participant.email;
       const dateTime = new Date(booking.availability.startTime).toLocaleString('ar-SA', {
         year: 'numeric',
         month: 'long',

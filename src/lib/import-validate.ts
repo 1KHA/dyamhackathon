@@ -290,6 +290,21 @@ export async function commitImport(entity: EntityKey, rows: RowResult[]): Promis
             status: 'pending',
             isDisabled: false,
             passwordHash: null,
+            // Mirror into the DEPRECATED columns exactly as /api/register-team does.
+            // Several screens still read these and some concatenate them without
+            // null guards — leaving them NULL is what produced "null null null".
+            firstName: r.data.leaderFullName || '',
+            secondName: '',
+            familyName: '',
+            nationalId: '',
+            dob: '',
+            phoneNumber: r.data.leaderContactNumber || '',
+            education: r.data.leaderUniversityMajor || '',
+            major: r.data.leaderUniversityMajor || '',
+            employmentStatus: r.data.leaderProfessionalField || '',
+            nationality: r.data.leaderGender || '',
+            residence: r.data.leaderCity || '',
+            canAttend: b(r.data.leaderCanAttendHackathon),
           },
         });
       }
@@ -321,6 +336,21 @@ export async function commitImport(entity: EntityKey, rows: RowResult[]): Promis
           status: 'pending',
           isDisabled: false,
           passwordHash: null,
+          // Mirror into the DEPRECATED columns exactly as /api/register-team does.
+          // Several screens still read these and some concatenate them without
+          // null guards — leaving them NULL is what produced "null null null".
+          firstName: r.data.fullName || '',
+          secondName: '',
+          familyName: '',
+          nationalId: '',
+          dob: '',
+          phoneNumber: r.data.contactNumber || '',
+          education: r.data.universityMajor || '',
+          major: r.data.universityMajor || '',
+          employmentStatus: r.data.professionalField || '',
+          nationality: r.data.gender || '',
+          residence: r.data.city || '',
+          canAttend: b(r.data.canAttendHackathon),
         },
       });
     }

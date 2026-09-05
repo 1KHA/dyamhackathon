@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
         },
         participant: {
           id: booking.participant.id,
-          name: `${booking.participant.firstName} ${booking.participant.secondName} ${booking.participant.familyName}`,
+          name: booking.participant.fullName || [booking.participant.firstName, booking.participant.secondName, booking.participant.familyName].filter(Boolean).join(' ').trim() || booking.participant.email,
           email: booking.participant.email,
           phoneNumber: booking.participant.phoneNumber,
         },

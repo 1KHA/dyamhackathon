@@ -25,6 +25,7 @@ type Submission = {
   reviewedAt: string | null;
   participant: {
     id: string;
+    fullName?: string | null;
     firstName: string;
     secondName: string;
     familyName: string;
@@ -198,7 +199,7 @@ export default function MilestoneSubmissionsPage() {
 
   // Get participant full name
   const getParticipantName = (participant: Submission['participant']) => {
-    return `${participant.firstName} ${participant.secondName} ${participant.familyName}`;
+    return participant.fullName || [participant.firstName, participant.secondName, participant.familyName].filter(Boolean).join(' ').trim() || participant.email || 'غير متوفر';
   };
 
   // Format file size
