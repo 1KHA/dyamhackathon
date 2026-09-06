@@ -38,6 +38,7 @@ const OUT_BASE = path.extname(OUT_ARG) === '' ? path.join(OUT_ARG, 'teams-with-l
 /** Source column -> our template column. Matched case/space-insensitively. */
 const COLUMN_MAP = {
   'Author - Email': 'leaderEmail',
+  //'Name': 'leaderFullName',
   'Full Name': 'leaderFullName',
   'Phone number': 'leaderContactNumber',
   'Gender': 'leaderGender',
