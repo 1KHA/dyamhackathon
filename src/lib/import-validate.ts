@@ -7,6 +7,7 @@
  * row still imports. Nothing is written unless every row is valid — a
  * half-imported file is worse than a rejected one.
  */
+import crypto from 'crypto';
 import { prisma } from './prisma';
 import { resolveChallenge } from './challenges';
 import {
@@ -218,142 +219,157 @@ export async function validateImport(
  *
  * Forced on every record regardless of file contents:
  *   status = 'pending' · isDisabled = false · passwordHash = null
+ *
+ * ⚠ Round-trips matter here. This used to `create()` once per row inside an
+ * interactive transaction — two per row for teams-with-leader. In production
+ * the app talks to Supabase through the transaction-mode pooler (port 6543,
+ * `pgbouncer=true`) from another region, so each call costs ~100 ms of network.
+ * Prisma's interactive transaction defaults to a 5 s timeout, so the
+ * transaction was killed after roughly 25-50 rows and every later statement
+ * failed with **P2028 "Transaction not found"**.
+ *
+ * It now uses `createMany`, so the whole import is a handful of statements
+ * regardless of row count: 1 for teams/mentors, 2 for participants and for
+ * teams-with-leader (ids are generated here so the children can reference the
+ * parents without reading them back).
+ *
+ * The two-statement case uses the ARRAY form of $transaction rather than the
+ * interactive callback form. The array form is executed as one batched
+ * transaction and is not governed by the interactive `timeout` at all, so the
+ * P2028 failure mode is gone by construction rather than by a larger timeout.
  */
+
 export async function commitImport(entity: EntityKey, rows: RowResult[]): Promise<number> {
   const b = (v: string) => parseBoolean(v ?? '') ?? false;
 
-  return prisma.$transaction(async (tx) => {
-    if (entity === 'teams') {
-      for (const r of rows) {
-        await tx.team.create({
-          data: {
-            teamName: r.data.teamName,
-            hackathonTrack: r.data.hackathonTrack,
-            ideaDescription: r.data.ideaDescription || '',
-            hearAboutUs: r.data.hearAboutUs || '',
-            isTeamRegistration: true,
-            status: 'pending',
-            isDisabled: false,
-            challenge: r.data.hackathonTrack, // deprecated mirror, as the public form does
-          },
-        });
-      }
-      return rows.length;
-    }
-
-    if (entity === 'mentors') {
-      for (const r of rows) {
-        await tx.mentor.create({
-          data: {
-            name: r.data.name,
-            email: normalizeEmail(r.data.email),
-            specialty: r.data.specialty,
-            phone: r.data.phone || '',
-            status: 'pending',
-            isDisabled: false,
-            passwordHash: null,
-          },
-        });
-      }
-      return rows.length;
-    }
-
-    if (entity === 'teams-with-leader') {
-      // One row -> a Team plus its leader Participant, linked, both pending.
-      for (const r of rows) {
-        const team = await tx.team.create({
-          data: {
-            teamName: r.data.teamName,
-            hackathonTrack: r.data.hackathonTrack,
-            ideaDescription: r.data.ideaDescription || '',
-            hearAboutUs: r.data.hearAboutUs || '',
-            isTeamRegistration: true,
-            status: 'pending',
-            isDisabled: false,
-            challenge: r.data.hackathonTrack,
-          },
-        });
-        await tx.participant.create({
-          data: {
-            email: normalizeEmail(r.data.leaderEmail),
-            fullName: r.data.leaderFullName,
-            contactNumber: r.data.leaderContactNumber || '',
-            gender: r.data.leaderGender || '',
-            isUniversityStudent: b(r.data.leaderIsUniversityStudent),
-            university: r.data.leaderUniversity || '',
-            universityMajor: r.data.leaderUniversityMajor || '',
-            professionalField: r.data.leaderProfessionalField || '',
-            city: r.data.leaderCity || '',
-            canAttendHackathon: b(r.data.leaderCanAttendHackathon),
-            isLeader: true,
-            teamId: team.id,
-            status: 'pending',
-            isDisabled: false,
-            passwordHash: null,
-            // Mirror into the DEPRECATED columns exactly as /api/register-team does.
-            // Several screens still read these and some concatenate them without
-            // null guards — leaving them NULL is what produced "null null null".
-            firstName: r.data.leaderFullName || '',
-            secondName: '',
-            familyName: '',
-            nationalId: '',
-            dob: '',
-            phoneNumber: r.data.leaderContactNumber || '',
-            education: r.data.leaderUniversityMajor || '',
-            major: r.data.leaderUniversityMajor || '',
-            employmentStatus: r.data.leaderProfessionalField || '',
-            nationality: r.data.leaderGender || '',
-            residence: r.data.leaderCity || '',
-            canAttend: b(r.data.leaderCanAttendHackathon),
-          },
-        });
-      }
-      return rows.length;
-    }
-
-    // participants
-    const teamNames = Array.from(new Set(rows.map((r) => r.data.teamName).filter(Boolean)));
-    const teams = teamNames.length
-      ? await tx.team.findMany({ where: { teamName: { in: teamNames } }, select: { id: true, teamName: true } })
-      : [];
-    const teamId = new Map(teams.map((t) => [t.teamName as string, t.id]));
-
-    for (const r of rows) {
-      await tx.participant.create({
-        data: {
-          email: normalizeEmail(r.data.email),
-          fullName: r.data.fullName,
-          contactNumber: r.data.contactNumber || '',
-          gender: r.data.gender || '',
-          isUniversityStudent: b(r.data.isUniversityStudent),
-          university: r.data.university || '',
-          universityMajor: r.data.universityMajor || '',
-          professionalField: r.data.professionalField || '',
-          city: r.data.city || '',
-          canAttendHackathon: b(r.data.canAttendHackathon),
-          isLeader: b(r.data.isLeader),
-          teamId: r.data.teamName ? teamId.get(r.data.teamName) ?? null : null,
-          status: 'pending',
-          isDisabled: false,
-          passwordHash: null,
-          // Mirror into the DEPRECATED columns exactly as /api/register-team does.
-          // Several screens still read these and some concatenate them without
-          // null guards — leaving them NULL is what produced "null null null".
-          firstName: r.data.fullName || '',
-          secondName: '',
-          familyName: '',
-          nationalId: '',
-          dob: '',
-          phoneNumber: r.data.contactNumber || '',
-          education: r.data.universityMajor || '',
-          major: r.data.universityMajor || '',
-          employmentStatus: r.data.professionalField || '',
-          nationality: r.data.gender || '',
-          residence: r.data.city || '',
-          canAttend: b(r.data.canAttendHackathon),
-        },
-      });
-    }
-    return rows.length;
+  /** Deprecated columns mirrored from the modern ones, as /api/register-team does. */
+  const legacy = (o: {
+    fullName: string; phone: string; major: string; prof: string; gender: string; city: string; attend: boolean;
+  }) => ({
+    firstName: o.fullName,
+    secondName: '',
+    familyName: '',
+    nationalId: '',
+    dob: '',
+    phoneNumber: o.phone,
+    education: o.major,
+    major: o.major,
+    employmentStatus: o.prof,
+    nationality: o.gender,
+    residence: o.city,
+    canAttend: o.attend,
   });
+
+  if (entity === 'teams') {
+    const data = rows.map((r) => ({
+      teamName: r.data.teamName,
+      hackathonTrack: r.data.hackathonTrack,
+      ideaDescription: r.data.ideaDescription || '',
+      hearAboutUs: r.data.hearAboutUs || '',
+      isTeamRegistration: true,
+      status: 'pending',
+      isDisabled: false,
+      challenge: r.data.hackathonTrack, // deprecated mirror, as the public form does
+    }));
+    const res = await prisma.team.createMany({ data });
+    return res.count;
+  }
+
+  if (entity === 'mentors') {
+    const data = rows.map((r) => ({
+      name: r.data.name,
+      email: normalizeEmail(r.data.email),
+      specialty: r.data.specialty,
+      phone: r.data.phone || '',
+      status: 'pending',
+      isDisabled: false,
+      passwordHash: null,
+    }));
+    const res = await prisma.mentor.createMany({ data });
+    return res.count;
+  }
+
+  if (entity === 'teams-with-leader') {
+    // Generate the team ids up front so the leaders can point at them without
+    // a read-back per row. Two statements total, whatever the file size.
+    const teams = rows.map((r) => ({
+      id: crypto.randomUUID(),
+      teamName: r.data.teamName,
+      hackathonTrack: r.data.hackathonTrack,
+      ideaDescription: r.data.ideaDescription || '',
+      hearAboutUs: r.data.hearAboutUs || '',
+      isTeamRegistration: true,
+      status: 'pending',
+      isDisabled: false,
+      challenge: r.data.hackathonTrack,
+    }));
+    const leaders = rows.map((r, i) => ({
+      email: normalizeEmail(r.data.leaderEmail),
+      fullName: r.data.leaderFullName,
+      contactNumber: r.data.leaderContactNumber || '',
+      gender: r.data.leaderGender || '',
+      isUniversityStudent: b(r.data.leaderIsUniversityStudent),
+      university: r.data.leaderUniversity || '',
+      universityMajor: r.data.leaderUniversityMajor || '',
+      professionalField: r.data.leaderProfessionalField || '',
+      city: r.data.leaderCity || '',
+      canAttendHackathon: b(r.data.leaderCanAttendHackathon),
+      isLeader: true,
+      teamId: teams[i].id,
+      status: 'pending',
+      isDisabled: false,
+      passwordHash: null,
+      ...legacy({
+        fullName: r.data.leaderFullName || '',
+        phone: r.data.leaderContactNumber || '',
+        major: r.data.leaderUniversityMajor || '',
+        prof: r.data.leaderProfessionalField || '',
+        gender: r.data.leaderGender || '',
+        city: r.data.leaderCity || '',
+        attend: b(r.data.leaderCanAttendHackathon),
+      }),
+    }));
+
+    await prisma.$transaction([
+      prisma.team.createMany({ data: teams }),
+      prisma.participant.createMany({ data: leaders }),
+    ]);
+    return rows.length;
+  }
+
+  // participants — resolve team names to ids once, then a single insert
+  const teamNames = Array.from(new Set(rows.map((r) => r.data.teamName).filter(Boolean)));
+  const teams = teamNames.length
+    ? await prisma.team.findMany({ where: { teamName: { in: teamNames } }, select: { id: true, teamName: true } })
+    : [];
+  const teamId = new Map(teams.map((t) => [t.teamName as string, t.id]));
+
+  const data = rows.map((r) => ({
+    email: normalizeEmail(r.data.email),
+    fullName: r.data.fullName,
+    contactNumber: r.data.contactNumber || '',
+    gender: r.data.gender || '',
+    isUniversityStudent: b(r.data.isUniversityStudent),
+    university: r.data.university || '',
+    universityMajor: r.data.universityMajor || '',
+    professionalField: r.data.professionalField || '',
+    city: r.data.city || '',
+    canAttendHackathon: b(r.data.canAttendHackathon),
+    isLeader: b(r.data.isLeader),
+    teamId: r.data.teamName ? teamId.get(r.data.teamName) ?? null : null,
+    status: 'pending',
+    isDisabled: false,
+    passwordHash: null,
+    ...legacy({
+      fullName: r.data.fullName || '',
+      phone: r.data.contactNumber || '',
+      major: r.data.universityMajor || '',
+      prof: r.data.professionalField || '',
+      gender: r.data.gender || '',
+      city: r.data.city || '',
+      attend: b(r.data.canAttendHackathon),
+    }),
+  }));
+  const res = await prisma.participant.createMany({ data });
+  return res.count;
 }

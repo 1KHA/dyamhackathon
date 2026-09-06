@@ -314,10 +314,42 @@ async function waitForServer() {
   check('no member name contains the string "null"',
         mems.every((m) => !String(m.fullName).includes('null')), JSON.stringify(mems.map((m) => m.fullName)));
 
+
+  section('scale: a large file imports in a few statements (P2028 regression)');
+  // The old implementation issued one create() per row inside an INTERACTIVE
+  // transaction — two per row here. Against the production pooler that blew
+  // through Prisma's 5s interactive timeout after ~25-50 rows and failed with
+  // P2028. createMany makes this two statements regardless of size.
+  const BIG = 300;
+  const bigRows = [['teamName','hackathonTrack','ideaDescription','leaderEmail','leaderFullName','leaderContactNumber','leaderGender','leaderCanAttendHackathon']];
+  for (let i = 0; i < BIG; i++) {
+    bigRows.push([`${TAG} كبير ${i}`, TRACK, `فكرة ${i}`, `${TAG}-big${i}@t.local`, `قائد ${i}`, '0501234567', i % 2 ? 'ذكر' : 'أنثى', 'TRUE']);
+  }
+  const t0 = Date.now();
+  r = await upload('teams-with-leader', csv(bigRows), { commit: true, cookie: aCookie });
+  const took = Date.now() - t0;
+  check(`${BIG} rows committed in one request`, r.status === 200 && r.json.created === BIG, JSON.stringify(r.json).slice(0, 140));
+  console.log(`      ${BIG} teams + ${BIG} leaders in ${took}ms`);
+  const bigTeams = await prisma.team.count({ where: { teamName: { startsWith: `${TAG} كبير` } } });
+  const bigLeads = await prisma.participant.count({ where: { email: { startsWith: `${TAG}-big` } } });
+  check(`${BIG} teams and ${BIG} leaders actually created`, bigTeams === BIG && bigLeads === BIG, `${bigTeams}/${bigLeads}`);
+  const sample = await prisma.participant.findFirst({ where: { email: `${TAG}-big7@t.local` }, include: { team: true } });
+  check('each leader still linked to its OWN team (ids not shuffled)',
+        sample && sample.team && sample.team.teamName === `${TAG} كبير 7`, sample && sample.team && sample.team.teamName);
+  check('bulk-created rows still pending, leader-flagged, legacy mirrored',
+        sample.status === 'pending' && sample.isLeader === true && sample.firstName === 'قائد 7' && sample.phoneNumber === '0501234567',
+        JSON.stringify({ s: sample.status, l: sample.isLeader, f: sample.firstName, p: sample.phoneNumber }));
+  // large participants-only import too
+  const bigP = [['email','fullName','contactNumber']];
+  for (let i = 0; i < BIG; i++) bigP.push([`${TAG}-p${i}@t.local`, `مشارك ${i}`, '0559876543']);
+  r = await upload('participants', csv(bigP), { commit: true, cookie: aCookie });
+  check(`${BIG} participants committed`, r.status === 200 && r.json.created === BIG, JSON.stringify(r.json).slice(0, 120));
+
   section('cleanup');
   await prisma.participant.deleteMany({ where: { email: { startsWith: TAG } } });
   await prisma.participant.deleteMany({ where: { team: { is: { teamName: { startsWith: TAG } } } } });
   await prisma.team.deleteMany({ where: { teamName: { startsWith: TAG } } });
+  await prisma.participant.deleteMany({ where: { email: { startsWith: TAG } } });
   await prisma.mentor.deleteMany({ where: { email: { startsWith: TAG } } });
   await prisma.admin.delete({ where: { id: admin.id } });
   console.log('  cleaned up');
