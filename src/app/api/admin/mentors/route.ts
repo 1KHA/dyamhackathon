@@ -54,13 +54,83 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json(mentor);
     } else {
-      const mentors = await prisma.mentor.findMany({
+      // Participants only need the plain list. Admins additionally get the
+      // real stats the mentors table shows — these used to be Math.random()
+      // mock values generated in the browser and re-rolled on every fetch.
+      if (!isAdmin) {
+        const mentors = await prisma.mentor.findMany({
+          where: visibility,
+          select: MENTOR_PUBLIC_FIELDS,
+          orderBy: { createdAt: 'desc' },
+        });
+        return NextResponse.json(mentors);
+      }
+
+      const rows = await prisma.mentor.findMany({
         where: visibility,
-        select: MENTOR_PUBLIC_FIELDS,
-        orderBy: {
-          createdAt: 'desc',
+        select: {
+          ...MENTOR_PUBLIC_FIELDS,
+          availabilities: {
+            select: {
+              endTime: true,
+              bookings: {
+                select: {
+                  status: true,
+                  participant: { select: { teamId: true, team: { select: { teamName: true } } } },
+                },
+              },
+            },
+          },
         },
+        orderBy: { createdAt: 'desc' },
       });
+
+      const now = new Date();
+      const mentors = rows.map(({ availabilities, ...mentor }) => {
+        // A booking counts as a session unless it was cancelled.
+        const active = availabilities.flatMap((a) =>
+          a.bookings.filter((b) => b.status !== 'cancelled').map((b) => ({ ...b, endTime: a.endTime }))
+        );
+
+        // Teams this mentor actually works with, via who booked them. There is
+        // no explicit mentor↔team assignment in the schema, so bookings are the
+        // only real link — see mdfiles/mentor-stats.md.
+        const teamNames = Array.from(
+          new Set(
+            active
+              .map((b) => b.participant?.team?.teamName)
+              .filter((t): t is string => Boolean(t))
+          )
+        );
+
+        // Availability is derived from FUTURE slots only; a past slot says
+        // nothing about whether the mentor is free now.
+        const future = availabilities.filter((a) => a.endTime >= now);
+        const freeSlots = future.filter(
+          (a) => !a.bookings.some((b) => b.status !== 'cancelled')
+        ).length;
+        let availability: string | null = null;
+        if (future.length > 0) {
+          if (freeSlots === future.length) availability = 'متاح';
+          else if (freeSlots === 0) availability = 'مشغول';
+          else availability = 'متاح جزئياً';
+        }
+
+        return {
+          ...mentor,
+          assignedTeams: teamNames.length,
+          teams: teamNames,
+          // `completed` is never written by any route, so "completed" means a
+          // non-cancelled booking whose slot has already ended.
+          sessionsCompleted: active.filter((b) => b.endTime < now).length,
+          sessionsUpcoming: active.filter((b) => b.endTime >= now).length,
+          sessionsTotal: active.length,
+          availability,
+          availableSlots: freeSlots,
+          upcomingSlots: future.length,
+        };
+      });
+
       return NextResponse.json(mentors);
     }
   } catch (error) {

@@ -30,7 +30,6 @@ import {
   Users,
   Mail,
   Calendar,
-  Award,
   Clock,
   Edit,
   Trash2,
@@ -101,11 +100,15 @@ interface Mentor {
   isDisabled?: boolean;
   createdAt: string;
   updatedAt: string;
-  // The following fields are for display and might not be in the DB model directly
-  assignedTeams?: number;
-  availability?: string;
-  sessionsCompleted?: number;
-  rating?: number;
+  // Computed server-side from real bookings/availability (see
+  // GET /api/admin/mentors). Absent for non-admin callers.
+  assignedTeams?: number;      // distinct teams this mentor has sessions with
+  availability?: string | null; // متاح | متاح جزئياً | مشغول, from FUTURE slots
+  sessionsCompleted?: number;  // non-cancelled bookings whose slot has ended
+  sessionsUpcoming?: number;
+  sessionsTotal?: number;
+  availableSlots?: number;
+  upcomingSlots?: number;
   teams?: string[];
 }
 
@@ -242,16 +245,10 @@ export default function MentorsPage() {
         throw new Error('Failed to fetch mentors');
       }
       const data = await response.json();
-      // Add mock display data for now
-      const mentorsWithMockData = data.map((mentor: Mentor) => ({
-        ...mentor,
-        assignedTeams: Math.floor(Math.random() * 5),
-        availability: ['متاح', 'مشغول', 'متاح جزئياً'][Math.floor(Math.random() * 3)],
-        sessionsCompleted: Math.floor(Math.random() * 20),
-        rating: parseFloat((Math.random() * (5 - 3.5) + 3.5).toFixed(1)),
-        teams: ['فريق ألفا', 'فريق بيتا'].slice(0, Math.floor(Math.random() * 3)),
-      }));
-      setMentors(mentorsWithMockData);
+      // assignedTeams / availability / sessions now come from the API, computed
+      // from real bookings and availability slots. They used to be generated
+      // here with Math.random() and re-rolled on every fetch.
+      setMentors(data);
     } catch (error) {
       console.error(error);
       toast({
@@ -353,9 +350,8 @@ export default function MentorsPage() {
         throw new Error(errorData.message || 'Failed to update mentor status');
       }
 
-      // Patch the single row instead of refetching: fetchMentors() re-rolls the
-      // mock display data (rating/availability/teams), which would make the
-      // whole table jump on every activation.
+      // Patch the single row instead of refetching — cheaper than a round trip,
+      // and the stats are unaffected by a status change.
       setMentors((prev) =>
         prev.map((m) => (m.id === mentor.id ? { ...m, status: nextStatus } : m))
       );
@@ -487,7 +483,7 @@ export default function MentorsPage() {
     }
   };
 
-  const getAvailabilityBadge = (availability?: string) => {
+  const getAvailabilityBadge = (availability?: string | null) => {
     switch (availability) {
       case 'متاح':
         return <Badge className="bg-green-100 text-green-800">متاح</Badge>;
@@ -785,19 +781,22 @@ export default function MentorsPage() {
           </CardContent>
         </Card>
         
+        {/* Replaced "متوسط التقييم": there is no rating model in the schema, so
+            the old average was a mean of Math.random() values. This shows a
+            real number instead. */}
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-200 bg-gradient-to-br from-white to-yellow-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Award className="h-5 w-5 text-yellow-500" />
-              متوسط التقييم
+              <Users className="h-5 w-5 text-yellow-500" />
+              الفرق المخدومة
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-yellow-600">
-              {(mentors.reduce((total, mentor) => total + (mentor.rating || 0), 0) / (mentors.length || 1)).toFixed(1)}/5
+              {new Set(mentors.flatMap((m) => m.teams || [])).size}
             </div>
             <p className="text-xs text-muted-foreground">
-              بناءً على تقييمات المشاركين
+              عدد الفرق التي لديها جلسات مع الموجهين
             </p>
           </CardContent>
         </Card>
@@ -892,7 +891,6 @@ export default function MentorsPage() {
                 <TableHead>الفرق المعينة</TableHead>
                 <TableHead>التوفر</TableHead>
                 <TableHead>الجلسات</TableHead>
-                <TableHead>التقييم</TableHead>
                 <TableHead>الحالة</TableHead>
                 <TableHead className="text-left">الإجراءات</TableHead>
               </TableRow>
@@ -923,25 +921,22 @@ export default function MentorsPage() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-gray-500" />
-                      <span>{mentor.assignedTeams} فرق</span>
+                      <span title={(mentor.teams || []).join('، ') || 'لا توجد فرق'}>
+                        {mentor.assignedTeams ?? 0} فرق
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>{getAvailabilityBadge(mentor.availability)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      <span>{mentor.sessionsCompleted}</span>
+                      <span title={`مكتملة ${mentor.sessionsCompleted ?? 0} · قادمة ${mentor.sessionsUpcoming ?? 0}`}>
+                        {mentor.sessionsCompleted ?? 0}
+                        {(mentor.sessionsUpcoming ?? 0) > 0 && (
+                          <span className="text-xs text-muted-foreground"> (+{mentor.sessionsUpcoming} قادمة)</span>
+                        )}
+                      </span>
                     </div>
-                  </TableCell>
-                  <TableCell>
-                    {mentor.rating && mentor.rating > 0 ? (
-                      <div className="flex items-center gap-1">
-                        <Award className="h-4 w-4 text-yellow-500" />
-                        <span>{mentor.rating}/5</span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-500">-</span>
-                    )}
                   </TableCell>
                   <TableCell>{getStatusBadge(mentor.status)}</TableCell>
                   <TableCell>
