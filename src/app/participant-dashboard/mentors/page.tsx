@@ -97,6 +97,7 @@ interface Booking {
   startTime: string;
   endTime: string;
   status: string;
+  meetingUrl?: string | null;
   createdAt: string;
 }
 
@@ -411,9 +412,22 @@ export default function MentorsPage() {
                         {formattedDate} • {formattedStartTime} - {formattedEndTime}
                       </div>
                     </div>
-                    <Badge className="bg-green-100 text-green-800 ml-2">
-                      {booking.status === 'booked' ? 'محجوز' : booking.status}
-                    </Badge>
+                    <div className="flex flex-col items-end gap-2 ml-2 shrink-0">
+                      <Badge className="bg-green-100 text-green-800">
+                        {booking.status === 'booked' ? 'محجوز' : booking.status}
+                      </Badge>
+                      {booking.meetingUrl && booking.status === 'booked' && (
+                        <Button
+                          asChild
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 h-8 text-xs"
+                        >
+                          <a href={booking.meetingUrl} target="_blank" rel="noopener noreferrer">
+                            دخول الاجتماع
+                          </a>
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 );
               })}

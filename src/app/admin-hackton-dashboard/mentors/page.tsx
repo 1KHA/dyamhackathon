@@ -36,7 +36,8 @@ import {
   UserCheck,
   UserX,
   Ban,
-  RotateCcw
+  RotateCcw,
+  Video,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -502,6 +503,7 @@ export default function MentorsPage() {
     status: string;
     createdAt: string;
     updatedAt: string;
+    meetingUrl?: string | null;
     mentor: { id: string; name: string; email: string; specialty: string };
     participant: { id: string; name: string; email: string; phoneNumber: string };
     availability: { id: string; startTime: string; endTime: string };
@@ -1086,6 +1088,19 @@ export default function MentorsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2 justify-center">
+                        {booking.meetingUrl && (
+                          <Button
+                            asChild
+                            variant="outline"
+                            size="sm"
+                            className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200 flex items-center gap-1 px-3 py-1 h-8"
+                            title="رابط اجتماع الجلسة"
+                          >
+                            <a href={booking.meetingUrl} target="_blank" rel="noopener noreferrer">
+                              <Video className="h-4 w-4" />
+                            </a>
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           size="sm"

@@ -20,6 +20,7 @@ const SUITES = [
   'e2e-mentor-stats',
   'e2e-delete-cleanup',
   'e2e-member-add-window',
+  'e2e-meeting-links',
   'e2e-disable-accounts',
   'e2e-event-reminder',
   'e2e-import',

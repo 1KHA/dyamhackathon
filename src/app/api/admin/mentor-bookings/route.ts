@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
       status: booking.status,
       createdAt: booking.createdAt,
       updatedAt: booking.updatedAt,
+      meetingUrl: booking.meetingUrl ?? null,
       mentor: {
         id: booking.availability.mentor.id,
         name: booking.availability.mentor.name,

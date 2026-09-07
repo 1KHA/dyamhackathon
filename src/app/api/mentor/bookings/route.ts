@@ -105,6 +105,7 @@ export async function GET(request: NextRequest) {
         status: booking.status,
         createdAt: booking.createdAt,
         updatedAt: booking.updatedAt,
+        meetingUrl: booking.meetingUrl ?? null,
         availability: {
           id: availability.id,
           startTime: availability.startTime,

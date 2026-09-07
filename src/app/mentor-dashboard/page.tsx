@@ -27,6 +27,7 @@ interface MentorInfo {
 interface Booking {
   id: string;
   status: string;
+  meetingUrl?: string | null;
   availability: { id: string; startTime: string; endTime: string };
   participant: { id: string; name: string; email: string; phoneNumber: string };
 }
@@ -242,9 +243,18 @@ export default function MentorDashboardPage() {
                   {fmt(nextSession.availability.startTime)}
                 </div>
               </div>
-              <Button asChild variant="outline" className="shrink-0 w-full sm:w-auto">
-                <Link href="/mentor-dashboard/sessions">عرض كل الجلسات</Link>
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
+                {nextSession.meetingUrl && (
+                  <Button asChild className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
+                    <a href={nextSession.meetingUrl} target="_blank" rel="noopener noreferrer">
+                      دخول الاجتماع
+                    </a>
+                  </Button>
+                )}
+                <Button asChild variant="outline" className="w-full sm:w-auto">
+                  <Link href="/mentor-dashboard/sessions">عرض كل الجلسات</Link>
+                </Button>
+              </div>
             </div>
           ) : (
             <p className="text-muted-foreground text-sm py-2">

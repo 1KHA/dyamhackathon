@@ -281,10 +281,13 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       key: 'bookingConfirmation',
       label: 'تأكيد حجز جلسة إرشاد',
       category: 'participant',
-      variables: ['mentorName', 'dateTime'],
+      variables: ['mentorName', 'dateTime', 'meetingLink'],
       type: 'success',
       dashboardTitle: 'تأكيد حجز الجلسة',
       dashboardMessage: 'تم تأكيد حجز جلستك مع {{mentorName}} في {{dateTime}}',
+      emailSubject: 'تأكيد حجز جلستك مع {{mentorName}}',
+      emailBody:
+        'تم تأكيد حجز جلسة الإرشاد مع {{mentorName}} في {{dateTime}}.\n\nرابط الاجتماع (افتحه في موعد الجلسة من المتصفح أو الجوال):\n{{meetingLink}}\n\nلا حاجة لإنشاء حساب — اضغط الرابط وانضم مباشرة.',
       actionUrl: '/participant-dashboard/mentors',
     }),
     def({
@@ -358,10 +361,13 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       key: 'newBookingRequest',
       label: 'طلب حجز جلسة (للمرشد)',
       category: 'mentor',
-      variables: ['participantName', 'dateTime'],
+      variables: ['participantName', 'dateTime', 'meetingLink'],
       type: 'info',
       dashboardTitle: 'طلب حجز جلسة جديد',
       dashboardMessage: 'طلب {{participantName}} حجز جلسة معك في {{dateTime}}',
+      emailSubject: 'حجز جلسة إرشاد جديد — {{dateTime}}',
+      emailBody:
+        'قام {{participantName}} بحجز جلسة إرشاد معك في {{dateTime}}.\n\nرابط الاجتماع:\n{{meetingLink}}\n\nافتح الرابط في موعد الجلسة وسجّل الدخول بحساب Google (أو GitHub) لبدء الاجتماع كمشرف — المشاركون ينضمون بعدها مباشرة دون حسابات.',
       actionUrl: '/mentor-dashboard/sessions',
     }),
     def({

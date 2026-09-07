@@ -26,7 +26,8 @@ import {
   CalendarClock,
   CheckCircle2,
   XCircle,
-  User
+  User,
+  Video,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 import { useToast } from '../../../../components/ui/use-toast';
@@ -49,6 +50,7 @@ import {
 interface MentorBooking {
   id: string;
   status: string;
+  meetingUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   availability: {
@@ -375,6 +377,17 @@ export default function MentorSessionsPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2 justify-end">
+                              {booking.meetingUrl && booking.status === 'booked' && (
+                                <Button
+                                  asChild
+                                  className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1"
+                                >
+                                  <a href={booking.meetingUrl} target="_blank" rel="noopener noreferrer">
+                                    <Video className="h-4 w-4" />
+                                    <span>دخول الاجتماع</span>
+                                  </a>
+                                </Button>
+                              )}
                               <Button 
                                 variant="outline" 
                                 className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200 flex items-center gap-1"

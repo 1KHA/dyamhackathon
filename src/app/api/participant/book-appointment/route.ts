@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 import { dispatchNotification } from '@/lib/notify';
+import { generateMeetingUrl } from '@/lib/meeting';
 import { requireActiveParticipant, isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -141,12 +142,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create the booking
+    // Create the booking with its own auto-generated video-meeting room
     const booking = await prisma.mentorBooking.create({
       data: {
         participantId: participant.id,
         availabilityId: availabilityId,
         status: 'booked',
+        meetingUrl: generateMeetingUrl(),
       },
       include: {
         availability: {
@@ -168,20 +170,26 @@ export async function POST(request: NextRequest) {
         minute: '2-digit',
       });
 
-      // Notify the mentor about the new booking request
+      const meetingLink = booking.meetingUrl || '';
+
+      // Notify the mentor about the new booking request (with the room link)
       await dispatchNotification({
         templateKey: 'newBookingRequest',
-        variables: { participantName, dateTime },
+        variables: { participantName, dateTime, meetingLink },
         audience: { kind: 'mentor', id: booking.availability.mentor.id },
         relatedEntityType: 'booking',
         relatedEntityId: booking.id,
       });
 
-      // Booking confirmation for the participant
+      // Booking confirmation with the meeting link. When the booker belongs
+      // to a team the WHOLE team gets it — teammates attend the session too;
+      // an individual booker gets it directly.
       await dispatchNotification({
         templateKey: 'bookingConfirmation',
-        variables: { mentorName: booking.availability.mentor.name, dateTime },
-        audience: { kind: 'participant', id: participant.id },
+        variables: { mentorName: booking.availability.mentor.name, dateTime, meetingLink },
+        audience: participant.teamId
+          ? { kind: 'team', teamId: participant.teamId }
+          : { kind: 'participant', id: participant.id },
         relatedEntityType: 'booking',
         relatedEntityId: booking.id,
       });
@@ -196,6 +204,7 @@ export async function POST(request: NextRequest) {
         id: booking.id,
         status: booking.status,
         mentorName: booking.availability.mentor.name,
+        meetingUrl: booking.meetingUrl,
         startTime: booking.availability.startTime,
         endTime: booking.availability.endTime,
       },
@@ -261,6 +270,7 @@ export async function GET(request: NextRequest) {
         id: booking.id,
         status: booking.status,
         mentorName: booking.availability.mentor.name,
+        meetingUrl: booking.meetingUrl ?? null,
         startTime: booking.availability.startTime,
         endTime: booking.availability.endTime,
       } : null,

@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
       startTime: booking.availability.startTime,
       endTime: booking.availability.endTime,
       status: booking.status,
+      meetingUrl: booking.meetingUrl ?? null,
       createdAt: booking.createdAt,
     }));
 

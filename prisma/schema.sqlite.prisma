@@ -141,6 +141,9 @@ model MentorBooking {
   availabilityId String
   availability   MentorAvailability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
   status         String             @default("booked") // booked, cancelled, completed
+  // Auto-generated video-meeting room for this session (Jitsi by default —
+  // see src/lib/meeting.ts). Sent to the mentor and the booking team by email.
+  meetingUrl     String?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 }
