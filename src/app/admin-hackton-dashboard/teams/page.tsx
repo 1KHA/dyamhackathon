@@ -728,7 +728,7 @@ export default function TeamsPage() {
                       }
                     />
                   </th>
-                  <th className="border p-2 text-right">اسم الفريق</th>
+                  <th className="border p-2 text-right w-48">اسم الفريق</th>
                   <th className="border p-2 text-right">اسم الفكرة</th>
                   <th className="border p-2 text-right">المسار</th>
                   <th className="border p-2 text-right">الأعضاء</th>
@@ -751,13 +751,18 @@ export default function TeamsPage() {
                             onCheckedChange={() => toggleRow(team.id)}
                           />
                         </td>
-                        <td className="border p-2">
-                          {team.teamName}
-                          {team.isDisabled && (
-                            <span className="mr-2 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
-                              معطل
+                        <td className="border p-2 max-w-[12rem]">
+                          <div className="flex items-center gap-2">
+                            {/* min-w-0 lets truncate actually shrink inside the flex row */}
+                            <span className="truncate min-w-0" title={team.teamName}>
+                              {team.teamName}
                             </span>
-                          )}
+                            {team.isDisabled && (
+                              <span className="shrink-0 px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">
+                                معطل
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="border p-2">{team.ideaName}</td>
                         <td className="border p-2">{team.hackathonTrack}</td>
