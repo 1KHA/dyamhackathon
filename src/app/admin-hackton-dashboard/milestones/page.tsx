@@ -19,6 +19,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // Define the Milestone type
 type Milestone = {
@@ -486,18 +493,21 @@ export default function MilestonesPage() {
 
             <div className="space-y-2">
               <Label htmlFor="edit-phase">المرحلة (اختياري)</Label>
-              <select
-                id="edit-phase"
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                value={editForm.phaseId}
-                onChange={(e) => setEditForm({ ...editForm, phaseId: e.target.value })}
+              <Select
+                value={editForm.phaseId || "none"}
+                onValueChange={(v) => setEditForm({ ...editForm, phaseId: v === "none" ? "" : v })}
                 disabled={phases.length === 0}
               >
-                <option value="">بدون ربط بمرحلة</option>
-                {phases.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+                <SelectTrigger id="edit-phase" className="w-full">
+                  <SelectValue placeholder="بدون ربط بمرحلة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون ربط بمرحلة</SelectItem>
+                  {phases.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 قبول التسليم ينقل الفريق إلى المرحلة التالية تلقائياً، ورفضه يضع علامة &quot;متعثّر&quot;.
               </p>

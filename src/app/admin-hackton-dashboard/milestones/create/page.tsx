@@ -6,6 +6,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { ArrowRight, Calendar, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -153,18 +160,21 @@ export default function CreateMilestonePage() {
 
             <div className="space-y-2">
               <Label htmlFor="milestone-phase">المرحلة (اختياري)</Label>
-              <select
-                id="milestone-phase"
-                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-                value={phaseId}
-                onChange={(e) => setPhaseId(e.target.value)}
+              <Select
+                value={phaseId || "none"}
+                onValueChange={(v) => setPhaseId(v === "none" ? "" : v)}
                 disabled={phases.length === 0}
               >
-                <option value="">بدون ربط بمرحلة</option>
-                {phases.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+                <SelectTrigger id="milestone-phase" className="w-full">
+                  <SelectValue placeholder="بدون ربط بمرحلة" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">بدون ربط بمرحلة</SelectItem>
+                  {phases.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <p className="text-xs text-muted-foreground">
                 عند ربط التسليم بمرحلة، قبول التسليم ينقل الفريق تلقائياً إلى المرحلة التالية،
                 ورفضه يضع عليه علامة &quot;متعثّر&quot;.
