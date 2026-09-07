@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 import { prisma } from './prisma';
-import { ACTIVE_PARTICIPANT_WHERE, isEffectivelyDisabled } from './account-status';
+import { ACTIVE_PARTICIPANT_WHERE, ELIGIBLE_PARTICIPANT_WHERE, isEffectivelyDisabled } from './account-status';
 import {
   getEmailSettings,
   toSmtpConfig,
@@ -565,7 +565,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
       where: {
         eventId: audience.eventId,
         status: 'registered',
-        participant: ACTIVE_PARTICIPANT_WHERE,
+        participant: ELIGIBLE_PARTICIPANT_WHERE,
       },
       select: { participant: { select: { id: true, email: true } } },
     });
@@ -580,8 +580,11 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
     }
   } else {
     // allParticipants — bulk fan-out (milestone creation)
+    // Announcements (new milestone / new event) go to APPROVED participants
+    // only — a pending applicant or a rejected one must not be told about
+    // hackathon activity. See mdfiles/pending-accounts-email.md.
     const participants = await prisma.participant.findMany({
-      where: ACTIVE_PARTICIPANT_WHERE,
+      where: ELIGIBLE_PARTICIPANT_WHERE,
       select: { id: true, email: true },
     });
     for (const p of participants) {

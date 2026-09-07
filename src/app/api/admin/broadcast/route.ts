@@ -6,10 +6,10 @@ import { requireAdmin } from '@/lib/notification-auth';
 import { waitUntil } from '@vercel/functions';
 import { getEmailSettings, toSmtpConfig } from '@/lib/mailer';
 import {
-  ACTIVE_PARTICIPANT_WHERE,
   DISABLED_PARTICIPANT_WHERE,
-  ACTIVE_MENTOR_WHERE,
   DISABLED_MENTOR_WHERE,
+  ELIGIBLE_PARTICIPANT_WHERE,
+  ELIGIBLE_MENTOR_WHERE,
 } from '@/lib/account-status';
 import {
   enqueueBroadcastRecipients,
@@ -54,10 +54,10 @@ interface ResolvedRecipient {
 
 async function resolveAudience(audience: AudienceInput): Promise<ResolvedRecipient[]> {
   if (audience.type === 'all-participants') {
-    // Disabled accounts are excluded here on purpose; target them with the
-    // 'disabled-accounts' audience instead.
+    // Approved participants only: pending applicants and rejected ones are
+    // excluded, as are disabled accounts (use 'disabled-accounts' for those).
     const rows = await prisma.participant.findMany({
-      where: ACTIVE_PARTICIPANT_WHERE,
+      where: ELIGIBLE_PARTICIPANT_WHERE,
       select: { id: true, email: true },
     });
     return rows.map((r) => ({ recipientType: 'participant', recipientId: r.id, email: r.email }));
@@ -77,9 +77,9 @@ async function resolveAudience(audience: AudienceInput): Promise<ResolvedRecipie
   }
 
   if (audience.type === 'all-mentors') {
-    // Disabled mentors excluded, like participants.
+    // Active mentors only — pending/inactive and disabled are excluded.
     const rows = await prisma.mentor.findMany({
-      where: ACTIVE_MENTOR_WHERE,
+      where: ELIGIBLE_MENTOR_WHERE,
       select: { id: true, email: true },
     });
     return rows.map((r) => ({ recipientType: 'mentor', recipientId: r.id, email: r.email }));

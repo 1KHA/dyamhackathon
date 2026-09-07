@@ -35,6 +35,37 @@ export const ACTIVE_PARTICIPANT_WHERE: Prisma.ParticipantWhereInput = {
   OR: [{ teamId: null }, { team: { is: { isDisabled: false } } }],
 };
 
+/**
+ * Participants who may receive BULK email (milestone/event announcements and
+ * the "all participants" broadcast).
+ *
+ * Mirrors the rule `/api/login` uses to decide who may enter the platform,
+ * which is the only correct definition here:
+ *   - a TEAM MEMBER is approved when their **team** is approved. Note that
+ *     `approve-team` never touches `Participant.status`, so members keep
+ *     `status: 'pending'` for ever — filtering on their own status would
+ *     silence every legitimate team member.
+ *   - an INDIVIDUAL is approved when their own `status` is 'approved'.
+ * Disabled accounts (own flag or their team's) are excluded either way.
+ *
+ * This deliberately does NOT apply to targeted notifications: an approval or a
+ * rejection notice is dispatched *after* the status changes, so filtering those
+ * would mean nobody is ever told they were accepted or rejected.
+ */
+export const ELIGIBLE_PARTICIPANT_WHERE: Prisma.ParticipantWhereInput = {
+  isDisabled: false,
+  OR: [
+    { teamId: null, status: 'approved' },
+    { team: { is: { isDisabled: false, status: 'approved' } } },
+  ],
+};
+
+/** Mentors who may receive bulk email: activated by an admin and not disabled. */
+export const ELIGIBLE_MENTOR_WHERE: Prisma.MentorWhereInput = {
+  isDisabled: false,
+  status: 'active',
+};
+
 /** Prisma `where` fragment: participants who ARE disabled (own flag or team's). */
 export const DISABLED_PARTICIPANT_WHERE: Prisma.ParticipantWhereInput = {
   OR: [{ isDisabled: true }, { team: { is: { isDisabled: true } } }],
