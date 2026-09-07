@@ -69,6 +69,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const reached = (notifs, p) => notifs.some((n) => n.recipientId === p.id);
 
   section('new MILESTONE announcement');
+  // EmailLog subjects come from the shared template, so rows from other suites
+  // are indistinguishable by content — scope the later assertion by time.
+  const runStartedAt = new Date();
   let r = await api('/api/admin/milestones', { cookie: aCookie, method: 'POST', body: {
     title: `${TAG} مرحلة`, description: 'وصف', requirements: 'متطلبات',
     dueDate: new Date(Date.now() + 864e5).toISOString(), status: 'active' } });
@@ -97,7 +100,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   check('approved-team member IS notified', reached(n, teamOk));
 
   section('emails actually sent to the right count');
-  const logs = await prisma.emailLog.findMany({ where: { templateKey: { in: ['newMilestoneAvailable', 'newEventAvailable'] } }, select: { templateKey: true, recipientCount: true } });
+  const logs = await prisma.emailLog.findMany({
+    where: {
+      templateKey: { in: ['newMilestoneAvailable', 'newEventAvailable'] },
+      createdAt: { gte: runStartedAt },
+    },
+    select: { templateKey: true, recipientCount: true },
+  });
   check('each announcement emailed exactly the 2 eligible participants',
         logs.length > 0 && logs.every((l) => l.recipientCount === 2), JSON.stringify(logs));
 

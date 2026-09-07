@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
       // Check if participant still doesn't have a team
       const participantToAdd = await prisma.participant.findUnique({
         where: { id: joinRequest.participantId },
-        select: { teamId: true, isDisabled: true, team: { select: { isDisabled: true } } }
+        select: { teamId: true, isDisabled: true, phase: { select: { isDisabled: true } }, team: { select: { isDisabled: true, phase: { select: { isDisabled: true } } } } }
       });
 
       // The joining account itself must be active — a disabled participant

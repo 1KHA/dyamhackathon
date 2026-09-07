@@ -18,6 +18,10 @@ model Team {
   // Disabling a team disables every member with it (see src/lib/account-status.ts).
   isDisabled           Boolean   @default(false)
   disabledAt           DateTime?
+  phaseId              String?
+  phase                Phase?    @relation(fields: [phaseId], references: [id])
+  phaseStatus          String    @default("active") // active | failed
+  phaseUpdatedAt       DateTime?
   hackathonTrack       String?   // NEW: أي مسار من مسارات الهاكاثون؟
   ideaDescription      String?   // SIMPLIFIED: صف الفكرة
   hearAboutUs          String?   // NEW: من أين سمعت عنا
@@ -66,6 +70,10 @@ model Participant {
   // disabled — see src/lib/account-status.ts.
   isDisabled           Boolean               @default(false)
   disabledAt           DateTime?
+  phaseId              String?
+  phase                Phase?                @relation(fields: [phaseId], references: [id])
+  phaseStatus          String                @default("active") // active | failed
+  phaseUpdatedAt       DateTime?
   teamId               String?               // Make optional for individual participants
   team                 Team?                 @relation(fields: [teamId], references: [id])
   createdAt            DateTime              @default(now())
@@ -143,6 +151,12 @@ model Milestone {
   description     String
   dueDate         DateTime
   status          String                @default("upcoming") // upcoming, active, completed, overdue
+  // Tying a milestone to a phase is what enables auto-advance on acceptance.
+  // A milestone with no phase behaves exactly as before and moves nobody.
+  phaseId         String?
+  phase           Phase?                @relation(fields: [phaseId], references: [id])
+  // Escape hatch: accept uploads after dueDate, flagged isLate on the submission.
+  allowLateSubmission Boolean           @default(false)
   requirements    String                // JSON string of requirements array
   submissionCount Int                   @default(0)
   submissionLink  String?
@@ -160,7 +174,12 @@ model MilestoneSubmission {
   filePath      String
   fileName      String
   submittedAt   DateTime    @default(now())
-  reviewStatus  String?     // accepted, rejected, pending
+  reviewStatus  String?     // pending | accepted | rejected | needs_resubmission
+  // Resubmission: the row is updated in place, keeping @@unique([participantId, milestoneId]).
+  resubmissionCount       Int       @default(0)
+  resubmissionRequestedAt DateTime?
+  resubmissionDeadline    DateTime? // overrides milestone.dueDate for this submission
+  isLate                  Boolean   @default(false)
   reviewComment String?     // Admin's comment on the submission
   reviewedAt    DateTime?   // When the submission was reviewed
 
@@ -347,4 +366,25 @@ model TeamSettings {
   memberAddStart DateTime?
   memberAddEnd   DateTime?
   updatedAt      DateTime  @updatedAt
+}
+
+/// An ordered stage of the hackathon. Teams and participants sit in exactly one
+/// phase; milestones can be tied to a phase to advance their owners on
+/// acceptance. See mdfiles/phases-plan.md.
+model Phase {
+  id           String    @id @default(cuid())
+  name         String    @unique
+  order        Int       @unique // 1,2,3 — defines what "next"/"previous" mean
+  description  String?
+  // Disabling a phase disables every member with it, derived exactly like a
+  // disabled team (see src/lib/account-status.ts) — member rows are untouched.
+  isDisabled   Boolean   @default(false)
+  disabledAt   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  teams        Team[]
+  participants Participant[]
+  milestones   Milestone[]
+
+  @@index([order])
 }

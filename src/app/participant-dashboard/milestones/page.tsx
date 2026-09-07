@@ -2,7 +2,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, FileText, CheckCircle, AlertCircle, Loader2, Upload, X } from "lucide-react";
+import { Clock, FileText, CheckCircle, AlertCircle, XCircle, Loader2, Upload, X } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import Link from "next/link";
@@ -25,6 +25,18 @@ type Milestone = {
   createdAt: string;
   updatedAt: string;
   hasSubmitted?: boolean; // Track if the current participant has submitted
+  // Real submission state, supplied by /api/milestones. Before this the card
+  // only knew "submitted / not submitted", so a participant could not see the
+  // reviewer's verdict, and the deadline was never enforced in the UI.
+  reviewStatus?: string | null;
+  reviewComment?: string | null;
+  resubmissionCount?: number;
+  canSubmit?: boolean;
+  canResubmit?: boolean;
+  submitBlockedReason?: string | null;
+  effectiveDeadline?: string | null;
+  isLate?: boolean;
+  allowLateSubmission?: boolean;
 };
 
 // Define the submission response type
@@ -230,7 +242,17 @@ export default function ParticipantMilestonesPage() {
         // Update the milestone status in the UI
         setMilestones(milestones.map(m => 
           m.id === selectedMilestone.id 
-            ? { ...m, hasSubmitted: true, submissionCount: m.submissionCount + 1 } 
+            ? {
+                ...m,
+                hasSubmitted: true,
+                submissionCount: m.submissionCount + 1,
+                // A resubmission goes back to pending review and the upload closes again.
+                reviewStatus: 'pending',
+                reviewComment: null,
+                canSubmit: false,
+                canResubmit: false,
+                submitBlockedReason: 'لقد قمت بتسليم هذا المشروع بالفعل',
+              }
             : m
         ));
 
@@ -314,11 +336,76 @@ export default function ParticipantMilestonesPage() {
                     </ul>
                   </div>
                   
-                  <div className="mt-6 flex justify-center sm:justify-end">
-                    {milestone.hasSubmitted || milestone.status === "completed" ? (
-                      <div className="flex items-center gap-2 text-green-600">
-                        <CheckCircle className="h-5 w-5" />
-                        <span>تم التسليم</span>
+                  {/* The reviewer's verdict, and the notes when they asked for a redo. */}
+                  {milestone.reviewStatus === 'needs_resubmission' && milestone.reviewComment && (
+                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                      <p className="flex items-center gap-2 text-sm font-semibold text-amber-800">
+                        <AlertCircle className="h-4 w-4" />
+                        مطلوب إعادة تسليم
+                      </p>
+                      <p className="mt-1 whitespace-pre-line text-sm text-amber-900">
+                        {milestone.reviewComment}
+                      </p>
+                      {milestone.effectiveDeadline && (
+                        <p className="mt-1 text-xs text-amber-700">
+                          المهلة: {formatDate(milestone.effectiveDeadline)}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  {milestone.reviewStatus === 'rejected' && milestone.reviewComment && (
+                    <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
+                      <p className="text-sm font-semibold text-red-800">ملاحظات المراجعة</p>
+                      <p className="mt-1 whitespace-pre-line text-sm text-red-900">
+                        {milestone.reviewComment}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="mt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-end">
+                    {/* Order matters: a resubmission request must beat "already submitted". */}
+                    {milestone.canResubmit ? (
+                      <Button
+                        className="w-full gap-2 sm:w-auto"
+                        variant="default"
+                        onClick={() => openSubmissionDialog(milestone)}
+                      >
+                        <FileText className="h-4 w-4" />
+                        إعادة التسليم
+                      </Button>
+                    ) : milestone.hasSubmitted ? (
+                      <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
+                        {milestone.reviewStatus === 'accepted' ? (
+                          <span className="flex items-center gap-2 text-green-600">
+                            <CheckCircle className="h-5 w-5" />
+                            تم القبول
+                          </span>
+                        ) : milestone.reviewStatus === 'rejected' ? (
+                          <span className="flex items-center gap-2 text-red-600">
+                            <XCircle className="h-5 w-5" />
+                            مرفوض
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-2 text-green-600">
+                            <CheckCircle className="h-5 w-5" />
+                            تم التسليم — قيد المراجعة
+                          </span>
+                        )}
+                        {milestone.isLate && (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-800">
+                            سُلّم متأخراً
+                          </span>
+                        )}
+                        {(milestone.resubmissionCount ?? 0) > 0 && (
+                          <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                            إعادة تسليم ×{milestone.resubmissionCount}
+                          </span>
+                        )}
+                      </div>
+                    ) : milestone.canSubmit === false || milestone.status === "completed" ? (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>{milestone.submitBlockedReason || 'التسليم مغلق'}</span>
                       </div>
                     ) : (
                       <Button 

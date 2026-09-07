@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { usePhases, PhaseBadge, PhaseBulkActions, PhaseRowMove, PhaseFilter, matchesPhaseFilter } from "@/components/phases/phase-controls";
 
 interface Participant {
   id: string;
@@ -62,6 +63,10 @@ interface Participant {
 interface Team {
   isDisabled?: boolean;
   id: string;
+  // Phase membership — the team's phase is also every member's phase.
+  phaseId?: string | null;
+  phaseStatus?: string | null;
+  phase?: { id: string; name: string; order: number; isDisabled: boolean } | null;
   teamName?: string;
   status: string;
   hackathonTrack?: string;
@@ -96,6 +101,10 @@ export default function TeamsPage() {
   // Bulk disable/enable selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  // Phases: the list feeds the filter and the bulk bar; the filter is applied
+  // client-side alongside the existing status/track filters.
+  const { phases } = usePhases();
+  const [phaseFilter, setPhaseFilter] = useState("all");
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -620,7 +629,8 @@ export default function TeamsPage() {
       (teamTypeFilter === "individual" && team.participants.length === 1);
 
     return matchesBasicFilter && matchesStatusFilter && 
-           matchesTrackFilter && matchesTeamTypeFilter;
+           matchesTrackFilter && matchesTeamTypeFilter &&
+           matchesPhaseFilter(team, phaseFilter);
   });
 
   if (loading) {
@@ -683,6 +693,7 @@ export default function TeamsPage() {
                 <option value="pending">قيد الانتظار</option>
                 <option value="rejected">المرفوضة</option>
               </select>
+              <PhaseFilter value={phaseFilter} onChange={setPhaseFilter} phases={phases} />
               <Button 
                 variant="outline" 
                 className="gap-2" 
@@ -712,6 +723,12 @@ export default function TeamsPage() {
               <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
                 إلغاء التحديد
               </Button>
+              <PhaseBulkActions
+                ids={Array.from(selectedIds)}
+                kind="team"
+                phases={phases}
+                onDone={() => { setSelectedIds(new Set()); fetchTeams(searchQuery); }}
+              />
             </div>
           )}
 
@@ -734,6 +751,7 @@ export default function TeamsPage() {
                   <th className="border p-2 text-right">الأعضاء</th>
                   <th className="border p-2 text-right">قائد الفريق</th>
                   <th className="border p-2 text-right">الحالة</th>
+                  <th className="border p-2 text-right">المرحلة</th>
                   <th className="border p-2 text-right">تاريخ الإنشاء</th>
                   <th className="border p-2 text-right">الإجراءات</th>
                 </tr>
@@ -789,6 +807,19 @@ export default function TeamsPage() {
                           {team.status === "approved" ? "معتمد" : 
                            team.status === "rejected" ? "مرفوض" : "قيد الانتظار"}
                         </span>
+                      </td>
+                      <td className="border p-2">
+                        <div className="flex items-center gap-1">
+                          <PhaseBadge phase={team.phase} phaseStatus={team.phaseStatus} />
+                          {phases.length > 0 && (
+                            <PhaseRowMove
+                              id={team.id}
+                              kind="team"
+                              disabled={!team.phaseId}
+                              onDone={() => fetchTeams(searchQuery)}
+                            />
+                          )}
+                        </div>
                       </td>
                       <td className="border p-2">
                         {new Date(team.createdAt).toLocaleDateString('ar-SA')}
@@ -864,7 +895,7 @@ export default function TeamsPage() {
                       </tr>
                       {expandedTeam === team.id && (
                         <tr className="bg-muted/20">
-                          <td colSpan={8} className="p-0">
+                          <td colSpan={10} className="p-0">
                             <div className="p-4">
                               <div className="flex justify-between items-center mb-4">
                                 <h4 className="font-bold">أعضاء الفريق:</h4>

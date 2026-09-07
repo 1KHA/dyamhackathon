@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowRight, Calendar, Plus, X } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { usePhases } from "@/components/phases/phase-controls";
 
 export default function CreateMilestonePage() {
   const router = useRouter();
@@ -18,6 +19,12 @@ export default function CreateMilestonePage() {
     dueDate: "",
     requirements: "",
   });
+
+  // Linking a milestone to a phase is what makes accepting a submission
+  // advance the team automatically. Leaving it empty keeps the old behaviour.
+  const { phases } = usePhases();
+  const [phaseId, setPhaseId] = useState("");
+  const [allowLateSubmission, setAllowLateSubmission] = useState(false);
   
   // State for individual requirements
   const [requirements, setRequirements] = useState<string[]>([]);
@@ -69,6 +76,8 @@ export default function CreateMilestonePage() {
           dueDate: formattedDate,
           status: "upcoming",
           requirements: requirements,
+          phaseId: phaseId || null,
+          allowLateSubmission,
         }),
       });
       
@@ -139,6 +148,43 @@ export default function CreateMilestonePage() {
                   onChange={(e) => setMilestone({ ...milestone, dueDate: e.target.value })}
                   required
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="milestone-phase">المرحلة (اختياري)</Label>
+              <select
+                id="milestone-phase"
+                className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                value={phaseId}
+                onChange={(e) => setPhaseId(e.target.value)}
+                disabled={phases.length === 0}
+              >
+                <option value="">بدون ربط بمرحلة</option>
+                {phases.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+              <p className="text-xs text-muted-foreground">
+                عند ربط التسليم بمرحلة، قبول التسليم ينقل الفريق تلقائياً إلى المرحلة التالية،
+                ورفضه يضع عليه علامة &quot;متعثّر&quot;.
+              </p>
+            </div>
+
+            <div className="flex items-start gap-2 rounded-md border p-3">
+              <input
+                id="allow-late"
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={allowLateSubmission}
+                onChange={(e) => setAllowLateSubmission(e.target.checked)}
+              />
+              <div>
+                <Label htmlFor="allow-late" className="cursor-pointer">السماح بالتسليم المتأخر</Label>
+                <p className="text-xs text-muted-foreground">
+                  بدون تفعيل هذا الخيار، لن يتمكن المشاركون من التسليم بعد انتهاء الموعد النهائي.
+                  التسليمات المتأخرة تُعلَّم بوسم &quot;متأخر&quot;.
+                </p>
               </div>
             </div>
 

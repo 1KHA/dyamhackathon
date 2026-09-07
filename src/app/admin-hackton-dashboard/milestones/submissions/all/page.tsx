@@ -63,6 +63,7 @@ export default function AllMilestoneSubmissionsPage() {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
   const [reviewStatus, setReviewStatus] = useState<string>('accepted');
+  const [resubmissionDeadline, setResubmissionDeadline] = useState<string>('');
   const [reviewComment, setReviewComment] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [reviewSuccess, setReviewSuccess] = useState<boolean | null>(null);
@@ -77,6 +78,7 @@ export default function AllMilestoneSubmissionsPage() {
     { value: 'all', label: 'جميع الحالات' },
     { value: 'accepted', label: 'مقبول' },
     { value: 'rejected', label: 'مرفوض' },
+    { value: 'needs_resubmission', label: 'مطلوب إعادة تسليم' },
     { value: 'pending', label: 'قيد المراجعة' },
     { value: null, label: 'بانتظار المراجعة' }
   ]);
@@ -160,6 +162,7 @@ export default function AllMilestoneSubmissionsPage() {
   const openReviewDialog = (submission: Submission) => {
     setSelectedSubmission(submission);
     setReviewStatus(submission.reviewStatus || 'accepted');
+    setResubmissionDeadline('');
     setReviewComment(submission.reviewComment || '');
     setReviewSuccess(null);
     setReviewMessage('');
@@ -185,6 +188,10 @@ export default function AllMilestoneSubmissionsPage() {
           body: JSON.stringify({
             reviewStatus,
             reviewComment,
+            resubmissionDeadline:
+              reviewStatus === 'needs_resubmission' && resubmissionDeadline
+                ? new Date(resubmissionDeadline).toISOString()
+                : undefined,
           }),
         }
       );
@@ -193,7 +200,11 @@ export default function AllMilestoneSubmissionsPage() {
 
       if (response.ok) {
         setReviewSuccess(true);
-        setReviewMessage(result.message || 'تم تحديث المراجعة بنجاح');
+        setReviewMessage(
+          result.phaseAdvanced
+            ? `تم تحديث المراجعة — وتم نقل الفريق إلى: ${result.advancedTo}`
+            : result.message || 'تم تحديث المراجعة بنجاح'
+        );
         
         // Update the submissions list
         const updatedSubmissions = submissions.map(sub => 
@@ -245,6 +256,8 @@ export default function AllMilestoneSubmissionsPage() {
         return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">مقبول</Badge>;
       case "rejected":
         return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">مرفوض</Badge>;
+      case "needs_resubmission":
+        return <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">مطلوب إعادة تسليم</Badge>;
       case "pending":
         return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">قيد المراجعة</Badge>;
       default:
@@ -270,9 +283,10 @@ export default function AllMilestoneSubmissionsPage() {
     const pending = submissions.filter(sub => sub.reviewStatus === 'pending').length;
     const accepted = submissions.filter(sub => sub.reviewStatus === 'accepted').length;
     const rejected = submissions.filter(sub => sub.reviewStatus === 'rejected').length;
+    const needsResubmission = submissions.filter(sub => sub.reviewStatus === 'needs_resubmission').length;
     const awaiting = submissions.filter(sub => sub.reviewStatus === null).length;
     
-    return { total, pending, accepted, rejected, awaiting };
+    return { total, pending, accepted, rejected, needsResubmission, awaiting };
   };
 
   const counts = getSubmissionCounts();
@@ -531,14 +545,47 @@ export default function AllMilestoneSubmissionsPage() {
                       <Label htmlFor="rejected" className="text-red-600">مرفوض</Label>
                     </div>
                     <div className="flex items-center space-x-2 space-x-reverse">
+                      <RadioGroupItem value="needs_resubmission" id="needs_resubmission" />
+                      <Label htmlFor="needs_resubmission" className="text-amber-600">
+                        طلب إعادة تسليم
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 space-x-reverse">
                       <RadioGroupItem value="pending" id="pending" />
                       <Label htmlFor="pending" className="text-blue-600">قيد المراجعة</Label>
                     </div>
                   </RadioGroup>
+                  <p className="text-xs text-muted-foreground">
+                    {reviewStatus === 'accepted'
+                      ? 'القبول ينقل الفريق تلقائياً إلى المرحلة التالية إذا كان التسليم مرتبطاً بمرحلته الحالية.'
+                      : reviewStatus === 'rejected'
+                      ? 'الرفض يضع على الفريق علامة "متعثّر" في مرحلته الحالية.'
+                      : reviewStatus === 'needs_resubmission'
+                      ? 'يعيد فتح التسليم للفريق دون تغيير مرحلته، ويُرسل لهم الملاحظات.'
+                      : 'إعادة التسليم إلى "قيد المراجعة" لا تغيّر المرحلة ولا تُرسل إشعاراً.'}
+                  </p>
                 </div>
+
+                {reviewStatus === 'needs_resubmission' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="resub-deadline">مهلة إعادة التسليم (اختياري)</Label>
+                    <Input
+                      id="resub-deadline"
+                      type="datetime-local"
+                      value={resubmissionDeadline}
+                      onChange={(e) => setResubmissionDeadline(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      إذا تُركت فارغة، يبقى الموعد النهائي الأصلي سارياً — وإن كان قد انتهى فلن
+                      يتمكن الفريق من إعادة التسليم.
+                    </p>
+                  </div>
+                )}
                 
                 <div className="space-y-2">
-                  <Label htmlFor="comment">ملاحظات (اختياري)</Label>
+                  <Label htmlFor="comment">
+                    ملاحظات {reviewStatus === 'needs_resubmission' ? '(مطلوبة)' : '(اختياري)'}
+                  </Label>
                   <Textarea
                     id="comment"
                     value={reviewComment}

@@ -28,7 +28,10 @@ export async function POST(request: NextRequest) {
     const participant = await prisma.participant.findUnique({
       where: { email },
       include: {
-        team: true,
+        // team.phase is needed by isEffectivelyDisabled — a member of a team in
+        // a disabled PHASE must not be able to log in either.
+        team: { include: { phase: { select: { isDisabled: true } } } },
+        phase: { select: { isDisabled: true } },
       },
     });
 

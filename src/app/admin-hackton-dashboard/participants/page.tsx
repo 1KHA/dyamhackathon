@@ -17,6 +17,7 @@ import { useToast } from "../../../../components/ui/use-toast";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { usePhases, PhaseBadge, PhaseBulkActions, PhaseRowMove, PhaseFilter, matchesPhaseFilter } from "@/components/phases/phase-controls";
 
 // Define types for our data
 interface IndividualParticipant {
@@ -49,6 +50,11 @@ interface IndividualParticipant {
   residence?: string;
   canAttend?: boolean;
   createdAt: string;
+  // Phase membership. These rows are individuals (teamId is null), so the
+  // participant's own phase IS their phase — no team to read through.
+  phaseId?: string | null;
+  phaseStatus?: string | null;
+  phase?: { id: string; name: string; order: number; isDisabled: boolean } | null;
 }
 
 export default function ParticipantsPage() {
@@ -64,6 +70,8 @@ export default function ParticipantsPage() {
   // Bulk disable/enable selection (ids of rows ticked in the table)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const { phases } = usePhases();
+  const [phaseFilter, setPhaseFilter] = useState("all");
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -324,6 +332,7 @@ export default function ParticipantsPage() {
   // Filter participants based on search query and selected status
   const filteredParticipants = individualParticipants
     .filter(participant => selectedStatus === "all" || participant.status === selectedStatus)
+    .filter(participant => matchesPhaseFilter(participant, phaseFilter))
     .filter(participant => {
       const displayName = participant.fullName || `${participant.firstName || ''} ${participant.secondName || ''} ${participant.familyName || ''}`.trim();
       return displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -445,6 +454,7 @@ export default function ParticipantsPage() {
                 <option value="approved">معتمد</option>
                 <option value="rejected">مرفوض</option>
               </select>
+              <PhaseFilter value={phaseFilter} onChange={setPhaseFilter} phases={phases} />
               <Button variant="outline" className="gap-2" onClick={handleExportToExcel}>
                 <Download className="h-4 w-4" />
                 تصدير
@@ -476,6 +486,12 @@ export default function ParticipantsPage() {
               <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
                 إلغاء التحديد
               </Button>
+              <PhaseBulkActions
+                ids={Array.from(selectedIds)}
+                kind="participant"
+                phases={phases}
+                onDone={() => { setSelectedIds(new Set()); fetchIndividualParticipants(searchQuery); }}
+              />
             </div>
           )}
 
@@ -510,6 +526,7 @@ export default function ParticipantsPage() {
                     <th className="border p-2 text-right">التخصص</th>
                     <th className="border p-2 text-right">المدينة</th>
                     <th className="border p-2 text-right">الحالة</th>
+                    <th className="border p-2 text-right">المرحلة</th>
                     <th className="border p-2 text-right">تاريخ التسجيل</th>
                     <th className="border p-2 text-right">الإجراءات</th>
                   </tr>
@@ -540,6 +557,19 @@ export default function ParticipantsPage() {
                       <td className="border p-2">{participant.universityMajor || participant.major || 'غير متوفر'}</td>
                       <td className="border p-2">{participant.city || participant.residence || 'غير متوفر'}</td>
                       <td className="border p-2">{getStatusBadge(participant.status)}</td>
+                      <td className="border p-2">
+                        <div className="flex items-center gap-1">
+                          <PhaseBadge phase={participant.phase} phaseStatus={participant.phaseStatus} />
+                          {phases.length > 0 && (
+                            <PhaseRowMove
+                              id={participant.id}
+                              kind="participant"
+                              disabled={!participant.phaseId}
+                              onDone={() => fetchIndividualParticipants(searchQuery)}
+                            />
+                          )}
+                        </div>
+                      </td>
                       <td className="border p-2">
                         {new Date(participant.createdAt).toLocaleDateString('ar-SA')}
                       </td>

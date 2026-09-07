@@ -40,7 +40,7 @@ async function getCurrentParticipant(request: NextRequest) {
     
     const participant = await prisma.participant.findUnique({
       where: { id: participantId },
-      include: { team: { select: { isDisabled: true } } },
+      include: { phase: { select: { isDisabled: true } }, team: { select: { isDisabled: true, phase: { select: { isDisabled: true } } } } },
     });
 
     // Disabled accounts resolve to null, so every method in this file

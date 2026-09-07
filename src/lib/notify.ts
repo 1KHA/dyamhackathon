@@ -255,6 +255,19 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       actionUrl: '/participant-dashboard/milestones',
     }),
     def({
+      key: 'milestoneResubmissionRequested',
+      label: 'طلب إعادة تسليم المرحلة',
+      category: 'participant',
+      variables: ['milestoneTitle', 'reviewComment', 'deadline'],
+      type: 'warning',
+      dashboardTitle: 'مطلوب إعادة تسليم: {{milestoneTitle}}',
+      dashboardMessage: 'طلب المشرف إعادة تسليم {{milestoneTitle}}. الملاحظات: {{reviewComment}}',
+      emailSubject: 'مطلوب إعادة تسليم {{milestoneTitle}}',
+      emailBody:
+        'راجع المشرف تسليمكم للمرحلة {{milestoneTitle}} ويطلب إعادة التسليم.\n\nملاحظات المراجع:\n{{reviewComment}}\n\nالموعد النهائي لإعادة التسليم: {{deadline}}\n\nيمكنكم رفع الملف مرة أخرى من لوحة المشارك.',
+      actionUrl: '/participant-dashboard/milestones',
+    }),
+    def({
       key: 'milestoneReviewRejected',
       label: 'رفض تسليم المرحلة',
       category: 'participant',
@@ -483,7 +496,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
       if (audience.kind === 'participant') {
         const row = await prisma.participant.findUnique({
           where: { id: audience.id },
-          select: { email: true, isDisabled: true, team: { select: { isDisabled: true } } },
+          select: { email: true, isDisabled: true, phase: { select: { isDisabled: true } }, team: { select: { isDisabled: true, phase: { select: { isDisabled: true } } } } },
         });
         // Disabled accounts get NO transactional notification at all — not the
         // email and not the dashboard row. Admin broadcasts are the one channel
@@ -539,6 +552,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
     const team = await prisma.team.findUnique({
       where: { id: audience.teamId },
       include: {
+        phase: { select: { isDisabled: true } },
         participants: {
           where: { isDisabled: false },
           select: { id: true, email: true },
@@ -546,9 +560,9 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
       },
     });
     if (!team) return;
-    // A disabled team notifies nobody, and individually disabled members are
-    // already filtered out by the `where` above.
-    if (team.isDisabled) return;
+    // A disabled team — or a team sitting in a disabled PHASE — notifies
+    // nobody. Individually disabled members are filtered by the `where` above.
+    if (team.isDisabled || team.phase?.isDisabled) return;
     for (const p of team.participants) {
       recipients.push({
         notificationId: crypto.randomUUID(),

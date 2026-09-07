@@ -4,7 +4,9 @@
  * An admin can disable a participant directly, or disable a whole team. A
  * participant is **effectively disabled** when either is true:
  *
- *     effectiveDisabled = participant.isDisabled || participant.team.isDisabled
+ *     effectiveDisabled = participant.isDisabled
+ *                      || participant.team.isDisabled
+ *                      || (the governing PHASE).isDisabled
  *
  * Deriving it (rather than cascading a write onto every member) means
  * re-enabling a team instantly restores exactly the members who were not
@@ -30,9 +32,20 @@ import { Prisma } from '@prisma/client';
 import { prisma } from './prisma';
 
 /** Prisma `where` fragment: participants who are NOT disabled (own flag or team's). */
+/**
+ * "This row's phase does not block it" — either it has no phase, or the phase
+ * it has is enabled. Reused everywhere so the null case is never forgotten.
+ */
+const PHASE_OK = { OR: [{ phaseId: null }, { phase: { is: { isDisabled: false } } }] };
+
 export const ACTIVE_PARTICIPANT_WHERE: Prisma.ParticipantWhereInput = {
   isDisabled: false,
-  OR: [{ teamId: null }, { team: { is: { isDisabled: false } } }],
+  OR: [
+    // individual: their own phase governs
+    { teamId: null, ...PHASE_OK },
+    // team member: the TEAM's phase governs, not their own row's
+    { team: { is: { isDisabled: false, ...PHASE_OK } } },
+  ],
 };
 
 /**
@@ -55,8 +68,8 @@ export const ACTIVE_PARTICIPANT_WHERE: Prisma.ParticipantWhereInput = {
 export const ELIGIBLE_PARTICIPANT_WHERE: Prisma.ParticipantWhereInput = {
   isDisabled: false,
   OR: [
-    { teamId: null, status: 'approved' },
-    { team: { is: { isDisabled: false, status: 'approved' } } },
+    { teamId: null, status: 'approved', ...PHASE_OK },
+    { team: { is: { isDisabled: false, status: 'approved', ...PHASE_OK } } },
   ],
 };
 
@@ -68,19 +81,38 @@ export const ELIGIBLE_MENTOR_WHERE: Prisma.MentorWhereInput = {
 
 /** Prisma `where` fragment: participants who ARE disabled (own flag or team's). */
 export const DISABLED_PARTICIPANT_WHERE: Prisma.ParticipantWhereInput = {
-  OR: [{ isDisabled: true }, { team: { is: { isDisabled: true } } }],
+  OR: [
+    { isDisabled: true },
+    { team: { is: { isDisabled: true } } },
+    { teamId: null, phase: { is: { isDisabled: true } } },
+    { team: { is: { phase: { is: { isDisabled: true } } } } },
+  ],
 };
 
 /** Shape needed to decide; `team` may be absent for individual participants. */
 export interface DisableCheckable {
   isDisabled?: boolean | null;
-  team?: { isDisabled?: boolean | null } | null;
+  phase?: { isDisabled?: boolean | null } | null;
+  team?: {
+    isDisabled?: boolean | null;
+    phase?: { isDisabled?: boolean | null } | null;
+  } | null;
 }
 
-/** True when the participant is disabled directly or through their team. */
+/**
+ * True when the participant is disabled directly, through their team, or
+ * through the phase that governs them.
+ *
+ * For a TEAM MEMBER the governing phase is the team's — their own `phaseId` is
+ * ignored, mirroring how approval works.
+ */
 export function isEffectivelyDisabled(participant: DisableCheckable | null | undefined): boolean {
   if (!participant) return false;
-  return Boolean(participant.isDisabled) || Boolean(participant.team?.isDisabled);
+  if (participant.isDisabled) return true;
+  if (participant.team) {
+    return Boolean(participant.team.isDisabled) || Boolean(participant.team.phase?.isDisabled);
+  }
+  return Boolean(participant.phase?.isDisabled);
 }
 
 /** Arabic message shown to a disabled account that tries to log in or act. */
@@ -97,7 +129,11 @@ export async function isParticipantDisabled(participantId: string): Promise<bool
   try {
     const row = await prisma.participant.findUnique({
       where: { id: participantId },
-      select: { isDisabled: true, team: { select: { isDisabled: true } } },
+      select: {
+        isDisabled: true,
+        phase: { select: { isDisabled: true } },
+        team: { select: { isDisabled: true, phase: { select: { isDisabled: true } } } },
+      },
     });
     return isEffectivelyDisabled(row);
   } catch {
@@ -115,7 +151,12 @@ export async function splitDisabledParticipants(ids: string[]): Promise<{
   if (ids.length === 0) return { disabled: [], active: [] };
   const rows = await prisma.participant.findMany({
     where: { id: { in: ids } },
-    select: { id: true, isDisabled: true, team: { select: { isDisabled: true } } },
+    select: {
+      id: true,
+      isDisabled: true,
+      phase: { select: { isDisabled: true } },
+      team: { select: { isDisabled: true, phase: { select: { isDisabled: true } } } },
+    },
   });
   const disabled: string[] = [];
   const active: string[] = [];
@@ -181,4 +222,23 @@ export async function requireActiveMentor(
   if (!mentorId) return null;
   if (!(await isMentorDisabled(mentorId))) return null;
   return NextResponse.json({ error: DISABLED_ACCOUNT_MESSAGE, disabled: true }, { status: 403 });
+}
+
+/**
+ * Participants governed by a given phase — a team member through their TEAM's
+ * phase, an individual through their own.
+ *
+ * Combined with ELIGIBLE_PARTICIPANT_WHERE by the caller, so a disabled or
+ * unapproved account is still excluded. `failedOnly` narrows to those marked
+ * failed in that phase (they are NOT disabled, so they still receive email —
+ * that is the point of being able to write to them).
+ */
+export function phaseParticipantWhere(phaseId: string, failedOnly = false): Prisma.ParticipantWhereInput {
+  const status = failedOnly ? { phaseStatus: 'failed' } : {};
+  return {
+    OR: [
+      { teamId: null, phaseId, ...status },
+      { team: { is: { phaseId, ...status } } },
+    ],
+  };
 }
