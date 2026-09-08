@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { safeExtension } from './storage-keys';
 
 // Client-side Supabase client using anon key (safe for browser)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -96,7 +97,7 @@ export async function uploadFileToSupabase(
     // Generate unique filename
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const fileExt = file.name.split('.').pop();
+    const fileExt = safeExtension(file.name); // ASCII-only key — Arabic names are rejected by Storage
     const fileName = `${timestamp}_${randomString}.${fileExt}`;
     const filePath = `${folder}/${fileName}`;
 
