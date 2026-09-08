@@ -290,7 +290,7 @@ export default function TeamManagementPage() {
 
         <TabsContent value="team-info" className="mt-6">
           <Card>
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <CardHeader className="flex flex-col sm:flex-row-reverse items-start sm:items-center justify-between gap-3">
           <div className="min-w-0">
             <CardTitle className="text-xl sm:text-2xl leading-snug break-words">فريق: {teamData.teamName}</CardTitle>
             <CardDescription>تفاصيل الفريق والفكرة</CardDescription>
@@ -400,7 +400,7 @@ export default function TeamManagementPage() {
 
         <TabsContent value="members" className="mt-6">
           <Card>
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <CardHeader className="flex flex-col sm:flex-row-reverse items-start sm:items-center justify-between gap-3">
           <div className="min-w-0">
             <CardTitle>أعضاء الفريق <span className="text-sm font-normal text-muted-foreground">({teamData.participants.length}/{TEAM_MAX_MEMBERS})</span></CardTitle>
             {addWindow?.allowed && addWindow.memberAddEnd && (
