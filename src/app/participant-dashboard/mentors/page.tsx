@@ -19,7 +19,6 @@ import {
   Users,
   Mail,
   Calendar,
-  Award,
   Clock,
   Phone,
   Briefcase,
@@ -112,9 +111,11 @@ interface Mentor {
   status: 'pending' | 'active' | 'inactive';
   createdAt: string;
   updatedAt: string;
-  // The following fields are for display and might not be in the DB model directly
-  rating?: number;
-  isAvailableNow?: boolean;
+  // Real availability summary computed server-side from FUTURE slots
+  // (GET /api/admin/mentors — participant branch). Never mock data.
+  availability?: string | null; // متاح | متاح جزئياً | مشغول | null (no slots)
+  availableSlots?: number;
+  upcomingSlots?: number;
 }
 
 export default function MentorsPage() {
@@ -172,15 +173,10 @@ export default function MentorsPage() {
       // Filter only active mentors
       const activeMentors = data.filter((mentor: Mentor) => mentor.status === 'active');
       
-      // Add mock rating data for display purposes
-      const mentorsWithRating = activeMentors.map((mentor: Mentor) => ({
-        ...mentor,
-        rating: parseFloat((Math.random() * (5 - 3.5) + 3.5).toFixed(1)),
-        isAvailableNow: Math.random() > 0.5, // Random availability for demo
-      }));
-      
-      setMentors(mentorsWithRating);
-      setFilteredMentors(mentorsWithRating);
+      // availability/availableSlots come from the API, computed from real
+      // future slots — this used to be Math.random() mock data.
+      setMentors(activeMentors);
+      setFilteredMentors(activeMentors);
       setProgress(100);
     } catch (error) {
       console.error(error);
@@ -241,6 +237,19 @@ export default function MentorsPage() {
         description: "حدث خطأ أثناء جلب المواعيد.",
         variant: "destructive",
       });
+    }
+  };
+
+  const getAvailabilityBadge = (mentor: Mentor) => {
+    switch (mentor.availability) {
+      case 'متاح':
+        return <Badge className="bg-green-100 text-green-800">متاح ({mentor.availableSlots})</Badge>;
+      case 'متاح جزئياً':
+        return <Badge className="bg-yellow-100 text-yellow-800">متاح جزئياً ({mentor.availableSlots})</Badge>;
+      case 'مشغول':
+        return <Badge className="bg-red-100 text-red-800">مشغول</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800">لا توجد مواعيد</Badge>;
     }
   };
 
@@ -477,27 +486,29 @@ export default function MentorsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-green-600">
-              {mentors.filter(m => m.isAvailableNow).length}
+              {mentors.filter(m => (m.availableSlots ?? 0) > 0).length}
             </div>
             <p className="text-xs text-muted-foreground">
-              موجه متاح حالياً للمساعدة
+              موجه لديه مواعيد متاحة للحجز
             </p>
           </CardContent>
         </Card>
         
+        {/* Replaced "متوسط التقييم": no rating system exists, the number was
+            random. This counts real bookable slots instead. */}
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-200 bg-gradient-to-br from-white to-yellow-50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Award className="h-5 w-5 text-yellow-500" />
-              متوسط التقييم
+              <Calendar className="h-5 w-5 text-yellow-500" />
+              مواعيد متاحة للحجز
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-yellow-600">
-              {(mentors.reduce((total, mentor) => total + (mentor.rating || 0), 0) / (mentors.length || 1)).toFixed(1)}/5
+              {mentors.reduce((total, mentor) => total + (mentor.availableSlots ?? 0), 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              بناءً على تقييمات المشاركين
+              موعد قادم غير محجوز لدى جميع الموجهين
             </p>
           </CardContent>
         </Card>
@@ -531,8 +542,7 @@ export default function MentorsPage() {
                 <TableRow className="bg-blue-50 hover:bg-blue-50">
                   <TableHead>الاسم</TableHead>
                   <TableHead className="hidden sm:table-cell">التخصص</TableHead>
-                  <TableHead className="hidden sm:table-cell">التقييم</TableHead>
-                  <TableHead className="hidden sm:table-cell">الحالة</TableHead>
+                  <TableHead className="hidden sm:table-cell">التوفر</TableHead>
                   <TableHead className="text-left">المواعيد</TableHead>
                 </TableRow>
               </TableHeader>
@@ -549,9 +559,7 @@ export default function MentorsPage() {
                         <Phone className="h-3 w-3" /> {mentor.phone}
                       </div>
                       <div className="sm:hidden text-xs text-gray-500 mt-1">
-                        <Badge className={mentor.isAvailableNow ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}>
-                          {mentor.isAvailableNow ? "متاح الآن" : "غير متاح حالياً"}
-                        </Badge>
+                        {getAvailabilityBadge(mentor)}
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
@@ -561,21 +569,7 @@ export default function MentorsPage() {
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      {mentor.rating && mentor.rating > 0 ? (
-                        <div className="flex items-center gap-1">
-                          <Award className="h-4 w-4 text-yellow-500" />
-                          <span>{mentor.rating}/5</span>
-                        </div>
-                      ) : (
-                        <span className="text-gray-500">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      {mentor.isAvailableNow ? (
-                        <Badge className="bg-green-100 text-green-800">متاح الآن</Badge>
-                      ) : (
-                        <Badge className="bg-gray-100 text-gray-800">غير متاح حالياً</Badge>
-                      )}
+                      {getAvailabilityBadge(mentor)}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col sm:flex-row items-center gap-2 justify-end">
@@ -595,7 +589,7 @@ export default function MentorsPage() {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                     لا يوجد موجهين متطابقين مع البحث
                   </TableCell>
                 </TableRow>

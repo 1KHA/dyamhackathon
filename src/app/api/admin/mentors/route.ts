@@ -58,10 +58,33 @@ export async function GET(request: NextRequest) {
       // real stats the mentors table shows — these used to be Math.random()
       // mock values generated in the browser and re-rolled on every fetch.
       if (!isAdmin) {
-        const mentors = await prisma.mentor.findMany({
+        // Participants browse mentors before booking, so they get a REAL
+        // availability summary computed from future slots — but never team
+        // names, session counts, or any other participant's data (the page
+        // used to fabricate this with Math.random()).
+        const rows = await prisma.mentor.findMany({
           where: visibility,
-          select: MENTOR_PUBLIC_FIELDS,
+          select: {
+            ...MENTOR_PUBLIC_FIELDS,
+            availabilities: {
+              select: { endTime: true, bookings: { select: { status: true } } },
+            },
+          },
           orderBy: { createdAt: 'desc' },
+        });
+        const now = new Date();
+        const mentors = rows.map(({ availabilities, ...mentor }) => {
+          const future = availabilities.filter((a) => a.endTime >= now);
+          const freeSlots = future.filter(
+            (a) => !a.bookings.some((b) => b.status !== 'cancelled')
+          ).length;
+          let availability: string | null = null;
+          if (future.length > 0) {
+            if (freeSlots === future.length) availability = 'متاح';
+            else if (freeSlots === 0) availability = 'مشغول';
+            else availability = 'متاح جزئياً';
+          }
+          return { ...mentor, availability, availableSlots: freeSlots, upcomingSlots: future.length };
         });
         return NextResponse.json(mentors);
       }

@@ -110,12 +110,18 @@ async function waitForServer() {
   check('three consecutive fetches return identical stats', first === second && second === third, first === second ? 'drift on 3rd' : 'drift on 2nd');
   check('no rating field is returned any more', r.json.every((m) => m.rating === undefined));
 
-  section('participants still get the plain list (no extra work, no stats)');
+  section('participants get a REAL availability summary — and nothing private');
   const pCookie = cookie({ id: pSolo.id, participantId: pSolo.id, email: pSolo.email, role: 'participant' });
   const pr = await getMentors(pCookie);
   check('participant list 200', pr.status === 200, String(pr.status));
   const pm = byName(pr.json, 'free');
-  check('participant response has no stats attached', pm && pm.assignedTeams === undefined && pm.availability === undefined, JSON.stringify(pm && Object.keys(pm)));
+  check('participant sees the real availability (متاح, with slot count)',
+    pm && pm.availability === 'متاح' && typeof pm.availableSlots === 'number',
+    JSON.stringify(pm && { a: pm.availability, s: pm.availableSlots }));
+  check('participant response leaks NO team/session data',
+    pm && pm.assignedTeams === undefined && pm.teams === undefined &&
+    pm.sessionsCompleted === undefined && pm.sessionsTotal === undefined,
+    JSON.stringify(pm && Object.keys(pm)));
   check('participant still sees the mentors themselves', Boolean(pm && pm.name && pm.specialty));
 
   section('cleanup');
