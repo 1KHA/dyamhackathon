@@ -32,6 +32,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { CHALLENGES } from '@/lib/challenges'
 import { Checkbox } from '@/../../components/ui/checkbox'
 import { useToast } from '@/../../components/ui/use-toast'
+import { prepareUpload, validateUploadFile, UPLOAD_ACCEPT, UPLOAD_HINT } from '@/lib/client-upload'
 
 /** Mirrors the participant shape the API reads. */
 interface Participant {
@@ -127,7 +128,18 @@ export default function AdminCreateTeamPage() {
     formData.append('memberCount', String(formState.memberCount))
     formData.append('leaderInfo', JSON.stringify(formState.leaderInfo))
     formData.append('members', JSON.stringify(formState.members.slice(0, formState.memberCount - 1)))
-    if (attachmentFile) formData.append('attachment', attachmentFile)
+    if (attachmentFile) {
+      // Direct-to-storage upload; the API gets only the URL (function bodies
+      // are capped at ~4.5 MB by Vercel — see src/lib/client-upload.ts).
+      const outcome = await prepareUpload(attachmentFile, 'teams')
+      if (outcome.mode === 'error') {
+        toast({ title: 'خطأ في المرفق', description: outcome.message, variant: 'destructive' })
+        setIsSubmitting(false)
+        return
+      }
+      if (outcome.mode === 'direct') formData.append('attachmentPath', outcome.publicUrl)
+      else formData.append('attachment', attachmentFile)
+    }
 
     try {
       const response = await fetch('/api/register-team', { method: 'POST', body: formData })
@@ -286,7 +298,25 @@ export default function AdminCreateTeamPage() {
 
                 <div>
                   <Label htmlFor="attachments-file">إضافة مرفقات</Label>
-                  <Input id="attachments-file" type="file" onChange={(e) => setAttachmentFile(e.target.files ? e.target.files[0] : null)} />
+                  <Input
+                    id="attachments-file"
+                    type="file"
+                    accept={UPLOAD_ACCEPT}
+                    onChange={(e) => {
+                      const file = e.target.files ? e.target.files[0] : null
+                      if (file) {
+                        const problem = validateUploadFile(file)
+                        if (problem) {
+                          toast({ title: 'ملف غير مقبول', description: problem, variant: 'destructive' })
+                          e.target.value = ''
+                          setAttachmentFile(null)
+                          return
+                        }
+                      }
+                      setAttachmentFile(file)
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">{UPLOAD_HINT}</p>
                 </div>
               </div>
 

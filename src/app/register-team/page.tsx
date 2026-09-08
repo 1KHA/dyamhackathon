@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { REGISTRATION_CLOSED, TEAM_REGISTRATION_HIDDEN } from '@/lib/constants'
+import { prepareUpload, validateUploadFile, UPLOAD_ACCEPT, UPLOAD_HINT } from '@/lib/client-upload'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -264,7 +265,16 @@ export default function RegisterTeamPage() {
     }
 
     if (attachmentFile) {
-      formData.append('attachment', attachmentFile)
+      // Upload straight to storage; the API then receives only the URL. Files
+      // in a function body are capped at ~4.5 MB by Vercel — see client-upload.ts.
+      const outcome = await prepareUpload(attachmentFile, 'teams')
+      if (outcome.mode === 'error') {
+        toast({ title: 'خطأ في المرفق', description: outcome.message, variant: 'destructive' })
+        setIsSubmitting(false)
+        return
+      }
+      if (outcome.mode === 'direct') formData.append('attachmentPath', outcome.publicUrl)
+      else formData.append('attachment', attachmentFile)
     }
 
     try {
@@ -646,12 +656,25 @@ export default function RegisterTeamPage() {
                     <Input 
                       id="attachments-file" 
                       type="file" 
-                      onChange={(e) => setAttachmentFile(e.target.files ? e.target.files[0] : null)}
+                      accept={UPLOAD_ACCEPT}
+                      onChange={(e) => {
+                        const file = e.target.files ? e.target.files[0] : null
+                        if (file) {
+                          const problem = validateUploadFile(file)
+                          if (problem) {
+                            toast({ title: 'ملف غير مقبول', description: problem, variant: 'destructive' })
+                            e.target.value = ''
+                            setAttachmentFile(null)
+                            return
+                          }
+                        }
+                        setAttachmentFile(file)
+                      }}
                       className="h-11 border-2 border-gray-200 focus:border-[#2F44DC] rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-[#2F44DC] file:text-white hover:file:bg-[#2436B0]"
                       style={{ fontFamily: 'PingAR, Arial, sans-serif' }}
                     />
                     <p className="text-sm mt-2" style={{ color: '#53AEF5', fontFamily: 'PingAR, Arial, sans-serif' }}>
-                      ارفاق المتوفر من شعار، ملف تعريفي، الخ.
+                      ارفاق المتوفر من شعار، ملف تعريفي، الخ. {UPLOAD_HINT}
                     </p>
                   </div>
                 </div>

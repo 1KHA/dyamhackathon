@@ -71,8 +71,11 @@ async function waitForServer() {
 
   section('same-day deadline is not cut short by timezone');
   const mToday = await mkMilestone(`${TAG} اليوم`);
-  const todayUtcMidnight = new Date(); todayUtcMidnight.setUTCHours(0, 0, 0, 0);
-  await setDue(mToday.id, todayUtcMidnight);
+  // "Today" must be TODAY IN RIYADH (the API's deadline day), not the UTC
+  // date — between 00:00 and 03:00 Riyadh those differ and the old UTC-based
+  // value pointed at a day whose Riyadh end had already passed.
+  const riyadhToday = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date()); // YYYY-MM-DD
+  await setDue(mToday.id, new Date(`${riyadhToday}T12:00:00+03:00`));
   r = await submit(mToday.id);
   check('submitting on the due day still works (end-of-day Riyadh)', r.status === 200, JSON.stringify(r.json).slice(0, 120));
 

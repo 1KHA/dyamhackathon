@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { MAX_FILE_SIZE_MB } from "@/lib/constants";
+import { prepareUpload, validateUploadFile, UPLOAD_ACCEPT, UPLOAD_HINT } from "@/lib/client-upload";
 
 // Define the Milestone type
 type Milestone = {
@@ -142,7 +143,16 @@ export default function ParticipantMilestonesPage() {
   // Handle file selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setSelectedFile(e.target.files[0]);
+      const file = e.target.files[0];
+      const problem = validateUploadFile(file);
+      if (problem) {
+        setSubmissionStatus({ success: false, message: problem });
+        e.target.value = "";
+        setSelectedFile(null);
+        return;
+      }
+      setSubmissionStatus(null);
+      setSelectedFile(file);
     }
   };
 
@@ -176,19 +186,30 @@ export default function ParticipantMilestonesPage() {
         message: "جاري رفع الملف..."
       });
 
-      // Create form data for file upload
+      // Preferred: upload straight from the browser to Supabase Storage so the
+      // file never passes through a Vercel function (bodies over ~4.5 MB are
+      // rejected by the platform). The API path below is only a fallback for
+      // small files when direct upload is unavailable.
+      let publicUrl: string | null = null;
+      const outcome = await prepareUpload(selectedFile, 'milestones');
+      if (outcome.mode === 'error') throw new Error(outcome.message);
+      if (outcome.mode === 'direct') publicUrl = outcome.publicUrl;
+
+      // Create form data for file upload (fallback path)
       const formData = new FormData();
       formData.append('file', selectedFile);
       
-      // Send file to server-side API endpoint
-      const uploadResponse = await fetch("/api/participant/upload-milestone-file", {
-        method: "POST",
-        body: formData,
-      });
+      // Send file to server-side API endpoint (only when not already uploaded)
+      const uploadResponse = publicUrl
+        ? null
+        : await fetch("/api/participant/upload-milestone-file", {
+            method: "POST",
+            body: formData,
+          });
       
       let errorMessage = "فشل رفع الملف";
       
-      if (!uploadResponse.ok) {
+      if (uploadResponse && !uploadResponse.ok) {
         try {
           const errorData = await uploadResponse.json();
           if (errorData.error) {
@@ -207,10 +228,12 @@ export default function ParticipantMilestonesPage() {
         throw new Error(errorMessage);
       }
       
-      const uploadResult = await uploadResponse.json();
-      
-      if (!uploadResult.success || !uploadResult.publicUrl) {
-        throw new Error("فشل رفع الملف: " + (uploadResult.error || "خطأ غير معروف"));
+      if (!publicUrl) {
+        const uploadResult = await uploadResponse!.json();
+        if (!uploadResult.success || !uploadResult.publicUrl) {
+          throw new Error("فشل رفع الملف: " + (uploadResult.error || "خطأ غير معروف"));
+        }
+        publicUrl = uploadResult.publicUrl as string;
       }
 
       // Step 2: Send metadata to API to create submission record
@@ -226,7 +249,7 @@ export default function ParticipantMilestonesPage() {
         },
         body: JSON.stringify({
           milestoneId: selectedMilestone.id,
-          filePath: uploadResult.publicUrl,
+          filePath: publicUrl,
           fileName: selectedFile.name,
         }),
       });
@@ -449,13 +472,14 @@ export default function ParticipantMilestonesPage() {
                 <Input
                   id="file"
                   type="file"
+                  accept={UPLOAD_ACCEPT}
                   ref={fileInputRef}
                   onChange={handleFileChange}
                   className="flex-1"
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                الملفات المدعومة: PDF, Word, ZIP, RAR, JPEG, PNG (الحد الأقصى: 25 ميجابايت)
+                {UPLOAD_HINT}
               </p>
             </div>
 

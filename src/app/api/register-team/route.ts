@@ -28,7 +28,16 @@ export async function POST(request: NextRequest) {
     const attachmentFile = formData.get('attachment') as File | null;
     let attachmentPath: string | null = null;
 
-    if (attachmentFile) {
+    // Preferred path: the browser already uploaded the file to Supabase
+    // Storage and sends only its public URL (keeps the function body tiny —
+    // Vercel rejects bodies over ~4.5 MB before this code runs).
+    const preUploaded = String(formData.get('attachmentPath') || '').trim();
+    if (preUploaded) {
+        if (!/^https:\/\/[^\s]+\/storage\/v1\/object\/public\//.test(preUploaded)) {
+            return NextResponse.json({ error: 'رابط المرفق غير صالح' }, { status: 400 });
+        }
+        attachmentPath = preUploaded;
+    } else if (attachmentFile) {
         // Validate file size
         if (attachmentFile.size > MAX_FILE_SIZE) {
             return NextResponse.json(
