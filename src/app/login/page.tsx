@@ -12,6 +12,7 @@ import { useToast } from '../../../components/ui/use-toast'
 import { useAuth } from '@/contexts/auth-context'
 import Link from 'next/link'
 import { AlertCircle } from 'lucide-react'
+import { TEAM_REGISTRATION_HIDDEN } from "@/lib/constants";
 
 export default function LoginPage() {
   const router = useRouter()
@@ -177,12 +178,14 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">ليس لديك حساب؟ </span>
-            <Link href="/register-team" className="font-medium text-primary hover:underline">
-              سجل فريقك
-            </Link>
-          </div>
+          {!TEAM_REGISTRATION_HIDDEN && (
+            <div className="mt-6 text-center text-sm">
+              <span className="text-muted-foreground">ليس لديك حساب؟ </span>
+              <Link href="/register-team" className="font-medium text-primary hover:underline">
+                سجل فريقك
+              </Link>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { REGISTRATION_CLOSED } from '@/lib/constants'
+import { REGISTRATION_CLOSED, TEAM_REGISTRATION_HIDDEN } from '@/lib/constants'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -62,6 +62,11 @@ export default function RegisterTeamPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null)
   const [mounted, setMounted] = useState(false)
+
+  // Registration is temporarily hidden — send visitors to the login page.
+  useEffect(() => {
+    if (TEAM_REGISTRATION_HIDDEN) router.replace('/login')
+  }, [router])
   const [showLoader, setShowLoader] = useState(true)
   const [loaderVisible, setLoaderVisible] = useState(true)
   const [contentVisible, setContentVisible] = useState(false)
@@ -441,6 +446,8 @@ export default function RegisterTeamPage() {
       </div>
     </div>
   )
+
+  if (TEAM_REGISTRATION_HIDDEN) return null
 
   return (
     <>

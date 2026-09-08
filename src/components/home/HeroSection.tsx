@@ -4,6 +4,7 @@ import CountdownTimer from './CountdownTimer';
 import { ArrowLeft } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { TEAM_REGISTRATION_HIDDEN } from "@/lib/constants";
 
 const HeroSection = () => {
   const [showCountdown, setShowCountdown] = useState(false);
@@ -52,15 +53,17 @@ const HeroSection = () => {
 
           {/* Registration Button */}
           <div className="mb-12 animate-fade-in-up animation-delay-900">
-            <Link href="/register-team">
-              <Button 
-                size="lg" 
-                className="bg-gradient-teal hover-glow arabic-text font-bold text-lg px-8 py-6 rounded-lg transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-lg"
-              >
-                <ArrowLeft className="w-5 h-5 mr-2 transition-transform duration-300 group-hover:translate-x-1" />
-                سجل الآن
-              </Button>
-            </Link>
+            {!TEAM_REGISTRATION_HIDDEN && (
+              <Link href="/register-team">
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-teal hover-glow arabic-text font-bold text-lg px-8 py-6 rounded-lg transform transition-all duration-500 ease-out hover:scale-105 hover:shadow-lg"
+                >
+                  <ArrowLeft className="w-5 h-5 mr-2 transition-transform duration-300 group-hover:translate-x-1" />
+                  سجل الآن
+                </Button>
+              </Link>
+            )}
           </div>
 
           {/* Description */}

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { TEAM_REGISTRATION_HIDDEN } from "@/lib/constants";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -45,7 +46,7 @@ const Navigation = () => {
 
           {/* Registration Button (replaced with image) */}
           <div className="hidden lg:block">
-            <Link href="/register-team">
+            <Link href={TEAM_REGISTRATION_HIDDEN ? "/" : "/register-team"}>
               <Image 
                 src="/logo.png" 
                 alt="Register Now" 
@@ -82,7 +83,7 @@ const Navigation = () => {
                   <a href={item.href}>{item.name}</a>
                 </Button>
               ))}
-              <Link href="/register-team">
+              <Link href={TEAM_REGISTRATION_HIDDEN ? "/" : "/register-team"}>
                 <Image 
                   src="/logo.png" 
                   alt="Register Now" 

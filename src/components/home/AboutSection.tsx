@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Brain, Users, Lightbulb } from 'lucide-react';
 import { useRef, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { TEAM_REGISTRATION_HIDDEN } from "@/lib/constants";
 
 const AboutSection = () => {
   const features = [
@@ -87,11 +88,13 @@ const AboutSection = () => {
             <p className="text-xl text-muted-foreground arabic-text mb-6">
               انضم إلى تحدي فيجنثون واكتشف فرص التدريب  في شركة إلفيرا تك!
             </p>
-            <Link href="/register-team">
-              <Button className="bg-gradient-teal hover-glow arabic-text font-semibold px-8">
-                ابدأ رحلتك الآن
-              </Button>
-            </Link>
+            {!TEAM_REGISTRATION_HIDDEN && (
+              <Link href="/register-team">
+                <Button className="bg-gradient-teal hover-glow arabic-text font-semibold px-8">
+                  ابدأ رحلتك الآن
+                </Button>
+              </Link>
+            )}
           </Card>
         </div>
       </div>
