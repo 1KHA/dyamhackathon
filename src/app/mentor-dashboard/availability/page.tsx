@@ -64,7 +64,6 @@ const AvailabilityPage = () => {
   // Arabic-Indic digits — invalid for <input type="date">. Use en digits.
   const [formDate, setFormDate] = useState(moment().locale('en').format('YYYY-MM-DD'));
   const [formTime, setFormTime] = useState('10:00');
-  const [formDuration, setFormDuration] = useState(SLOT_STEP_MINUTES);
   const [adding, setAdding] = useState(false);
   // Two-tap delete confirmation for the mobile list
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -226,7 +225,8 @@ const AvailabilityPage = () => {
       toast({ title: "خطأ", description: "لا يمكن إضافة وقت في الماضي.", variant: "destructive" });
       return;
     }
-    const end = start.clone().add(formDuration, 'minutes');
+    // Every slot is exactly one step long (15 min) — no duration choice.
+    const end = start.clone().add(SLOT_STEP_MINUTES, 'minutes');
     setAdding(true);
     await handleSelectSlot({ start: start.toDate(), end: end.toDate() });
     setAdding(false);
@@ -248,8 +248,6 @@ const AvailabilityPage = () => {
   }, [events]);
 
   const fmtTime = (d: Date) => d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
-
-  const durations = [15, 30, 45, 60, 90, 120].filter((d) => d % SLOT_STEP_MINUTES === 0);
 
   return (
     <div className="container mx-auto p-0 sm:p-4" dir="rtl">
@@ -280,31 +278,17 @@ const AvailabilityPage = () => {
                 className="w-full p-2 border rounded-md bg-white"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="slot-time">وقت البداية</Label>
-                <input
-                  id="slot-time"
-                  type="time"
-                  value={formTime}
-                  step={SLOT_STEP_MINUTES * 60}
-                  onChange={(e) => setFormTime(e.target.value)}
-                  className="w-full p-2 border rounded-md bg-white"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="slot-duration">المدة</Label>
-                <select
-                  id="slot-duration"
-                  value={formDuration}
-                  onChange={(e) => setFormDuration(parseInt(e.target.value))}
-                  className="w-full p-2 border rounded-md bg-white"
-                >
-                  {durations.map((d) => (
-                    <option key={d} value={d}>{d} دقيقة</option>
-                  ))}
-                </select>
-              </div>
+            <div className="space-y-1">
+              <Label htmlFor="slot-time">وقت البداية</Label>
+              <input
+                id="slot-time"
+                type="time"
+                value={formTime}
+                step={SLOT_STEP_MINUTES * 60}
+                onChange={(e) => setFormTime(e.target.value)}
+                className="w-full p-2 border rounded-md bg-white"
+              />
+              <p className="text-xs text-muted-foreground">مدة كل فترة {SLOT_STEP_MINUTES} دقيقة</p>
             </div>
             <Button onClick={handleAddFromForm} disabled={adding} className="w-full">
               {adding ? (
