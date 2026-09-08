@@ -145,6 +145,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await prisma.notification.deleteMany({ where: { recipient: undefined, OR: [{ relatedEntityType: 'milestone' }, { relatedEntityType: 'event' }] } });
   await prisma.broadcastRecipient.deleteMany({ where: { broadcast: { title: { startsWith: TAG } } } });
   await prisma.broadcast.deleteMany({ where: { title: { startsWith: TAG } } });
+  // broadcast sends log with templateKey=null — catch them via the TAG subject
+  await prisma.emailLog.deleteMany({ where: { subject: { startsWith: TAG } } });
   await prisma.emailLog.deleteMany({ where: { templateKey: { in: ['newMilestoneAvailable', 'newEventAvailable', 'participantApproval', 'participantRejection'] } } });
   await prisma.milestone.deleteMany({ where: { title: { startsWith: TAG } } });
   await prisma.event.deleteMany({ where: { title: { startsWith: TAG } } });

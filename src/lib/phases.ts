@@ -204,7 +204,13 @@ export async function autoAdvanceForMilestone(params: {
 
     if (!target) return { advanced: false, reason: 'لم يتم العثور على الفريق أو المشارك' };
     if (target.phaseStatus === 'failed') return { advanced: false, reason: 'محدد كمتعثر — لا يمكن التقدم تلقائياً' };
-    if (target.phaseId !== milestonePhaseId) {
+    // An entity that was never ASSIGNED a phase is treated as being AT the
+    // milestone's phase: accepting that phase's milestone means they completed
+    // it, so they advance like everyone else. (Teams are created with
+    // phaseId=null — without this, acceptance silently moved nobody.)
+    // An entity assigned to a DIFFERENT phase still does not move; that is
+    // what keeps re-accepting idempotent after the advance.
+    if (target.phaseId !== null && target.phaseId !== milestonePhaseId) {
       return { advanced: false, reason: 'ليس في مرحلة هذا التسليم' };
     }
 

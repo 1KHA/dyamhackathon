@@ -236,6 +236,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         (await prisma.team.findUnique({ where: { id: teamB.id } })).phaseId === before,
         JSON.stringify(rr.json));
 
+  section('an UNASSIGNED team advances as if in the milestone phase');
+  // teamB was cleared above (phaseId=null, active). Accepting a phase-1
+  // milestone must move it to phase 2 — the production bug was a silent no-op.
+  rr = await review(msP1.id, subB.id, 'accepted');
+  tb = await prisma.team.findUnique({ where: { id: teamB.id } });
+  check('accept advances the unassigned team to phase 2',
+        rr.status === 200 && rr.json.phaseAdvanced === true && tb.phaseId === p2.id,
+        JSON.stringify({ res: rr.json, phase: tb.phaseId === p2.id }));
+  rr = await review(msP1.id, subB.id, 'accepted');
+  check('…and re-accepting stays idempotent',
+        rr.json.phaseAdvanced === false && (await prisma.team.findUnique({ where: { id: teamB.id } })).phaseId === p2.id,
+        JSON.stringify(rr.json));
+
   await prisma.emailSettings.update({ where: { id: settings.id }, data: savedSettings });
 
   section('the admin tables receive the phase they render');
@@ -272,6 +285,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   await prisma.broadcastRecipient.deleteMany({ where: { broadcast: { title: { startsWith: TAG } } } });
   await prisma.broadcast.deleteMany({ where: { title: { startsWith: TAG } } });
   await prisma.emailLog.deleteMany({ where: { subject: { startsWith: TAG } } });
+  // review-notification emails carry template subjects (no TAG prefix) — the
+  // recipient address is the reliable fixture marker
+  await prisma.emailLog.deleteMany({ where: { toEmail: { startsWith: TAG } } });
   await prisma.notification.deleteMany({ where: { title: { startsWith: TAG } } });
   await prisma.milestone.deleteMany({ where: { title: { startsWith: TAG } } });
   await prisma.participant.deleteMany({ where: { email: { startsWith: TAG } } });

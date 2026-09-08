@@ -203,7 +203,9 @@ export default function AllMilestoneSubmissionsPage() {
         setReviewMessage(
           result.phaseAdvanced
             ? `تم تحديث المراجعة — وتم نقل الفريق إلى: ${result.advancedTo}`
-            : result.message || 'تم تحديث المراجعة بنجاح'
+            : result.phaseReason
+              ? `تم تحديث المراجعة — دون نقل المرحلة (${result.phaseReason})`
+              : result.message || 'تم تحديث المراجعة بنجاح'
         );
         
         // Update the submissions list
