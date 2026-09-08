@@ -16,6 +16,29 @@ import { CalendarPlus, Clock, Loader2, Trash2 } from 'lucide-react';
 moment.locale('ar'); // Set moment to use Arabic
 const localizer = momentLocalizer(moment);
 
+// Arabic labels for the calendar toolbar (it rendered English otherwise)
+const messages = {
+  allDay: 'يوم كامل',
+  previous: 'السابق',
+  next: 'التالي',
+  today: 'اليوم',
+  month: 'شهر',
+  week: 'أسبوع',
+  day: 'يوم',
+  agenda: 'أجندة',
+  date: 'تاريخ',
+  time: 'وقت',
+  event: 'فترة توفر',
+  noEventsInRange: 'لا توجد فترات توفر في هذه المدة',
+  showMore: (total: number) => `+${total} المزيد`,
+};
+
+// Working-hours window for the grid: with 15-minute rows a full 24h day is
+// 96 rows — unreadable. 07:00–23:00 keeps every realistic slot visible.
+const DAY_START = new Date(1970, 0, 1, 7, 0, 0);
+const DAY_END = new Date(1970, 0, 1, 23, 0, 0);
+const SCROLL_TO = new Date(1970, 0, 1, 9, 0, 0);
+
 interface Availability {
   id: string;
   start: Date;
@@ -231,10 +254,13 @@ const AvailabilityPage = () => {
   return (
     <div className="container mx-auto p-0 sm:p-4" dir="rtl">
       <h1 className="text-2xl font-bold mb-2 sm:mb-4">إدارة أوقات التوافر الخاصة بك</h1>
-      <p className="mb-4 hidden md:block">انقر واسحب على التقويم لإنشاء فترات توافر جديدة. انقر على فترة موجودة لحذفها.</p>
+      <p className="mb-4 hidden md:block text-muted-foreground">
+        انقر واسحب على التقويم لإنشاء فترات توافر جديدة، أو أضف وقتاً بدقة من النموذج الجانبي. انقر على فترة في التقويم أو على سلة المهملات في القائمة لحذفها.
+      </p>
 
-      {/* ============ Mobile: add form + slot list (no drag-calendar) ============ */}
-      <div className="md:hidden space-y-4">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
+      {/* ============ Add form + organized slot list (all sizes; the only UI on phones) ============ */}
+      <div className="space-y-4 lg:order-2">
         <Card className="border-0 shadow-sm">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -361,10 +387,10 @@ const AvailabilityPage = () => {
         </Card>
       </div>
 
-      {/* ============ Desktop: drag-select calendar (unchanged) ============ */}
-      <div className="hidden md:block">
+      {/* ============ Desktop: drag-select calendar ============ */}
+      <div className="hidden md:block min-w-0 lg:order-1">
       {/* Date Selection UI */}
-      <div className="mb-4 flex flex-wrap gap-2 items-center bg-white p-4 rounded-lg">
+      <div className="mb-4 flex flex-wrap gap-2 items-center rounded-lg border bg-white p-3 shadow-sm">
         <div className="flex items-center">
           <label htmlFor="year-select" className="ml-2 font-medium">السنة:</label>
           <select
@@ -433,7 +459,8 @@ const AvailabilityPage = () => {
         </Button>
       </div>
 
-      <div style={{ height: '70vh', backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
+      <div className="overflow-x-auto rounded-lg border bg-white p-3 shadow-sm">
+        <div className="min-w-[760px]" style={{ height: '68vh' }}>
         <Calendar
           localizer={localizer}
           step={SLOT_STEP_MINUTES}
@@ -443,6 +470,11 @@ const AvailabilityPage = () => {
           endAccessor="end"
           style={{ height: '100%' }}
           selectable
+          rtl
+          messages={messages}
+          min={DAY_START}
+          max={DAY_END}
+          scrollToTime={SCROLL_TO}
           onSelectSlot={handleSelectSlot}
           onSelectEvent={handleSelectEvent}
           defaultView="week"
@@ -457,6 +489,8 @@ const AvailabilityPage = () => {
           }}
           ref={calendarRef}
         />
+        </div>
+      </div>
       </div>
       </div>
     </div>

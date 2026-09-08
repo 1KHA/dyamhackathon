@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,10 +26,21 @@ import {
 import EventTimeline from "@/components/ui/event-timeline";
 import NotificationDropdown from "@/components/ui/notification-dropdown";
 import { useAuth } from "@/contexts/auth-context";
+import { useParticipantNav } from "./participant-nav";
+import { cn } from "@/lib/utils";
 
 export default function TopBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+  // Same source as the desktop sidebar, so the drawer shows exactly the pages
+  // this participant actually has (team vs no-team, leader-only invitations).
+  const { items: navItems } = useParticipantNav();
+
+  // The drawer is not a route, so navigating inside it has to close it.
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
 
   const handleLogout = async () => {
@@ -138,9 +150,42 @@ export default function TopBar() {
       </div>
 
       {isMobileMenuOpen && (
-        <div className="border-t border-primary-foreground/20 p-4 md:hidden">
-          <p className="mb-2 text-xs font-semibold text-primary-foreground/70">رحلة مياهثون</p>
-          <EventTimeline variant="list" />
+        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-primary-foreground/20 md:hidden">
+          <nav className="p-3">
+            <p className="mb-2 px-1 text-xs font-semibold text-primary-foreground/70">التنقل</p>
+            <ul className="space-y-1">
+              {navItems.map((item) => (
+                <li key={item.name}>
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm",
+                      pathname === item.href
+                        ? "bg-primary-foreground/20 font-semibold"
+                        : "hover:bg-primary-foreground/10"
+                    )}
+                  >
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    <span>{item.name}</span>
+                  </Link>
+                </li>
+              ))}
+              <li>
+                <button
+                  onClick={handleLogout}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-primary-foreground/10"
+                >
+                  <LogOut className="h-5 w-5 flex-shrink-0" />
+                  <span>تسجيل الخروج</span>
+                </button>
+              </li>
+            </ul>
+          </nav>
+          <div className="border-t border-primary-foreground/20 p-4">
+            <p className="mb-2 text-xs font-semibold text-primary-foreground/70">رحلة مياهثون</p>
+            <EventTimeline variant="list" />
+          </div>
         </div>
       )}
     </header>
