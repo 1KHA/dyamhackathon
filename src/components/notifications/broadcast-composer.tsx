@@ -7,6 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "../../../components/ui/use-toast";
@@ -302,20 +309,19 @@ export default function BroadcastComposer() {
                 </p>
               ) : (
                 <>
-                  <select
-                    id="broadcast-phase"
-                    className="h-10 rounded-md border bg-background px-3 text-sm"
-                    value={phaseId}
-                    onChange={(e) => setPhaseId(e.target.value)}
-                  >
-                    <option value="">اختر المرحلة…</option>
-                    {phases.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                        {p.isDisabled ? " (معطّلة)" : ""}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={phaseId || undefined} onValueChange={setPhaseId}>
+                    <SelectTrigger id="broadcast-phase" className="w-full">
+                      <SelectValue placeholder="اختر المرحلة…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {phases.map((p) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {p.name}
+                          {p.isDisabled ? " (معطّلة)" : ""}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
                     {audienceType === "phase"
                       ? "يشمل كل فريق ومشارك في هذه المرحلة (أعضاء الفرق عبر فرقهم)."
