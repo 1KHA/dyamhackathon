@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import EventTimeline from "@/components/ui/event-timeline";
 import NotificationDropdown from "@/components/ui/notification-dropdown";
+import DashboardMobileMenu from "@/components/ui/dashboard-mobile-menu";
 import { useAuth } from "@/contexts/auth-context";
 
 const MOBILE_NAV_ITEMS = [
@@ -133,59 +134,13 @@ export default function TopBar() {
       </div>
 
       {/* Mobile navigation drawer — same pattern as the admin dashboard */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 md:hidden" dir="rtl">
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setIsMobileMenuOpen(false)}
-            aria-hidden="true"
-          />
-          <div className="absolute inset-y-0 right-0 w-72 max-w-[85vw] overflow-y-auto bg-background text-foreground shadow-xl">
-            <div className="flex items-center justify-between border-b p-4">
-              <span className="text-base font-semibold">لوحة المرشد</span>
-              <button
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="rounded-md p-2 hover:bg-muted"
-                aria-label="إغلاق القائمة"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-4">
-              <div className="mb-4 rounded-lg bg-[#2F44DC] p-3">
-                <p className="mb-2 text-xs font-semibold text-primary-foreground/70">رحلة مياهثون</p>
-                <EventTimeline variant="list" />
-              </div>
-              <nav className="space-y-1">
-                {MOBILE_NAV_ITEMS.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={`flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium ${
-                      pathname === item.href
-                        ? "bg-primary text-primary-foreground"
-                        : "text-foreground hover:bg-muted"
-                    }`}
-                  >
-                    <item.icon className="h-5 w-5 shrink-0" />
-                    {item.name}
-                  </Link>
-                ))}
-              </nav>
-              <div className="mt-4 border-t pt-4">
-                <button
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
-                >
-                  <LogOut className="h-5 w-5 shrink-0" />
-                  تسجيل الخروج
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <DashboardMobileMenu
+        open={isMobileMenuOpen}
+        items={MOBILE_NAV_ITEMS}
+        pathname={pathname}
+        onNavigate={() => setIsMobileMenuOpen(false)}
+        onLogout={handleLogout}
+      />
     </header>
   );
 }

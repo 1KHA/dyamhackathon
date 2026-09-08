@@ -19,7 +19,9 @@ import {
   LogOut, Upload, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
+// Exported so the TopBar hamburger renders the same list on mobile
+// instead of keeping its own copy.
+export const navItems = [
   { name: "لوحة التحكم", href: "/admin-hackton-dashboard", icon: Home },
   { name: "الفعاليات", href: "/admin-hackton-dashboard/events", icon: Calendar },
   { name: "المشاركون", href: "/admin-hackton-dashboard/participants", icon: Users },

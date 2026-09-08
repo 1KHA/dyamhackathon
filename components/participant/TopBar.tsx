@@ -27,7 +27,7 @@ import EventTimeline from "@/components/ui/event-timeline";
 import NotificationDropdown from "@/components/ui/notification-dropdown";
 import { useAuth } from "@/contexts/auth-context";
 import { useParticipantNav } from "./participant-nav";
-import { cn } from "@/lib/utils";
+import DashboardMobileMenu from "@/components/ui/dashboard-mobile-menu";
 
 export default function TopBar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -149,45 +149,13 @@ export default function TopBar() {
         </div>
       </div>
 
-      {isMobileMenuOpen && (
-        <div className="max-h-[calc(100vh-4rem)] overflow-y-auto border-t border-primary-foreground/20 md:hidden">
-          <nav className="p-3">
-            <p className="mb-2 px-1 text-xs font-semibold text-primary-foreground/70">التنقل</p>
-            <ul className="space-y-1">
-              {navItems.map((item) => (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm",
-                      pathname === item.href
-                        ? "bg-primary-foreground/20 font-semibold"
-                        : "hover:bg-primary-foreground/10"
-                    )}
-                  >
-                    <item.icon className="h-5 w-5 flex-shrink-0" />
-                    <span>{item.name}</span>
-                  </Link>
-                </li>
-              ))}
-              <li>
-                <button
-                  onClick={handleLogout}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm hover:bg-primary-foreground/10"
-                >
-                  <LogOut className="h-5 w-5 flex-shrink-0" />
-                  <span>تسجيل الخروج</span>
-                </button>
-              </li>
-            </ul>
-          </nav>
-          <div className="border-t border-primary-foreground/20 p-4">
-            <p className="mb-2 text-xs font-semibold text-primary-foreground/70">رحلة مياهثون</p>
-            <EventTimeline variant="list" />
-          </div>
-        </div>
-      )}
+      <DashboardMobileMenu
+        open={isMobileMenuOpen}
+        items={navItems}
+        pathname={pathname}
+        onNavigate={() => setIsMobileMenuOpen(false)}
+        onLogout={handleLogout}
+      />
     </header>
   );
 }
