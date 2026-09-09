@@ -20,7 +20,18 @@ const MENTOR_PUBLIC_FIELDS = {
   updatedAt: true,
   isDisabled: true,
   disabledAt: true,
+  organizationId: true,
+  organization: { select: { id: true, name: true, logoUrl: true } },
 } as const;
+
+/** Resolves an optional organizationId from a request body: null clears it. */
+async function resolveOrganizationId(raw: unknown): Promise<{ ok: true; value: string | null } | { ok: false }> {
+  if (raw === undefined) return { ok: true, value: null };
+  if (raw === null || raw === '' || raw === 'none') return { ok: true, value: null };
+  const id = String(raw);
+  const exists = await prisma.organization.findUnique({ where: { id }, select: { id: true } });
+  return exists ? { ok: true, value: id } : { ok: false };
+}
 
 /**
  * GET is read by BOTH the admin mentors page and the participant mentors page
@@ -73,7 +84,9 @@ export async function GET(request: NextRequest) {
           orderBy: { createdAt: 'desc' },
         });
         const now = new Date();
-        const mentors = rows.map(({ availabilities, ...mentor }) => {
+        // Contact details are for the admin only: participants see name,
+        // specialty and organization, never a mentor's email/phone.
+        const mentors = rows.map(({ availabilities, email: _email, phone: _phone, ...mentor }) => {
           const future = availabilities.filter((a) => a.endTime >= now);
           const freeSlots = future.filter(
             (a) => !a.bookings.some((b) => b.status !== 'cancelled')
@@ -169,13 +182,16 @@ export async function POST(request: Request) {
   }
   try {
     const body = await request.json();
-    const { name, email, specialty, phone, password } = body;
+    const { name, email, specialty, phone, password, organizationId } = body;
 
     if (!name || !email || !specialty || !phone || !password) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
+
+    const org = await resolveOrganizationId(organizationId);
+    if (!org.ok) return NextResponse.json({ message: 'الجهة المحددة غير موجودة' }, { status: 400 });
 
     const newMentor = await prisma.mentor.create({
       data: {
@@ -184,6 +200,7 @@ export async function POST(request: Request) {
         specialty,
         phone,
         passwordHash,
+        organizationId: org.value,
       },
       select: MENTOR_PUBLIC_FIELDS,
     });
@@ -219,7 +236,7 @@ export async function PUT(request: Request) {
   }
   try {
     const body = await request.json();
-    const { id, name, email, specialty, phone, status } = body;
+    const { id, name, email, specialty, phone, status, organizationId } = body;
 
     if (!id) {
       return NextResponse.json({ message: 'Mentor ID is required' }, { status: 400 });
@@ -232,6 +249,9 @@ export async function PUT(request: Request) {
       select: { status: true },
     });
 
+    const orgUpdate = await resolveOrganizationId(organizationId);
+    if (!orgUpdate.ok) return NextResponse.json({ message: 'الجهة المحددة غير موجودة' }, { status: 400 });
+
     const updatedMentor = await prisma.mentor.update({
       where: { id },
       data: {
@@ -240,6 +260,8 @@ export async function PUT(request: Request) {
         specialty,
         phone,
         status,
+        // only touch the organization when the client sent the field
+        ...(organizationId !== undefined ? { organizationId: orgUpdate.value } : {}),
       },
       select: MENTOR_PUBLIC_FIELDS,
     });

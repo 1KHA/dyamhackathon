@@ -58,6 +58,8 @@ import {
 } from '@/components/ui/dialog';
 import { useToast } from '../../../../components/ui/use-toast';
 import MentorMessageDialog from '@/components/admin/MentorMessageDialog';
+import OrganizationsManager from '@/components/admin/OrganizationsManager';
+import { Building2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -98,6 +100,8 @@ interface Mentor {
   specialty: string;
   phone: string;
   status: 'pending' | 'active' | 'inactive';
+  organizationId?: string | null;
+  organization?: { id: string; name: string; logoUrl: string | null } | null;
   isDisabled?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -140,7 +144,20 @@ export default function MentorsPage() {
     specialty: '',
     phone: '',
     password: '',
+    organizationId: '' as string,
   });
+  // Organizations for the add/edit selects (managed in <OrganizationsManager />)
+  const [orgOptions, setOrgOptions] = useState<{ id: string; name: string }[]>([]);
+  const fetchOrganizations = async () => {
+    try {
+      const res = await fetch('/api/admin/organizations', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setOrgOptions((data.organizations || []).map((o: any) => ({ id: o.id, name: o.name })));
+      }
+    } catch { /* selects just stay empty */ }
+  };
+  useEffect(() => { fetchOrganizations(); }, []);
   const [generatedPassword, setGeneratedPassword] = useState('');
   // Id of the mentor whose status is currently being toggled from the table row,
   // so that row's button can show a spinner state and reject double clicks.
@@ -284,7 +301,7 @@ export default function MentorsPage() {
         description: `تمت إضافة الموجه بنجاح. كلمة المرور الافتراضية: ${newMentor.password}`,
       });
       setAddDialogOpen(false);
-      setNewMentor({ name: '', email: '', specialty: '', phone: '', password: '' });
+      setNewMentor({ name: '', email: '', specialty: '', phone: '', password: '', organizationId: '' });
       fetchMentors(); // Refresh the list
     } catch (error: any) {
       toast({
@@ -710,6 +727,22 @@ export default function MentorsPage() {
                     />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+                    <Label htmlFor="organization" className="text-right">
+                      الجهة
+                    </Label>
+                    <Select value={newMentor.organizationId || 'none'} onValueChange={(v) => setNewMentor({ ...newMentor, organizationId: v === 'none' ? '' : v })}>
+                      <SelectTrigger id="organization" className="col-span-3">
+                        <SelectValue placeholder="بدون جهة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">بدون جهة</SelectItem>
+                        {orgOptions.map((o) => (
+                          <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                     <Label htmlFor="phone" className="text-right">
                       رقم الجوال
                     </Label>
@@ -890,6 +923,7 @@ export default function MentorsPage() {
                 </TableHead>
                 <TableHead>الاسم</TableHead>
                 <TableHead>التخصص</TableHead>
+                <TableHead>الجهة</TableHead>
                 <TableHead>الفرق المعينة</TableHead>
                 <TableHead>التوفر</TableHead>
                 <TableHead>الجلسات</TableHead>
@@ -920,6 +954,21 @@ export default function MentorsPage() {
                     <div className="text-sm text-gray-500">{mentor.email}</div>
                   </TableCell>
                   <TableCell>{mentor.specialty}</TableCell>
+                  <TableCell>
+                    {mentor.organization ? (
+                      <div className="flex items-center gap-2 min-w-0">
+                        {mentor.organization.logoUrl ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={mentor.organization.logoUrl} alt="" className="h-7 w-7 rounded object-contain border bg-white shrink-0" />
+                        ) : (
+                          <Building2 className="h-4 w-4 text-blue-500 shrink-0" />
+                        )}
+                        <span className="truncate max-w-[140px]" title={mentor.organization.name}>{mentor.organization.name}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">—</span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4 text-gray-500" />
@@ -1018,6 +1067,11 @@ export default function MentorsPage() {
           </Table>
         </CardContent>
       </Card>
+
+      {/* --- Organizations (mentor groups) --- */}
+      <div className="mb-8">
+        <OrganizationsManager onChanged={() => { fetchOrganizations(); fetchMentors(); }} />
+      </div>
 
       {/* --- Admin Mentor Bookings Management Box --- */}
       <Card className="border-0 shadow-sm overflow-hidden mt-12">
@@ -1285,6 +1339,22 @@ export default function MentorsPage() {
                     required
                   />
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
+                    <Label htmlFor="edit-organization" className="text-right">
+                      الجهة
+                    </Label>
+                    <Select value={mentorToEdit.organizationId || 'none'} onValueChange={(v) => setMentorToEdit({ ...mentorToEdit, organizationId: v === 'none' ? null : v })}>
+                      <SelectTrigger id="edit-organization" className="col-span-3">
+                        <SelectValue placeholder="بدون جهة" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">بدون جهة</SelectItem>
+                        {orgOptions.map((o) => (
+                          <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-2 sm:gap-4">
                   <Label htmlFor="edit-phone" className="text-right">
                     رقم الجوال

@@ -6,6 +6,8 @@ export interface TeamSettingsRow {
   id: string;
   memberAddStart: Date | null;
   memberAddEnd: Date | null;
+  /** individual | organization | both — see src/lib/organizations.ts */
+  mentorBookingMode: string;
   updatedAt: Date;
 }
 

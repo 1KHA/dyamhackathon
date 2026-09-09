@@ -15,6 +15,7 @@ import {
   Bell,
   Loader2,
   ListChecks,
+  Building2,
 } from "lucide-react";
 
 interface MentorInfo {
@@ -22,6 +23,7 @@ interface MentorInfo {
   name: string;
   specialty: string;
   status: string;
+  organization?: { id: string; name: string; logoUrl: string | null } | null;
 }
 
 interface Booking {
@@ -30,6 +32,9 @@ interface Booking {
   meetingUrl?: string | null;
   availability: { id: string; startTime: string; endTime: string };
   participant: { id: string; name: string; email: string; phoneNumber: string };
+  mentor?: { id: string; name: string };
+  organization?: { id: string; name: string; logoUrl: string | null } | null;
+  hostedByMe?: boolean;
 }
 
 interface Availability {
@@ -179,6 +184,17 @@ export default function MentorDashboardPage() {
             {mentor?.specialty ? `${mentor.specialty} • ` : ""}
             هذه نظرة عامة على جلساتك ومواعيدك
           </p>
+          {mentor?.organization && (
+            <div className="mt-2 inline-flex items-center gap-2 rounded-full border bg-blue-50 text-blue-800 px-3 py-1 text-xs">
+              {mentor.organization.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={mentor.organization.logoUrl} alt="" className="h-5 w-5 rounded object-contain bg-white" />
+              ) : (
+                <Building2 className="h-4 w-4" />
+              )}
+              <span>عضو في جهة: {mentor.organization.name}</span>
+            </div>
+          )}
         </div>
         {mentor && (
           <Badge
@@ -239,6 +255,14 @@ export default function MentorDashboardPage() {
                 <div className="text-sm text-muted-foreground break-all">
                   {nextSession.participant.email}
                 </div>
+                {nextSession.organization && (
+                  <div className="mt-1 flex flex-wrap items-center gap-1 text-xs">
+                    <Badge variant="secondary" className="font-normal">عبر جهة: {nextSession.organization.name}</Badge>
+                    {nextSession.hostedByMe === false && nextSession.mentor?.name && (
+                      <span className="text-muted-foreground">يستضيفها {nextSession.mentor.name}</span>
+                    )}
+                  </div>
+                )}
                 <div className="text-sm text-blue-700 mt-1">
                   {fmt(nextSession.availability.startTime)}
                 </div>

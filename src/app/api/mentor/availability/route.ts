@@ -8,8 +8,15 @@ export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-export async function GET() {
+/**
+ * GET — the mentor's own slots. With `?scope=organization` the slots of the
+ * mentor's organization colleagues are appended too (flagged `shared: true`,
+ * with `hostMentor`), since a slot any member adds is automatically an
+ * organization slot that every member can be invited to.
+ */
+export async function GET(request: Request) {
   console.log('GET /api/mentor/availability');
+  const scope = new URL(request.url).searchParams.get('scope');
   const cookieStore = cookies();
   const token = cookieStore.get('token')?.value;
   console.log('Auth token from cookie:', token);
@@ -36,7 +43,34 @@ export async function GET() {
       orderBy: { startTime: 'asc' },
     });
 
-    return NextResponse.json(availabilities);
+    if (scope !== 'organization') {
+      return NextResponse.json(availabilities);
+    }
+
+    const me = await prisma.mentor.findUnique({ where: { id: mentorId }, select: { organizationId: true } });
+    const shared = me?.organizationId
+      ? await prisma.mentorAvailability.findMany({
+          where: {
+            mentorId: { not: mentorId },
+            mentor: { organizationId: me.organizationId, status: 'active', isDisabled: false },
+          },
+          include: {
+            mentor: { select: { id: true, name: true } },
+            bookings: { where: { status: { not: 'cancelled' } }, select: { id: true } },
+          },
+          orderBy: { startTime: 'asc' },
+        })
+      : [];
+
+    return NextResponse.json([
+      ...availabilities.map((a) => ({ ...a, shared: false as const })),
+      ...shared.map(({ mentor, bookings, ...a }) => ({
+        ...a,
+        shared: true as const,
+        hostMentor: mentor,
+        isBooked: bookings.length > 0,
+      })),
+    ]);
   } catch (error) {
     console.error('Error verifying token:', error);
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });

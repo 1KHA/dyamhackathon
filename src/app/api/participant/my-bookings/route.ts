@@ -72,6 +72,7 @@ export async function GET(request: NextRequest) {
         status: 'booked', // Only get active bookings
       },
       include: {
+        organization: { select: { id: true, name: true, logoUrl: true } },
         availability: {
           include: {
             mentor: true,
@@ -94,6 +95,7 @@ export async function GET(request: NextRequest) {
       endTime: booking.availability.endTime,
       status: booking.status,
       meetingUrl: booking.meetingUrl ?? null,
+      organization: booking.organization ?? null,
       createdAt: booking.createdAt,
     }));
 

@@ -371,6 +371,32 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       actionUrl: '/mentor-dashboard/sessions',
     }),
     def({
+      key: 'orgBookingRequest',
+      label: 'حجز جلسة مع الجهة (لكل أعضاء الجهة)',
+      category: 'mentor',
+      variables: ['participantName', 'dateTime', 'organizationName', 'meetingLink'],
+      type: 'info',
+      dashboardTitle: 'حجز جلسة جديد مع جهتكم',
+      dashboardMessage: 'حجز {{participantName}} جلسة مع {{organizationName}} في {{dateTime}}',
+      emailSubject: 'حجز جلسة إرشاد مع {{organizationName}} — {{dateTime}}',
+      emailBody:
+        'قام {{participantName}} بحجز جلسة إرشاد مع جهتكم {{organizationName}} في {{dateTime}}.\n\nرابط الاجتماع:\n{{meetingLink}}\n\nوصل هذا الإشعار لجميع أعضاء الجهة — افتحوا الرابط في موعد الجلسة وسجّلوا الدخول بحساب Google (أو GitHub) لبدء الاجتماع كمشرف؛ المشاركون ينضمون بعدها مباشرة دون حسابات.',
+      actionUrl: '/mentor-dashboard/sessions',
+    }),
+    def({
+      key: 'orgBookingConfirmation',
+      label: 'تأكيد حجز جلسة مع جهة',
+      category: 'participant',
+      variables: ['organizationName', 'dateTime', 'meetingLink'],
+      type: 'success',
+      dashboardTitle: 'تأكيد حجز الجلسة',
+      dashboardMessage: 'تم تأكيد حجز جلستك مع {{organizationName}} في {{dateTime}}',
+      emailSubject: 'تأكيد حجز جلستك مع {{organizationName}}',
+      emailBody:
+        'تم تأكيد حجز جلسة الإرشاد مع {{organizationName}} في {{dateTime}}.\n\nرابط الاجتماع (افتحه في موعد الجلسة من المتصفح أو الجوال):\n{{meetingLink}}\n\nلا حاجة لإنشاء حساب — اضغط الرابط وانضم مباشرة.',
+      actionUrl: '/participant-dashboard/mentors',
+    }),
+    def({
       key: 'bookingCancellation',
       label: 'إلغاء حجز جلسة (للمرشد)',
       category: 'mentor',
