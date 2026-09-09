@@ -178,7 +178,7 @@ export default function MentorDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold break-words">
-            مرحباً{mentor ? `، ${mentor.name}` : ""} 👋
+            مرحباً{mentor ? `، ${mentor.name}` : ""}
           </h1>
           <p className="text-muted-foreground mt-1">
             {mentor?.specialty ? `${mentor.specialty} • ` : ""}
