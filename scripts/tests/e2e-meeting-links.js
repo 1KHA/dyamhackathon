@@ -129,6 +129,12 @@ async function main() {
     const full = await mp(`/api/v1/message/${mateMail[0].ID}`);
     const text = (full.Text || '') + (full.HTML || '');
     check('  participant email contains the meeting link', text.includes(url3), url3);
+    // Emails must show Saudi local time regardless of the server's zone
+    // (Vercel/Docker run in UTC; this used to print the time 3 hours early).
+    const riyadhTime = new Intl.DateTimeFormat('ar-SA', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit' }).format(slotC.startTime);
+    const utcTime = new Intl.DateTimeFormat('ar-SA', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit' }).format(slotC.startTime);
+    check('  email shows the slot time in Asia/Riyadh', text.includes(riyadhTime), `expected ${riyadhTime} in mail; utc would be ${utcTime}`);
+    if (riyadhTime !== utcTime) check('  and NOT the UTC time', !text.includes(utcTime), utcTime);
   } else check('  participant email contains the meeting link', false, 'no mail');
 
   const mentorMail = await inboxFor(mentorC.email);

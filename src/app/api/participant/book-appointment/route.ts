@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { dispatchNotification } from '@/lib/notify';
 import { generateMeetingUrl } from '@/lib/meeting';
 import { getBookingMode, BOOKABLE_MENTOR_WHERE, organizationBusyAt } from '@/lib/organizations';
+import { formatRiyadhDateTime } from '@/lib/format-dates';
 import { requireActiveParticipant, isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -205,13 +206,7 @@ export async function POST(request: NextRequest) {
     // Create notifications for the booking
     try {
       const participantName = participant.fullName || [participant.firstName, participant.secondName, participant.familyName].filter(Boolean).join(' ').trim() || participant.email;
-      const dateTime = new Date(booking.availability.startTime).toLocaleString('ar-SA', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
+      const dateTime = formatRiyadhDateTime(booking.availability.startTime);
 
       const meetingLink = booking.meetingUrl || '';
       const bookerAudience = participant.teamId

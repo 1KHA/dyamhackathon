@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { formatRiyadhDateTime } from '@/lib/format-dates';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
@@ -32,13 +33,7 @@ const bookingWithPeople = {
 } as const;
 
 function formatBookingDateTime(startTime: Date) {
-  return new Date(startTime).toLocaleString('ar-SA', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return formatRiyadhDateTime(startTime);
 }
 
 /**
