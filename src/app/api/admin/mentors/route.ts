@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { dispatchNotification } from '@/lib/notify';
+import { generatePassword, getLoginUrl } from '@/lib/credentials';
 import { verifyToken, requireAdmin } from '@/lib/notification-auth';
 
 export const dynamic = 'force-dynamic';
@@ -266,11 +267,25 @@ export async function PUT(request: Request) {
       select: MENTOR_PUBLIC_FIELDS,
     });
 
-    // Notify the mentor only when they have just been approved
+    // Notify the mentor only when they have just been approved. Approval also
+    // issues a fresh temporary password so the email can carry login details
+    // ({{email}}, {{password}}, {{loginUrl}}) — the previous password is only
+    // stored hashed and cannot be sent.
     if (existingMentor && existingMentor.status !== 'active' && updatedMentor.status === 'active') {
       try {
+        const password = generatePassword();
+        await prisma.mentor.update({
+          where: { id: updatedMentor.id },
+          data: { passwordHash: await bcrypt.hash(password, 10) },
+        });
         await dispatchNotification({
           templateKey: 'mentorProfileApproval',
+          variables: {
+            mentorName: updatedMentor.name,
+            email: updatedMentor.email,
+            password,
+            loginUrl: getLoginUrl(),
+          },
           audience: { kind: 'mentor', id: updatedMentor.id },
           relatedEntityType: 'mentor',
           relatedEntityId: updatedMentor.id,

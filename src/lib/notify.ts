@@ -410,10 +410,16 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       key: 'mentorProfileApproval',
       label: 'قبول المرشد',
       category: 'mentor',
-      variables: [],
+      // A fresh temporary password is generated when the admin approves the
+      // mentor (the original is only stored hashed), so the approval email
+      // can carry the login details just like participant acceptance.
+      variables: ['mentorName', 'email', 'password', 'loginUrl'],
       type: 'success',
       dashboardTitle: 'تم قبول طلبك كمرشد',
       dashboardMessage: 'تهانينا! تم قبولك كمرشد في منصة الهاكثون',
+      emailSubject: 'تم قبولك كمرشد — بيانات الدخول',
+      emailBody:
+        'مرحباً {{mentorName}}،\n\nتهانينا! تم قبولك كمرشد في منصة الهاكثون.\n\nبيانات الدخول إلى لوحة المرشد:\nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\n\nرابط تسجيل الدخول: {{loginUrl}}\n\nهذه البيانات خاصة بك ولا تشاركها مع أحد. يمكنك تغيير كلمة المرور في أي وقت عبر خيار "نسيت كلمة المرور" في صفحة الدخول.',
       actionUrl: '/mentor-dashboard',
     }),
   ].map((d) => [d.key, d])
