@@ -30,6 +30,7 @@ import {
   chunkRecipients,
   type SmtpConfig,
   type SendEmailResult,
+  type EmailAudience,
 } from './mailer';
 import { sendRawEmail, stampEmailStatus } from './notify';
 
@@ -92,6 +93,8 @@ export type SendFn = (params: {
   subject: string;
   bodyText: string;
   broadcastId: string;
+  /** Footer support channels; set when every row in the batch shares a recipient type. */
+  audience?: EmailAudience;
 }) => Promise<SendEmailResult>;
 
 function isSqlite(): boolean {
@@ -258,6 +261,13 @@ async function stampRows(rows: QueueRow[], status: 'sent' | 'failed'): Promise<v
   }
 }
 
+/** The batch's recipient type when uniform (BCC shares one body), else undefined. */
+function batchAudience(rows: QueueRow[]): EmailAudience | undefined {
+  const first = rows[0]?.recipientType;
+  if (first !== 'participant' && first !== 'mentor') return undefined;
+  return rows.every((r) => r.recipientType === first) ? first : undefined;
+}
+
 /**
  * Send one batch (all rows share a broadcast) and persist the per-recipient
  * outcome. Returns the counts for this batch.
@@ -276,6 +286,7 @@ async function processBatch(
     subject,
     bodyText: broadcast.body,
     broadcastId: broadcast.id,
+    audience: batchAudience(rows),
   });
 
   const accepted = new Set(result.accepted.map((e) => e.toLowerCase()));

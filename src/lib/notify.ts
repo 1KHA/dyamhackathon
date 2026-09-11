@@ -8,6 +8,7 @@ import {
   chunkRecipients,
   type SmtpConfig,
   type SendEmailResult,
+  type EmailAudience,
 } from './mailer';
 
 /**
@@ -693,6 +694,8 @@ async function sendTemplateEmails(
   const subject = renderTemplate(template.emailSubject, variables);
   const bodyText = renderTemplate(template.emailBody, variables);
   const startedAt = Date.now();
+  // Footer support channels follow the template category (participant / mentor).
+  const audience: EmailAudience = template.category;
 
   // Per-recipient content (credentials etc.): one email per address, each
   // rendered with that recipient's own variables. Never BCC — a password must
@@ -720,6 +723,7 @@ async function sendTemplateEmails(
         subject: ownSubject,
         title: ownSubject,
         bodyText: renderTemplate(template.emailBody, r.variables),
+        audience,
       });
       await stampEmailStatus([r.notificationId], result.ok ? 'sent' : 'failed');
       await logSendResult({ templateKey: template.key, subject: ownSubject, result });
@@ -740,7 +744,7 @@ async function sendTemplateEmails(
     const inbox = settings.adminInboxEmail.trim();
     if (!inbox) return;
 
-    const result = await sendEmail({ config, to: inbox, subject, title: subject, bodyText });
+    const result = await sendEmail({ config, to: inbox, subject, title: subject, bodyText, audience });
     await stampEmailStatus(recipients.map((r) => r.notificationId), result.ok ? 'sent' : 'failed');
     await logSendResult({ templateKey: template.key, subject, result });
     return;
@@ -752,7 +756,7 @@ async function sendTemplateEmails(
 
   if (emailable.length === 1) {
     const r = emailable[0];
-    const result = await sendEmail({ config, to: r.email!, subject, title: subject, bodyText });
+    const result = await sendEmail({ config, to: r.email!, subject, title: subject, bodyText, audience });
     await stampOutcome([r], result);
     await logSendResult({ templateKey: template.key, subject, result });
     return;
@@ -782,7 +786,7 @@ async function sendTemplateEmails(
       break;
     }
 
-    const result = await sendEmail({ config, bcc: batch, subject, title: subject, bodyText });
+    const result = await sendEmail({ config, bcc: batch, subject, title: subject, bodyText, audience });
     // Per-recipient stamps: 3 accepted + 1 rejected => 3 'sent' rows, 1 'failed' row.
     await stampOutcome(batchRecipients, result);
     await logSendResult({ templateKey: template.key, subject, result });
@@ -889,6 +893,7 @@ export async function sendRawEmail(params: {
   subject: string;
   bodyText: string;
   broadcastId?: string;
+  audience?: EmailAudience;
 }): Promise<SendEmailResult> {
   const result = await sendEmail({
     config: params.config,
@@ -897,6 +902,7 @@ export async function sendRawEmail(params: {
     subject: params.subject,
     title: params.subject,
     bodyText: params.bodyText,
+    audience: params.audience,
   });
 
   await logSendResult({ broadcastId: params.broadcastId, subject: params.subject, result });

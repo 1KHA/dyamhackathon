@@ -121,16 +121,64 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/** Who an email is addressed to — selects the support-channels footer. */
+export type EmailAudience = 'participant' | 'mentor' | 'admin';
+
+export const SUPPORT_EMAIL = 'info@miyahthon.com';
+export const PARTICIPANT_TELEGRAM_URL = 'https://t.me/+hJH7Jo0SB5U4NWI0';
+export const MENTOR_WHATSAPP_NUMBER = '+966548400719';
+const MENTOR_WHATSAPP_URL = 'https://wa.me/966548400719';
+
+const FOOTER_LINK_STYLE = 'color:#2F44DC;text-decoration:none';
+
+/**
+ * Support-channels block for the HTML footer. Participants get email +
+ * Telegram; mentors get email + WhatsApp; admins/unknown get nothing extra.
+ */
+function renderSupportChannelsHtml(audience?: EmailAudience): string {
+  const mail = `<a href="mailto:${SUPPORT_EMAIL}" style="${FOOTER_LINK_STYLE}" dir="ltr">${SUPPORT_EMAIL}</a>`;
+  if (audience === 'participant') {
+    return (
+      `<div style="margin-bottom:8px;color:#001742;font-weight:bold">قنوات التواصل</div>` +
+      `<div>البريد: ${mail}</div>` +
+      `<div>تيليجرام: <a href="${PARTICIPANT_TELEGRAM_URL}" style="${FOOTER_LINK_STYLE}" dir="ltr">${PARTICIPANT_TELEGRAM_URL}</a></div>`
+    );
+  }
+  if (audience === 'mentor') {
+    return (
+      `<div style="margin-bottom:8px;color:#001742;font-weight:bold">للاستفسار يرجى التواصل عبر القنوات التالية:</div>` +
+      `<div>البريد: ${mail}</div>` +
+      `<div>الواتساب: <a href="${MENTOR_WHATSAPP_URL}" style="${FOOTER_LINK_STYLE}" dir="ltr">${MENTOR_WHATSAPP_NUMBER}</a></div>`
+    );
+  }
+  return '';
+}
+
+/** Plain-text twin of the support-channels footer (for the text/plain part). */
+export function renderSupportChannelsText(audience?: EmailAudience): string {
+  if (audience === 'participant') {
+    return `قنوات التواصل\nالبريد: ${SUPPORT_EMAIL}\nتيليجرام: ${PARTICIPANT_TELEGRAM_URL}`;
+  }
+  if (audience === 'mentor') {
+    return `للاستفسار يرجى التواصل عبر القنوات التالية:\nالبريد: ${SUPPORT_EMAIL}\nالواتساب: ${MENTOR_WHATSAPP_NUMBER}`;
+  }
+  return '';
+}
+
 /**
  * Wrap already-escaped plain-text content in the fixed RTL HTML shell.
  * `dir`/alignment live on an inner div because Gmail strips <html>/<head>
- * attributes.
+ * attributes. `audience` picks the support-channels footer.
  */
-export function renderEmailHtml(title: string, bodyText: string): string {
+export function renderEmailHtml(title: string, bodyText: string, audience?: EmailAudience): string {
   const bodyHtml = escapeHtml(bodyText).replace(/\r?\n/g, '<br>');
   const titleHtml = escapeHtml(title);
   // Email clients require absolute image URLs.
   const baseUrl = getAppBaseUrl();
+  const support = renderSupportChannelsHtml(audience);
+  const supportHtml = support
+    ? `<div style="padding:16px 24px;border-top:1px solid #e2e8f0;color:#334155;font-size:13px;line-height:1.9">${support}</div>`
+    : '';
 
   return `<div dir="rtl" lang="ar" style="direction:rtl;text-align:right;font-family:Tahoma,Arial,sans-serif;background:#f4f6f8;padding:24px">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
@@ -138,7 +186,7 @@ export function renderEmailHtml(title: string, bodyText: string): string {
     <div style="padding:24px">
       <h2 style="margin:0 0 12px;font-size:16px;color:#001742">${titleHtml}</h2>
       <p style="margin:0;font-size:14px;line-height:1.9;color:#334155">${bodyHtml}</p>
-    </div>
+    </div>${supportHtml}
     <div style="padding:12px 24px;background:#F2F8FE;color:#5B7A9E;font-size:12px">هذه رسالة آلية من منصة مياهثون — يرجى عدم الرد عليها.</div>
   </div>
 </div>`;
@@ -168,10 +216,14 @@ export interface SendEmailParams {
   subject: string;
   title: string;    // heading inside the HTML shell
   bodyText: string; // plain text; escaped + <br>-converted here
+  /** Selects the support-channels footer (participant / mentor). */
+  audience?: EmailAudience;
 }
 
 export async function sendEmail(params: SendEmailParams): Promise<SendEmailResult> {
-  const { config, to, bcc, subject, title, bodyText } = params;
+  const { config, to, bcc, subject, title, bodyText, audience } = params;
+  const supportText = renderSupportChannelsText(audience);
+  const text = supportText ? `${bodyText}\n\n${supportText}` : bodyText;
 
   if (isMandrillConfigured()) {
     console.log(`📧 Email transport: mandrill (to=${to ?? 'sender'}, bcc=${bcc?.length ?? 0})`);
@@ -179,8 +231,8 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       to,
       bcc,
       subject,
-      html: renderEmailHtml(title, bodyText),
-      text: bodyText,
+      html: renderEmailHtml(title, bodyText, audience),
+      text,
       fromName: process.env.MAIL_FROM_NAME || config.fromName,
     });
     // `error` is also set on PARTIAL success (some recipients rejected) — log it either way.
@@ -197,8 +249,8 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       ...(to ? { to } : { to: config.fromEmail }), // BCC-only sends address the sender
       ...(bcc && bcc.length > 0 ? { bcc } : {}),
       subject,
-      html: renderEmailHtml(title, bodyText),
-      text: bodyText,
+      html: renderEmailHtml(title, bodyText, audience),
+      text,
     });
 
     // nodemailer reports the SMTP envelope verdict per address. The sender
