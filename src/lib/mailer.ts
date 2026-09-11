@@ -129,24 +129,25 @@ export const PARTICIPANT_TELEGRAM_URL = 'https://t.me/+hJH7Jo0SB5U4NWI0';
 export const MENTOR_WHATSAPP_NUMBER = '+966548400719';
 const MENTOR_WHATSAPP_URL = 'https://wa.me/966548400719';
 
-const FOOTER_LINK_STYLE = 'color:#2F44DC;text-decoration:none';
+const FOOTER_LINK_STYLE = 'color:#5B7A9E;text-decoration:none';
 
 /**
- * Support-channels block for the HTML footer. Participants get email +
- * Telegram; mentors get email + WhatsApp; admins/unknown get nothing extra.
+ * Support-channels lines for the grey footer, same style as the automated
+ * message line. Participants get email + Telegram; mentors get email +
+ * WhatsApp; admins/unknown get nothing extra.
  */
 function renderSupportChannelsHtml(audience?: EmailAudience): string {
   const mail = `<a href="mailto:${SUPPORT_EMAIL}" style="${FOOTER_LINK_STYLE}" dir="ltr">${SUPPORT_EMAIL}</a>`;
   if (audience === 'participant') {
     return (
-      `<div style="margin-bottom:8px;color:#001742;font-weight:bold">قنوات التواصل</div>` +
+      `<div style="margin-top:8px">للاستفسار يرجى التواصل عبر القنوات التالية:</div>` +
       `<div>البريد: ${mail}</div>` +
       `<div>تيليجرام: <a href="${PARTICIPANT_TELEGRAM_URL}" style="${FOOTER_LINK_STYLE}" dir="ltr">${PARTICIPANT_TELEGRAM_URL}</a></div>`
     );
   }
   if (audience === 'mentor') {
     return (
-      `<div style="margin-bottom:8px;color:#001742;font-weight:bold">للاستفسار يرجى التواصل عبر القنوات التالية:</div>` +
+      `<div style="margin-top:8px">للاستفسار يرجى التواصل عبر القنوات التالية:</div>` +
       `<div>البريد: ${mail}</div>` +
       `<div>الواتساب: <a href="${MENTOR_WHATSAPP_URL}" style="${FOOTER_LINK_STYLE}" dir="ltr">${MENTOR_WHATSAPP_NUMBER}</a></div>`
     );
@@ -157,7 +158,7 @@ function renderSupportChannelsHtml(audience?: EmailAudience): string {
 /** Plain-text twin of the support-channels footer (for the text/plain part). */
 export function renderSupportChannelsText(audience?: EmailAudience): string {
   if (audience === 'participant') {
-    return `قنوات التواصل\nالبريد: ${SUPPORT_EMAIL}\nتيليجرام: ${PARTICIPANT_TELEGRAM_URL}`;
+    return `للاستفسار يرجى التواصل عبر القنوات التالية:\nالبريد: ${SUPPORT_EMAIL}\nتيليجرام: ${PARTICIPANT_TELEGRAM_URL}`;
   }
   if (audience === 'mentor') {
     return `للاستفسار يرجى التواصل عبر القنوات التالية:\nالبريد: ${SUPPORT_EMAIL}\nالواتساب: ${MENTOR_WHATSAPP_NUMBER}`;
@@ -175,10 +176,7 @@ export function renderEmailHtml(title: string, bodyText: string, audience?: Emai
   const titleHtml = escapeHtml(title);
   // Email clients require absolute image URLs.
   const baseUrl = getAppBaseUrl();
-  const support = renderSupportChannelsHtml(audience);
-  const supportHtml = support
-    ? `<div style="padding:16px 24px;border-top:1px solid #e2e8f0;color:#334155;font-size:13px;line-height:1.9">${support}</div>`
-    : '';
+  const supportHtml = renderSupportChannelsHtml(audience);
 
   return `<div dir="rtl" lang="ar" style="direction:rtl;text-align:right;font-family:Tahoma,Arial,sans-serif;background:#f4f6f8;padding:24px">
   <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0">
@@ -186,8 +184,8 @@ export function renderEmailHtml(title: string, bodyText: string, audience?: Emai
     <div style="padding:24px">
       <h2 style="margin:0 0 12px;font-size:16px;color:#001742">${titleHtml}</h2>
       <p style="margin:0;font-size:14px;line-height:1.9;color:#334155">${bodyHtml}</p>
-    </div>${supportHtml}
-    <div style="padding:12px 24px;background:#F2F8FE;color:#5B7A9E;font-size:12px">هذه رسالة آلية من منصة مياهثون — يرجى عدم الرد عليها.</div>
+    </div>
+    <div style="padding:12px 24px;background:#F2F8FE;color:#5B7A9E;font-size:12px;line-height:1.8">هذه رسالة آلية من منصة مياهثون — يرجى عدم الرد عليها.${supportHtml}</div>
   </div>
 </div>`;
 }
