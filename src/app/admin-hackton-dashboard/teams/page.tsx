@@ -10,6 +10,7 @@ import { CHALLENGES } from "@/lib/challenges";
 import { useToast } from "@/../../components/ui/use-toast";
 import * as XLSX from 'xlsx';
 import AutoTeamCreationModal from "@/../../components/admin/AutoTeamCreationModal";
+import BulkApproveButton from "@/components/admin/BulkApproveButton";
 import {
   Dialog,
   DialogContent,
@@ -706,12 +707,26 @@ export default function TeamsPage() {
                 <Download className="h-4 w-4" />
                 تصدير
               </Button>
+              {teams.some((t) => t.status === 'pending') && (
+                <BulkApproveButton
+                  target="teams"
+                  size="default"
+                  className="gap-2 bg-green-600 hover:bg-green-700"
+                  onDone={() => { setSelectedIds(new Set()); fetchTeams(searchQuery); }}
+                />
+              )}
             </div>
           </div>
 
           {selectedIds.size > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 p-3">
               <span className="text-sm font-medium">تم اختيار {selectedIds.size} فريق</span>
+              <BulkApproveButton
+                target="teams"
+                ids={Array.from(selectedIds)}
+                className="bg-green-600 hover:bg-green-700"
+                onDone={() => { setSelectedIds(new Set()); fetchTeams(searchQuery); }}
+              />
               <Button size="sm" variant="destructive" disabled={bulkBusy} onClick={() => handleBulkDisable(true)}>
                 <Ban className="ml-1 h-4 w-4" />
                 تعطيل المحدد

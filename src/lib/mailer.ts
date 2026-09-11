@@ -6,7 +6,9 @@ import { getAppBaseUrl } from './credentials';
 import {
   isMandrillConfigured,
   sendViaMandrill,
+  sendViaMandrillMerge,
   summarizeRejections,
+  MANDRILL_MERGE_BATCH_SIZE,
   type RecipientFailure,
 } from './mandrill';
 
@@ -58,6 +60,69 @@ export const MANDRILL_BATCH_SIZE = 500;
 /** Per-call recipient cap for whichever transport is active right now. */
 export function getBatchSize(): number {
   return isMandrillConfigured() ? MANDRILL_BATCH_SIZE : BCC_BATCH_SIZE;
+}
+
+/**
+ * How many INDIVIDUAL emails (each with its own content) one send call may
+ * carry: Mandrill takes 100 per merge-var call; SMTP has to send them one by
+ * one, so a small batch keeps the queue's time-budget checks frequent.
+ */
+export const SMTP_INDIVIDUAL_BATCH_SIZE = 5;
+export function getIndividualBatchSize(): number {
+  return isMandrillConfigured() ? MANDRILL_MERGE_BATCH_SIZE : SMTP_INDIVIDUAL_BATCH_SIZE;
+}
+
+export interface IndividualEmail {
+  to: string;
+  subject: string;
+  bodyText: string;
+}
+
+/**
+ * Send a batch of emails that each have their OWN subject/body (credentials):
+ * one merge-var API call on Mandrill, a sequential loop on SMTP. Returns one
+ * aggregated per-recipient result, exactly like sendEmail().
+ */
+export async function sendIndividualEmails(params: {
+  config: SmtpConfig;
+  items: IndividualEmail[];
+  audience?: EmailAudience;
+}): Promise<SendEmailResult> {
+  const { config, items, audience } = params;
+  if (items.length === 0) return { ok: false, error: 'no recipients', accepted: [], rejected: [] };
+
+  if (isMandrillConfigured()) {
+    const supportText = renderSupportChannelsText(audience);
+    console.log(`📧 Email transport: mandrill merge batch (${items.length} individual recipients)`);
+    const result = await sendViaMandrillMerge(
+      items.map((i) => ({
+        email: i.to,
+        subject: i.subject,
+        html: renderEmailHtml(i.subject, i.bodyText, audience),
+        text: supportText ? `${i.bodyText}\n\n${supportText}` : i.bodyText,
+      })),
+      process.env.MAIL_FROM_NAME || config.fromName
+    );
+    if (result.error) console.error(`[email] mandrill merge ${result.ok ? 'partial' : 'failed'}: ${result.error}`);
+    return result;
+  }
+
+  const accepted: string[] = [];
+  const rejected: RecipientFailure[] = [];
+  let messageId: string | undefined;
+  for (const item of items) {
+    const r = await sendEmail({ config, to: item.to, subject: item.subject, title: item.subject, bodyText: item.bodyText, audience });
+    accepted.push(...r.accepted);
+    rejected.push(...r.rejected);
+    if (!messageId && r.messageId) messageId = r.messageId;
+  }
+  return {
+    ok: accepted.length > 0,
+    messageId,
+    error: rejected.length > 0 ? `SMTP ${summarizeRejections(rejected, items.length)}` : undefined,
+    accepted,
+    rejected,
+  };
 }
 
 export async function getEmailSettings(): Promise<EmailSettingsRow | null> {

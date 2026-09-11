@@ -5,7 +5,9 @@ import {
   getEmailSettings,
   toSmtpConfig,
   sendEmail,
+  sendIndividualEmails,
   chunkRecipients,
+  type IndividualEmail,
   type SmtpConfig,
   type SendEmailResult,
   type EmailAudience,
@@ -499,7 +501,7 @@ export interface DispatchParams {
   perRecipient?: Record<string, TemplateVariables>;
 }
 
-interface PlannedRecipient {
+export interface PlannedRecipient {
   notificationId: string;
   recipientType: 'admin' | 'participant' | 'mentor';
   recipientId: string;
@@ -512,12 +514,48 @@ interface PlannedRecipient {
 const EMAIL_TIME_BUDGET_MS = 20_000;
 
 export async function dispatchNotification(params: DispatchParams): Promise<void> {
+  const planned = await createNotificationRows(params);
+  if (!planned) return;
+  const { template, recipients } = planned;
+
+  // ---- email (best-effort; never throws out of this function) -------------
+  try {
+    await sendTemplateEmails(template, params.variables ?? {}, recipients, params.audience.kind, Boolean(params.perRecipient));
+  } catch (error) {
+    console.error(`Error sending emails for ${params.templateKey}:`, error);
+  }
+}
+
+/**
+ * Rendered email for one planned recipient, or null when the template has
+ * email switched off. Used by callers that queue emails instead of sending
+ * them inline (bulk acceptance — see src/lib/bulk-approval.ts).
+ */
+export function renderRecipientEmail(
+  template: EffectiveTemplate,
+  recipient: PlannedRecipient
+): { subject: string; body: string } | null {
+  if (!template.emailEnabled) return null;
+  return {
+    subject: renderTemplate(template.emailSubject, recipient.variables),
+    body: renderTemplate(template.emailBody, recipient.variables),
+  };
+}
+
+/**
+ * Resolve the audience and write the dashboard Notification rows — the first
+ * half of dispatchNotification(), without sending any email. Returns null when
+ * the template is unknown or nobody is eligible (disabled accounts etc.).
+ */
+export async function createNotificationRows(
+  params: DispatchParams
+): Promise<{ template: EffectiveTemplate; recipients: PlannedRecipient[] } | null> {
   const { templateKey, variables = {}, audience, relatedEntityType, relatedEntityId, perRecipient } = params;
 
   const template = await getEffectiveTemplate(templateKey);
   if (!template) {
     console.error(`dispatchNotification: unknown template key "${templateKey}"`);
-    return;
+    return null;
   }
 
   const actionUrl = params.actionUrl ?? template.actionUrl;
@@ -540,7 +578,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
         // Disabled accounts get NO transactional notification at all — not the
         // email and not the dashboard row. Admin broadcasts are the one channel
         // that can still reach them (see account-status.ts).
-        if (isEffectivelyDisabled(row)) return;
+        if (isEffectivelyDisabled(row)) return null;
         email = row?.email ?? null;
       } else {
         const row = await prisma.mentor.findUnique({
@@ -548,7 +586,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
           select: { email: true, isDisabled: true },
         });
         // Disabled mentors get no transactional notification either.
-        if (row?.isDisabled) return;
+        if (row?.isDisabled) return null;
         email = row?.email ?? null;
       }
     } catch {
@@ -598,10 +636,10 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
         },
       },
     });
-    if (!team) return;
+    if (!team) return null;
     // A disabled team — or a team sitting in a disabled PHASE — notifies
     // nobody. Individually disabled members are filtered by the `where` above.
-    if (team.isDisabled || team.phase?.isDisabled) return;
+    if (team.isDisabled || team.phase?.isDisabled) return null;
     for (const p of team.participants) {
       recipients.push({
         notificationId: crypto.randomUUID(),
@@ -651,7 +689,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
     }
   }
 
-  if (recipients.length === 0) return;
+  if (recipients.length === 0) return null;
 
   // ---- dashboard rows ------------------------------------------------------
   await prisma.notification.createMany({
@@ -668,12 +706,7 @@ export async function dispatchNotification(params: DispatchParams): Promise<void
     })),
   });
 
-  // ---- email (best-effort; never throws out of this function) -------------
-  try {
-    await sendTemplateEmails(template, variables, recipients, audience.kind, Boolean(perRecipient));
-  } catch (error) {
-    console.error(`Error sending emails for ${templateKey}:`, error);
-  }
+  return { template, recipients };
 }
 
 async function sendTemplateEmails(
@@ -894,16 +927,20 @@ export async function sendRawEmail(params: {
   bodyText: string;
   broadcastId?: string;
   audience?: EmailAudience;
+  /** Per-recipient content (credentials): one aggregated result for the batch. */
+  items?: IndividualEmail[];
 }): Promise<SendEmailResult> {
-  const result = await sendEmail({
-    config: params.config,
-    to: params.to,
-    bcc: params.bcc,
-    subject: params.subject,
-    title: params.subject,
-    bodyText: params.bodyText,
-    audience: params.audience,
-  });
+  const result = params.items
+    ? await sendIndividualEmails({ config: params.config, items: params.items, audience: params.audience })
+    : await sendEmail({
+        config: params.config,
+        to: params.to,
+        bcc: params.bcc,
+        subject: params.subject,
+        title: params.subject,
+        bodyText: params.bodyText,
+        audience: params.audience,
+      });
 
   await logSendResult({ broadcastId: params.broadcastId, subject: params.subject, result });
 

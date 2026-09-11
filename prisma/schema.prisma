@@ -362,6 +362,10 @@ model BroadcastRecipient {
   nextAttemptAt     DateTime? // retry backoff for transport-level failures
   sentAt            DateTime?
   createdAt         DateTime  @default(now())
+  // Per-recipient rendered content (bulk acceptance credentials). NULL = use
+  // the broadcast's shared subject/body (BCC). Cleared once sent.
+  subject           String?
+  body              String?
 
   @@unique([broadcastId, email]) // idempotency: never double-send within a broadcast
   @@index([status, nextAttemptAt, createdAt]) // the claim query

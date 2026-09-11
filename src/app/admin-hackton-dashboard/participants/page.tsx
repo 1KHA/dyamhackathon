@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { usePhases, PhaseBadge, PhaseBulkActions, PhaseRowMove, PhaseFilter, matchesPhaseFilter } from "@/components/phases/phase-controls";
+import BulkApproveButton from "@/components/admin/BulkApproveButton";
 
 // Define types for our data
 interface IndividualParticipant {
@@ -459,12 +460,26 @@ export default function ParticipantsPage() {
                 <Download className="h-4 w-4" />
                 تصدير
               </Button>
+              {individualParticipants.some((p) => p.status === 'pending') && (
+                <BulkApproveButton
+                  target="participants"
+                  size="default"
+                  className="gap-2 bg-green-600 hover:bg-green-700"
+                  onDone={() => { setSelectedIds(new Set()); fetchIndividualParticipants(searchQuery); }}
+                />
+              )}
             </div>
           </div>
 
           {selectedIds.size > 0 && (
             <div className="mb-3 flex flex-wrap items-center gap-3 rounded-lg border bg-muted/40 p-3">
               <span className="text-sm font-medium">تم اختيار {selectedIds.size} مشارك</span>
+              <BulkApproveButton
+                target="participants"
+                ids={Array.from(selectedIds)}
+                className="bg-green-600 hover:bg-green-700"
+                onDone={() => { setSelectedIds(new Set()); fetchIndividualParticipants(searchQuery); }}
+              />
               <Button
                 size="sm"
                 variant="destructive"
