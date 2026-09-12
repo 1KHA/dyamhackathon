@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createSlotsForMentor } from '@/lib/slots';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { verifyToken, requireAdmin } from '@/lib/notification-auth';
@@ -47,15 +48,16 @@ export async function POST(
       return NextResponse.json({ message: 'Start and end times are required.' }, { status: 400 });
     }
 
-    const newAvailability = await prisma.mentorAvailability.create({
-      data: {
-        mentorId,
-        startTime: new Date(start),
-        endTime: new Date(end),
-      },
-    });
-
-    return NextResponse.json(newAvailability, { status: 201 });
+    // Same rule as the mentor's own page: the range is split into 15-minute
+    // slots, existing identical windows are skipped. See src/lib/slots.ts.
+    const result = await createSlotsForMentor(mentorId, start, end);
+    if (!result.ok) {
+      return NextResponse.json({ message: result.error }, { status: 400 });
+    }
+    return NextResponse.json(
+      { ...(result.created[0] ?? {}), created: result.created.length, skipped: result.skipped, slots: result.created },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Error creating availability:', error);
     return NextResponse.json({ message: 'An error occurred while creating availability.' }, { status: 500 });

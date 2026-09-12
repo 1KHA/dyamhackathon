@@ -164,16 +164,22 @@ const AvailabilityPage = () => {
         credentials: 'include',
       });
 
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
         fetchAvailabilities();
+        const created = Number(data.created ?? 1);
+        const skipped = Number(data.skipped ?? 0);
         toast({
           title: "تم بنجاح",
-          description: "تمت إضافة وقت التوافر بنجاح.",
+          description:
+            created === 0
+              ? "هذه الأوقات مضافة مسبقاً."
+              : `تمت إضافة ${created} فترة (${SLOT_STEP_MINUTES} دقيقة لكل فترة)${skipped ? ` — تم تجاوز ${skipped} فترة مضافة مسبقاً` : ''}.`,
         })
       } else {
         toast({
           title: "خطأ",
-          description: "فشل في إضافة وقت التوافر.",
+          description: data.error || "فشل في إضافة وقت التوافر.",
           variant: "destructive",
         })
       }
@@ -271,7 +277,7 @@ const AvailabilityPage = () => {
     <div className="container mx-auto p-0 sm:p-4" dir="rtl">
       <h1 className="text-2xl font-bold mb-2 sm:mb-4">إدارة أوقات التوافر الخاصة بك</h1>
       <p className="mb-4 hidden md:block text-muted-foreground">
-        انقر واسحب على التقويم لإنشاء فترات توافر جديدة، أو أضف وقتاً بدقة من النموذج الجانبي. انقر على فترة في التقويم أو على سلة المهملات في القائمة لحذفها.
+        انقر واسحب على التقويم لإنشاء فترات توافر جديدة، أو أضف وقتاً بدقة من النموذج الجانبي. أي مدة تختارها تُقسَّم تلقائياً إلى فترات من {SLOT_STEP_MINUTES} دقيقة (كل فترة تُحجز على حدة). انقر على فترة في التقويم أو على سلة المهملات في القائمة لحذفها.
       </p>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">

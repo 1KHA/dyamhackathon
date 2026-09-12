@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verify } from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+import { createSlotsForMentor } from '@/lib/slots';
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
@@ -100,15 +101,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Start time and end time are required' }, { status: 400 });
     }
 
-    const newAvailability = await prisma.mentorAvailability.create({
-      data: {
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
-        mentorId,
-      },
-    });
+    // Any range (click-and-drag included) becomes 15-minute slots; existing
+    // identical windows are skipped. See src/lib/slots.ts.
+    const result = await createSlotsForMentor(mentorId, startTime, endTime);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
+    }
 
-    return NextResponse.json(newAvailability, { status: 201 });
+    // First row at the top level keeps older callers working; `slots` has them all.
+    return NextResponse.json(
+      { ...(result.created[0] ?? {}), created: result.created.length, skipped: result.skipped, slots: result.created },
+      { status: 201 }
+    );
   } catch (error) {
     if (error instanceof Error && error.name === 'JsonWebTokenError') {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
