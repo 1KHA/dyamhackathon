@@ -299,15 +299,15 @@ export default function ParticipantsPage() {
   };
 
   /** Disable or re-enable every ticked participant in one request. */
-  const handleBulkDisable = async (disabled: boolean) => {
-    if (selectedIds.size === 0) return;
+  const handleBulkDisable = async (disabled: boolean, ids: string[] = Array.from(selectedIds)) => {
+    if (ids.length === 0) return;
     try {
       setBulkBusy(true);
       const res = await fetch('/api/admin/accounts/disable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ participantIds: Array.from(selectedIds), disabled }),
+        body: JSON.stringify({ participantIds: ids, disabled }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'فشل تنفيذ العملية');
@@ -315,7 +315,7 @@ export default function ParticipantsPage() {
         title: 'نجح',
         description: disabled
           ? `تم تعطيل ${data.participantsUpdated} حساب`
-          : `تم تفعيل ${data.participantsUpdated} حساب`,
+          : `تم تفعيل ${data.participantsUpdated} حساب${data.credentialsIssued ? ` — أُرسلت بيانات دخول جديدة لـ ${data.credentialsIssued} مشارك` : ''}`,
       });
       setSelectedIds(new Set());
       fetchIndividualParticipants(searchQuery);
@@ -621,10 +621,8 @@ export default function ParticipantsPage() {
                           <button
                             className={`p-1 rounded-md hover:bg-muted ${participant.isDisabled ? 'text-green-600' : 'text-amber-600'}`}
                             title={participant.isDisabled ? 'إعادة تفعيل الحساب' : 'تعطيل الحساب'}
-                            onClick={async () => {
-                              setSelectedIds(new Set([participant.id]));
-                              await handleBulkDisable(!participant.isDisabled);
-                            }}
+                            disabled={bulkBusy}
+                            onClick={() => handleBulkDisable(!participant.isDisabled, [participant.id])}
                           >
                             {participant.isDisabled ? <RotateCcw className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
                           </button>

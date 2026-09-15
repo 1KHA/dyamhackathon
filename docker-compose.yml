@@ -44,6 +44,9 @@ services:
       DATABASE_TYPE: postgresql
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       SEED_ON_START: ${SEED_ON_START:-true}
+      # Public base URL used inside emails (login links). For LAN testing from
+      # other laptops set it to http://<this-machine-LAN-IP>:3011 in .env.
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3011}
       # File-upload storage (Supabase) — leave empty to disable uploads
       SUPABASE_URL: ${SUPABASE_URL:-}
       SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}

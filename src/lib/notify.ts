@@ -164,6 +164,32 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       actionUrl: '/participant-dashboard',
     }),
     def({
+      key: 'accountReactivated',
+      label: 'إعادة تفعيل الحساب (بيانات دخول جديدة)',
+      category: 'participant',
+      // Per-recipient: a fresh password is issued when the admin re-enables the account.
+      variables: ['participantName', 'email', 'password', 'loginUrl', 'teamName'],
+      type: 'success',
+      dashboardTitle: 'تم إعادة تفعيل حسابك',
+      dashboardMessage: 'تم إعادة تفعيل حسابك في المنصة وأُرسلت بيانات دخول جديدة إلى بريدك الإلكتروني.',
+      emailSubject: 'تم إعادة تفعيل حسابك — بيانات الدخول الجديدة',
+      emailBody:
+        'مرحباً {{participantName}}،\n\nتم إعادة تفعيل حسابك في منصة الهاكاثون.\n\nبيانات الدخول الجديدة:\nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\n\nرابط تسجيل الدخول: {{loginUrl}}\n\nهذه البيانات خاصة بك ولا تشاركها مع أحد. يمكنك تغيير كلمة المرور في أي وقت عبر خيار "نسيت كلمة المرور" في صفحة الدخول.',
+      actionUrl: '/participant-dashboard',
+    }),
+    def({
+      key: 'teamLeaderChanged',
+      label: 'تغيير قائد الفريق',
+      category: 'participant',
+      variables: ['teamName', 'newLeaderName'],
+      type: 'info',
+      dashboardTitle: 'تم تغيير قائد الفريق',
+      dashboardMessage: 'تم تعيين {{newLeaderName}} قائداً لفريق {{teamName}}.',
+      emailSubject: 'تغيير قائد فريق {{teamName}}',
+      emailBody: 'تم تعيين {{newLeaderName}} قائداً لفريق {{teamName}}. صلاحيات قيادة الفريق (إدارة الأعضاء وبيانات الفريق والتسليمات) انتقلت إليه اعتباراً من الآن.',
+      actionUrl: '/participant-dashboard/team',
+    }),
+    def({
       key: 'participantRejection',
       label: 'رفض المشارك',
       category: 'participant',

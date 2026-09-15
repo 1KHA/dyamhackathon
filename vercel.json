@@ -17,6 +17,9 @@
     },
     "src/app/api/admin/email-queue/drain/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/admin/accounts/disable/route.ts": {
+      "maxDuration": 300
     }
   },
   "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
