@@ -11,6 +11,7 @@ import { useToast } from "@/../../components/ui/use-toast";
 import * as XLSX from 'xlsx';
 import AutoTeamCreationModal from "@/../../components/admin/AutoTeamCreationModal";
 import BulkApproveButton from "@/components/admin/BulkApproveButton";
+import ParticipantEditDialog from "@/components/admin/ParticipantEditDialog";
 import {
   Dialog,
   DialogContent,
@@ -252,36 +253,6 @@ export default function TeamsPage() {
       fetchTeams(searchQuery);
     } catch (error) {
       toast({ title: 'خطأ', description: error instanceof Error ? error.message : 'فشل تغيير قائد الفريق', variant: 'destructive' });
-    } finally {
-      setSavingMember(false);
-    }
-  };
-
-  const handleUpdateMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editedMember) return;
-    try {
-      setSavingMember(true);
-      const { id, fullName, email, contactNumber, phoneNumber, gender, nationalId, dob, city, university,
-        universityMajor, professionalField, education, major, employmentStatus, nationality, residence,
-        isUniversityStudent, canAttendHackathon, canAttend } = editedMember;
-      const response = await fetch('/api/admin/update-participant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ id, fullName, email, contactNumber, phoneNumber, gender, nationalId, dob, city, university,
-          universityMajor, professionalField, education, major, employmentStatus, nationality, residence,
-          isUniversityStudent, canAttendHackathon, canAttend }),
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'فشل في تحديث بيانات العضو');
-      toast({ title: 'نجح', description: 'تم تحديث بيانات العضو بنجاح' });
-      // Reflect the change in the open details dialog without waiting for the refetch
-      setSelectedTeam((t) => t ? { ...t, participants: t.participants.map((p) => (p.id === id ? { ...p, ...data } : p)) } : t);
-      setEditedMember(null);
-      fetchTeams(searchQuery);
-    } catch (error) {
-      toast({ title: 'خطأ', description: error instanceof Error ? error.message : 'فشل في تحديث بيانات العضو', variant: 'destructive' });
     } finally {
       setSavingMember(false);
     }
@@ -1240,84 +1211,15 @@ export default function TeamsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Member Modal (admin edits any member's / leader's profile fields) */}
-      <Dialog open={!!editedMember} onOpenChange={(v) => { if (!v && !savingMember) setEditedMember(null); }}>
-        <DialogContent className="max-w-[95vw] sm:max-w-3xl rounded-lg" dir="rtl">
-          <DialogHeader>
-            <DialogTitle>تعديل بيانات {editedMember?.isLeader ? 'قائد الفريق' : 'العضو'}: {editedMember?.fullName || editedMember?.email}</DialogTitle>
-            <DialogDescription>
-              تُحدَّث بيانات الملف الشخصي فقط. الحالة والفريق والدور (قائد/عضو) وكلمة المرور لا تتغير من هنا — تغيير القائد يتم من نافذة "تعديل الفريق".
-            </DialogDescription>
-          </DialogHeader>
-          {editedMember && (
-            <form onSubmit={handleUpdateMember} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1">
-                {([
-                  ['fullName', 'الاسم الكامل', 'text'],
-                  ['email', 'البريد الإلكتروني', 'email'],
-                  ['contactNumber', 'رقم التواصل', 'tel'],
-                  ['phoneNumber', 'رقم الجوال', 'tel'],
-                  ['nationalId', 'رقم الهوية', 'text'],
-                  ['dob', 'تاريخ الميلاد', 'text'],
-                  ['city', 'المدينة', 'text'],
-                  ['nationality', 'الجنسية', 'text'],
-                  ['residence', 'منطقة الإقامة', 'text'],
-                  ['university', 'الجامعة', 'text'],
-                  ['universityMajor', 'التخصص الجامعي', 'text'],
-                  ['major', 'التخصص', 'text'],
-                  ['education', 'المؤهل التعليمي', 'text'],
-                  ['professionalField', 'المجال المهني', 'text'],
-                  ['employmentStatus', 'الحالة الوظيفية', 'text'],
-                ] as const).map(([key, label, type]) => (
-                  <div key={key} className="space-y-1">
-                    <Label htmlFor={`member-${key}`}>{label}</Label>
-                    <Input
-                      id={`member-${key}`}
-                      type={type}
-                      required={key === 'email'}
-                      value={(editedMember[key] as string | undefined) ?? ''}
-                      onChange={(e) => setEditedMember({ ...editedMember, [key]: e.target.value })}
-                    />
-                  </div>
-                ))}
-                <div className="space-y-1">
-                  <Label htmlFor="member-gender">الجنس</Label>
-                  <select
-                    id="member-gender"
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
-                    value={editedMember.gender ?? ''}
-                    onChange={(e) => setEditedMember({ ...editedMember, gender: e.target.value })}
-                  >
-                    <option value="">—</option>
-                    <option value="ذكر">ذكر</option>
-                    <option value="أنثى">أنثى</option>
-                  </select>
-                </div>
-                <div className="flex flex-col gap-2 justify-end">
-                  {([
-                    ['isUniversityStudent', 'طالب جامعي'],
-                    ['canAttendHackathon', 'يستطيع التواجد خلال فترة الهاكاثون'],
-                    ['canAttend', 'يمكنه الحضور'],
-                  ] as const).map(([key, label]) => (
-                    <label key={key} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={Boolean(editedMember[key])}
-                        onChange={(e) => setEditedMember({ ...editedMember, [key]: e.target.checked })}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              </div>
-              <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button type="button" variant="outline" onClick={() => setEditedMember(null)} disabled={savingMember} className="w-full sm:w-auto">إلغاء</Button>
-                <Button type="submit" disabled={savingMember} className="w-full sm:w-auto">{savingMember ? 'جاري الحفظ...' : 'حفظ التغييرات'}</Button>
-              </DialogFooter>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* Edit Member (shared admin form; email change → credentials to the new address) */}
+      <ParticipantEditDialog
+        participant={editedMember}
+        onClose={() => setEditedMember(null)}
+        onSaved={(saved) => {
+          setSelectedTeam((t) => t ? { ...t, participants: t.participants.map((p) => (p.id === saved.id ? { ...p, ...(saved as Partial<Participant>) } : p)) } : t);
+          fetchTeams(searchQuery);
+        }}
+      />
 
       {/* Delete Team Confirmation Modal */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>

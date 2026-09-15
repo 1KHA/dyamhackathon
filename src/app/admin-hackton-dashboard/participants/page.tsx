@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { usePhases, PhaseBadge, PhaseBulkActions, PhaseRowMove, PhaseFilter, matchesPhaseFilter } from "@/components/phases/phase-controls";
 import BulkApproveButton from "@/components/admin/BulkApproveButton";
+import ParticipantEditDialog from "@/components/admin/ParticipantEditDialog";
 
 // Define types for our data
 interface IndividualParticipant {
@@ -74,6 +75,8 @@ export default function ParticipantsPage() {
   const { phases } = usePhases();
   const [phaseFilter, setPhaseFilter] = useState("all");
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  // Admin edit of an individual participant's profile (shared dialog with the teams page)
+  const [editingParticipant, setEditingParticipant] = useState<IndividualParticipant | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
@@ -600,6 +603,13 @@ export default function ParticipantsPage() {
                           >
                             <Eye className="h-4 w-4" />
                           </button>
+                          <button
+                            className="p-1 rounded-md hover:bg-muted text-blue-600"
+                            title="تعديل البيانات"
+                            onClick={() => setEditingParticipant(participant)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
                           {participant.status === "pending" && (
                             <>
                               <button 
@@ -687,6 +697,13 @@ export default function ParticipantsPage() {
       </Card>
 
       {/* View Participant Details Modal */}
+      <ParticipantEditDialog
+        participant={editingParticipant}
+        subjectLabel="المشارك"
+        onClose={() => setEditingParticipant(null)}
+        onSaved={() => fetchIndividualParticipants(searchQuery)}
+      />
+
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>

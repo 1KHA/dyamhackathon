@@ -131,6 +131,23 @@ let savedSettings = null, settingsId = null;
   r = await api('/api/admin/update-participant', { cookie: mCookie, method: 'POST', body: { id: leader.id, city: 'x' } });
   check('non-leader member -> 403', r.status === 403);
 
+  section('individual participant (participants page) — same route, same email behaviour');
+  const solo = await prisma.participant.create({ data: { email: `${TAG}-solo@e2e.test`, fullName: 'Solo One', status: 'approved', passwordHash: 'hash-solo', city: 'أبها' } }); made.participants.push(solo.id);
+  await clearMp();
+  r = await api('/api/admin/update-participant', { cookie: aCookie, method: 'POST', body: { id: solo.id, fullName: 'Solo Edited', city: 'تبوك', email: `${TAG}-solo-new@e2e.test`, gender: 'ذكر', isUniversityStudent: false } });
+  row = await prisma.participant.findUnique({ where: { id: solo.id } });
+  check('individual edited (name/city/gender) with email change -> 200 + credentialsSent', r.status === 200 && r.json?.emailChange?.credentialsSent === true && row.fullName === 'Solo Edited' && row.city === 'تبوك' && row.gender === 'ذكر' && row.teamId === null, JSON.stringify(r.json?.emailChange));
+  await sleep(800);
+  const soloNew = await mailFor(`${TAG}-solo-new@e2e.test`), soloOld = await mailFor(`${TAG}-solo@e2e.test`);
+  const soloPw = passwordIn(soloNew[0] ? await mailText(soloNew[0].ID) : '');
+  check('  credentials at the new address (logs in), notice at the old one', soloNew.length === 1 && soloOld.length === 1 && (await api('/api/login', { method: 'POST', body: { email: `${TAG}-solo-new@e2e.test`, password: soloPw || 'x' } })).status === 200, `new=${soloNew.length} old=${soloOld.length}`);
+  const pendingSolo = await prisma.participant.create({ data: { email: `${TAG}-pend@e2e.test`, fullName: 'Pending', status: 'pending' } }); made.participants.push(pendingSolo.id);
+  await clearMp();
+  r = await api('/api/admin/update-participant', { cookie: aCookie, method: 'POST', body: { id: pendingSolo.id, email: `${TAG}-pend-new@e2e.test` } });
+  await sleep(500);
+  check('pending applicant email change -> no credentials (still no password), notice only to old address', r.status === 200 && r.json?.emailChange?.credentialsSent === false && (await prisma.participant.findUnique({ where: { id: pendingSolo.id } })).passwordHash === null && (await mailFor(`${TAG}-pend-new@e2e.test`)).length === 0, JSON.stringify(r.json?.emailChange));
+  await clearMp();
+
   section('teams API reflects the edit');
   const teams = await api(`/api/admin/teams?search=${encodeURIComponent(TAG)}`, { cookie: aCookie });
   const t = (teams.json || []).find((x) => x.id === team.id);
