@@ -38,3 +38,13 @@ export function meetingJoinPath(bookingId: string): string {
 export function getMeetingJoinUrl(bookingId: string): string {
   return `${getAppBaseUrl()}${meetingJoinPath(bookingId)}`;
 }
+
+/**
+ * Attendance window for the tracked join link (see /api/meeting/join):
+ * clicks count from JOIN_WINDOW_BEFORE_MIN before the slot starts until
+ * JOIN_WINDOW_AFTER_MIN after it ends; the two sides' first clicks must be
+ * within JOIN_MAX_GAP_MIN of each other for the booking to be completed.
+ */
+export const JOIN_WINDOW_BEFORE_MIN = 10;
+export const JOIN_WINDOW_AFTER_MIN = 15;
+export const JOIN_MAX_GAP_MIN = 30;

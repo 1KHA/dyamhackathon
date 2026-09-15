@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/notification-auth';
 import { isSecureRequest } from '@/lib/cookie-security';
+import { JOIN_WINDOW_BEFORE_MIN, JOIN_WINDOW_AFTER_MIN, JOIN_MAX_GAP_MIN } from '@/lib/meeting';
 
 /**
  * GET /api/meeting/join/<bookingId> — the platform's meeting link.
@@ -18,6 +19,12 @@ import { isSecureRequest } from '@/lib/cookie-security';
  *     mentor of that organization
  *   - an admin (redirected, nothing recorded)
  * Anyone else gets 403; an anonymous click is sent to the login page.
+ *
+ * Attendance is only recorded for clicks inside the session window — from
+ * JOIN_WINDOW_BEFORE_MIN before the slot starts to JOIN_WINDOW_AFTER_MIN after
+ * it ends — and the booking is completed only when the two sides' first
+ * clicks are within JOIN_MAX_GAP_MIN of each other. A click outside the window
+ * still redirects (a meeting link is never "broken"); it just doesn't count.
  */
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +49,7 @@ export async function GET(request: NextRequest, { params }: { params: { bookingI
       participantJoinedAt: true,
       mentorJoinedAt: true,
       participant: { select: { id: true, teamId: true } },
-      availability: { select: { mentor: { select: { id: true, organizationId: true } } } },
+      availability: { select: { startTime: true, endTime: true, mentor: { select: { id: true, organizationId: true } } } },
     },
   });
   if (!booking) return NextResponse.json({ error: 'الحجز غير موجود' }, { status: 404 });
@@ -70,15 +77,22 @@ export async function GET(request: NextRequest, { params }: { params: { bookingI
   }
   if (!role) return NextResponse.json({ error: 'غير مصرح لك بالانضمام إلى هذا الاجتماع' }, { status: 403 });
 
-  if (role !== 'admin') {
-    const now = new Date();
+  const now = new Date();
+  const windowStart = new Date(booking.availability.startTime.getTime() - JOIN_WINDOW_BEFORE_MIN * 60_000);
+  const windowEnd = new Date(booking.availability.endTime.getTime() + JOIN_WINDOW_AFTER_MIN * 60_000);
+  const insideWindow = now >= windowStart && now <= windowEnd;
+
+  if (role !== 'admin' && insideWindow) {
     const stamp: Record<string, Date> = {};
     if (role === 'participant' && !booking.participantJoinedAt) stamp.participantJoinedAt = now;
     if (role === 'mentor' && !booking.mentorJoinedAt) stamp.mentorJoinedAt = now;
     if (Object.keys(stamp).length > 0) {
       const mentorJoined = booking.mentorJoinedAt || stamp.mentorJoinedAt;
       const participantJoined = booking.participantJoinedAt || stamp.participantJoinedAt;
-      const bothJoined = Boolean(mentorJoined && participantJoined);
+      const closeEnough =
+        !!mentorJoined && !!participantJoined &&
+        Math.abs(mentorJoined.getTime() - participantJoined.getTime()) <= JOIN_MAX_GAP_MIN * 60_000;
+      const bothJoined = closeEnough;
       // Only stamp a still-null field (first click wins) and only complete a
       // live booking; a concurrent click from the other side is safe.
       await prisma.mentorBooking.update({

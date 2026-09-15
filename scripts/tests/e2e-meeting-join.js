@@ -6,7 +6,10 @@
  *     + completedAt; every allowed click 302-redirects to the Jitsi room;
  *   - teammates count as the participant; org members count as the mentor for
  *     organization bookings; admins are redirected without stamping;
- *   - strangers 403, anonymous → /login, cancelled → 410, unknown → 404.
+ *   - strangers 403, anonymous → /login, cancelled → 410, unknown → 404;
+ *   - only clicks inside the session window (10 min before start … 15 min
+ *     after end) are recorded; a click outside still redirects but stamps
+ *     nothing; the two sides' clicks must be within 30 min to complete.
  */
 const path = require('path');
 const REPO = path.resolve(__dirname, '..', '..');
@@ -47,11 +50,19 @@ const made = { teams: [], participants: [], mentors: [], orgs: [] };
   const booker = await mkP('booker', { teamId: team.id, isLeader: true });
   const mate = await mkP('mate', { teamId: team.id });
   const stranger = await mkP('stranger');
-  const slot = async (mentorId, h) => prisma.mentorAvailability.create({ data: { mentorId, startTime: new Date(Date.now() + h * HOUR), endTime: new Date(Date.now() + (h + 0.25) * HOUR) } });
-  const s1 = await slot(mentor.id, 2), s2 = await slot(mentor.id, 4), s3 = await slot(mentor.id, 6);
+  const MIN = 60_000;
+  // startMin: minutes from now to the slot start (negative = already started); 15-min slots
+  const slot = async (mentorId, startMin) => prisma.mentorAvailability.create({ data: { mentorId, startTime: new Date(Date.now() + startMin * MIN), endTime: new Date(Date.now() + (startMin + 15) * MIN) } });
+  const s1 = await slot(mentor.id, -2), s2 = await slot(mentor.id, -3), s3 = await slot(mentor.id, 120);
+  const sFar = await slot(mentor.id, 120), sOld = await slot(mentor.id, -60), sGap = await slot(mentor.id, -20), sNear = await slot(mentor.id, 8);
   const b1 = await prisma.mentorBooking.create({ data: { participantId: booker.id, availabilityId: s1.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-Test1' } });
   const bOrg = await prisma.mentorBooking.create({ data: { participantId: booker.id, availabilityId: s2.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-Test2', organizationId: org.id } });
   const bCancelled = await prisma.mentorBooking.create({ data: { participantId: booker.id, availabilityId: s3.id, status: 'cancelled', meetingUrl: 'https://meet.jit.si/Miyahthone-Test3' } });
+  const bFar = await prisma.mentorBooking.create({ data: { participantId: booker.id, availabilityId: sFar.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-Far' } });
+  const bOld = await prisma.mentorBooking.create({ data: { participantId: booker.id, availabilityId: sOld.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-Old' } });
+  // mentor "joined" 45 minutes ago on a slot that started 20 min ago (window still open until +10 min)
+  const bGap = await prisma.mentorBooking.create({ data: { participantId: booker.id, availabilityId: sGap.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-Gap', mentorJoinedAt: new Date(Date.now() - 45 * MIN) } });
+  const bNear = await prisma.mentorBooking.create({ data: { participantId: booker.id, availabilityId: sNear.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-Near' } });
 
   section('access rules');
   let r = await join(b1.id, null);
@@ -88,6 +99,22 @@ const made = { teams: [], participants: [], mentors: [], orgs: [] };
   r = await join(bOrg.id, pCookie(mate));
   b = await row(bOrg.id);
   check('teammate click -> participantJoinedAt set and booking completed', r.status === 302 && !!b.participantJoinedAt && b.status === 'completed');
+
+  section('session window: clicks outside it redirect but do not count');
+  r = await join(bFar.id, pCookie(booker));
+  b = await row(bFar.id);
+  check('2 hours before the slot: 302 to the room, nothing stamped', r.status === 302 && r.location === 'https://meet.jit.si/Miyahthone-Far' && b.participantJoinedAt === null && b.status === 'booked', `status=${r.status}`);
+  r = await join(bOld.id, mCookie(mentor));
+  b = await row(bOld.id);
+  check('45 min after the slot ended: 302, nothing stamped', r.status === 302 && b.mentorJoinedAt === null, `status=${r.status}`);
+  r = await join(bNear.id, pCookie(booker));
+  b = await row(bNear.id);
+  check('8 minutes before the start (inside the 10-min lead): stamped', r.status === 302 && !!b.participantJoinedAt);
+
+  section('gap rule: both joined but 45 minutes apart -> not completed');
+  r = await join(bGap.id, pCookie(booker));
+  b = await row(bGap.id);
+  check('participant stamped, booking stays booked (mentor joined 45 min earlier)', r.status === 302 && !!b.participantJoinedAt && !!b.mentorJoinedAt && b.status === 'booked' && b.completedAt === null, JSON.stringify({ s: b.status }));
 
   section('dashboards reflect it');
   const mine = await (await fetch(`${BASE}/api/participant/my-bookings`, { headers: { cookie: pCookie(booker) } })).json();
