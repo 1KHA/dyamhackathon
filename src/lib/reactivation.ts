@@ -13,7 +13,8 @@
  */
 import bcrypt from 'bcryptjs';
 import { prisma } from './prisma';
-import { createNotificationRows, renderRecipientEmail } from './notify';
+import { createNotificationRows, renderRecipientEmail, dispatchNotification, logSendResult } from './notify';
+import { getEmailSettings, toSmtpConfig, sendEmail } from './mailer';
 import { enqueueBroadcastRecipients, type QueueRecipientInput } from './email-queue';
 import { generatePassword, credentialVariables, participantDisplayName } from './credentials';
 
@@ -84,4 +85,56 @@ export async function issueReactivationCredentials(
   const queued = await enqueueBroadcastRecipients(job.id, rows);
   if (queued === 0) await prisma.broadcast.update({ where: { id: job.id }, data: { status: 'completed' } });
   return { credentialsIssued: issued, emailJobId: job.id };
+}
+
+/**
+ * A participant's login email was changed by an admin or their team leader.
+ * Issue a fresh password and send the credentials to the NEW address (plus a
+ * dashboard notification), and tell the OLD address that the login email was
+ * changed (no credentials there). Approved participants only — a pending
+ * applicant has no account to sign into yet. Best-effort; never throws.
+ */
+export async function notifyEmailChanged(participantId: string, oldEmail: string): Promise<{ credentialsSent: boolean }> {
+  try {
+    const p = await prisma.participant.findUnique({
+      where: { id: participantId },
+      select: { id: true, email: true, status: true, isDisabled: true, fullName: true, firstName: true, secondName: true, familyName: true },
+    });
+    if (!p || p.email.toLowerCase() === oldEmail.toLowerCase()) return { credentialsSent: false };
+
+    let credentialsSent = false;
+    if (p.status === 'approved' && !p.isDisabled) {
+      const password = generatePassword();
+      await prisma.participant.update({ where: { id: p.id }, data: { passwordHash: await bcrypt.hash(password, 10) } });
+      await dispatchNotification({
+        templateKey: 'emailChanged',
+        variables: { oldEmail },
+        perRecipient: { [p.id]: credentialVariables({ email: p.email, password, participantName: participantDisplayName(p) }) },
+        audience: { kind: 'participant', id: p.id },
+        relatedEntityType: 'participant',
+        relatedEntityId: p.id,
+      });
+      credentialsSent = true;
+    }
+
+    // Courtesy notice to the previous address (best-effort, no credentials).
+    const settings = await getEmailSettings();
+    const config = settings && settings.enabled ? toSmtpConfig(settings) : null;
+    if (config) {
+      const subject = 'تم تغيير البريد الإلكتروني لحسابك';
+      const result = await sendEmail({
+        config,
+        to: oldEmail,
+        subject,
+        title: subject,
+        bodyText: `مرحباً ${participantDisplayName(p)}،\n\nتم تغيير البريد الإلكتروني المرتبط بحسابك في منصة الهاكاثون من ${oldEmail} إلى ${p.email}. ستصلك بيانات الدخول الجديدة على البريد الجديد.\n\nإذا لم تكن على علم بهذا التغيير، يرجى التواصل مع إدارة الهاكاثون.`,
+        audience: 'participant',
+      });
+      await logSendResult({ templateKey: 'emailChanged', subject, result });
+    }
+    return { credentialsSent };
+  } catch (error) {
+    console.error('[email-change] notification failed:', error);
+    return { credentialsSent: false };
+  }
 }

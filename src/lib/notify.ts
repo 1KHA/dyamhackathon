@@ -164,6 +164,21 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       actionUrl: '/participant-dashboard',
     }),
     def({
+      key: 'emailChanged',
+      label: 'تغيير البريد الإلكتروني (بيانات دخول جديدة)',
+      category: 'participant',
+      // Sent to the NEW address when an admin/leader changes a participant's email;
+      // a fresh password is issued so the person can sign in with the new email.
+      variables: ['participantName', 'email', 'password', 'loginUrl', 'oldEmail'],
+      type: 'info',
+      dashboardTitle: 'تم تحديث بريدك الإلكتروني',
+      dashboardMessage: 'تم تغيير بريدك الإلكتروني إلى {{email}} وأُرسلت بيانات الدخول الجديدة إليه.',
+      emailSubject: 'تم تحديث بريدك الإلكتروني — بيانات الدخول الجديدة',
+      emailBody:
+        'مرحباً {{participantName}}،\n\nتم تحديث البريد الإلكتروني لحسابك في منصة الهاكاثون من {{oldEmail}} إلى {{email}}.\n\nبيانات الدخول الجديدة:\nالبريد الإلكتروني: {{email}}\nكلمة المرور: {{password}}\n\nرابط تسجيل الدخول: {{loginUrl}}\n\nهذه البيانات خاصة بك ولا تشاركها مع أحد. يمكنك تغيير كلمة المرور في أي وقت عبر خيار "نسيت كلمة المرور" في صفحة الدخول.',
+      actionUrl: '/participant-dashboard',
+    }),
+    def({
       key: 'accountReactivated',
       label: 'إعادة تفعيل الحساب (بيانات دخول جديدة)',
       category: 'participant',

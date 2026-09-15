@@ -25,6 +25,7 @@ const SUITES = [
   'e2e-slot-split',
   'e2e-admin-member-edit',
   'e2e-leader-reactivation',
+  'e2e-sliding-session',
   'e2e-member-add-window',
   'e2e-meeting-links',
   'e2e-disable-accounts',

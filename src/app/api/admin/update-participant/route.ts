@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/notification-auth';
 import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
+import { notifyEmailChanged } from '@/lib/reactivation';
 
 /**
  * This route lives under /api/admin/ but in practice is called by the
@@ -87,13 +88,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'لا توجد حقول قابلة للتعديل في الطلب' }, { status: 400 });
     }
 
+    // Remember the current login email so a change can be announced.
+    const before = await prisma.participant.findUnique({ where: { id }, select: { email: true } });
+    if (!before) return NextResponse.json({ error: 'المشارك غير موجود' }, { status: 404 });
+
     const updatedParticipant = await prisma.participant.update({
       where: { id },
       data: dataToUpdate,
       select: PARTICIPANT_PUBLIC_FIELDS,
     });
 
-    return NextResponse.json(updatedParticipant);
+    // The login email changed: send fresh credentials to the new address and a
+    // notice to the old one (see src/lib/reactivation.ts). Never fails the edit.
+    let emailChange: { credentialsSent: boolean } | undefined;
+    if (typeof dataToUpdate.email === 'string' && dataToUpdate.email !== before.email.toLowerCase()) {
+      emailChange = await notifyEmailChanged(id, before.email);
+    }
+
+    return NextResponse.json(emailChange ? { ...updatedParticipant, emailChange } : updatedParticipant);
   } catch (error) {
     const code = (error as { code?: string })?.code;
     if (code === 'P2002') {
