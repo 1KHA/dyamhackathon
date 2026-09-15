@@ -23,6 +23,7 @@ const SUITES = [
   'e2e-organizations',
   'e2e-bulk-approval',
   'e2e-slot-split',
+  'e2e-admin-member-edit',
   'e2e-member-add-window',
   'e2e-meeting-links',
   'e2e-disable-accounts',
