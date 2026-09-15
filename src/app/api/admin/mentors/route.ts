@@ -113,6 +113,7 @@ export async function GET(request: NextRequest) {
               bookings: {
                 select: {
                   status: true,
+                  mentorJoinedAt: true,
                   participant: { select: { teamId: true, team: { select: { teamName: true } } } },
                 },
               },
@@ -162,6 +163,10 @@ export async function GET(request: NextRequest) {
           sessionsCompleted: active.filter((b) => b.endTime < now).length,
           sessionsUpcoming: active.filter((b) => b.endTime >= now).length,
           sessionsTotal: active.length,
+          // Join tracking (Meeting_Trigger.md): the mentor opened the meeting /
+          // both sides opened it (status = completed).
+          sessionsJoined: active.filter((b) => !!b.mentorJoinedAt).length,
+          sessionsConfirmed: active.filter((b) => b.status === 'completed').length,
           availability,
           availableSlots: freeSlots,
           upcomingSlots: future.length,

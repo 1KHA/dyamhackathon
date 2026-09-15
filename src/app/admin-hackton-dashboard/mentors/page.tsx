@@ -113,6 +113,8 @@ interface Mentor {
   sessionsCompleted?: number;  // non-cancelled bookings whose slot has ended
   sessionsUpcoming?: number;
   sessionsTotal?: number;
+  sessionsJoined?: number;     // mentor opened the meeting link
+  sessionsConfirmed?: number;  // both sides joined (status completed)
   availableSlots?: number;
   upcomingSlots?: number;
   teams?: string[];
@@ -982,11 +984,12 @@ export default function MentorsPage() {
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Calendar className="h-4 w-4 text-gray-500" />
-                      <span title={`مكتملة ${mentor.sessionsCompleted ?? 0} · قادمة ${mentor.sessionsUpcoming ?? 0}`}>
+                      <span title={`منتهية ${mentor.sessionsCompleted ?? 0} · قادمة ${mentor.sessionsUpcoming ?? 0} · انضم الموجه ${mentor.sessionsJoined ?? 0} · مكتملة (الطرفان) ${mentor.sessionsConfirmed ?? 0}`}>
                         {mentor.sessionsCompleted ?? 0}
                         {(mentor.sessionsUpcoming ?? 0) > 0 && (
                           <span className="text-xs text-muted-foreground"> (+{mentor.sessionsUpcoming} قادمة)</span>
                         )}
+                        <div className="text-[11px] text-muted-foreground">انضم {mentor.sessionsJoined ?? 0} · مكتملة {mentor.sessionsConfirmed ?? 0}</div>
                       </span>
                     </div>
                   </TableCell>

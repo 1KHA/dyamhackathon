@@ -20,6 +20,9 @@
     },
     "src/app/api/admin/accounts/disable/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/cron/booking-reminders/route.ts": {
+      "maxDuration": 300
     }
   },
   "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
@@ -29,6 +32,10 @@
   "crons": [
     {
       "path": "/api/cron/drain-email-queue",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/booking-reminders",
       "schedule": "* * * * *"
     }
   ]

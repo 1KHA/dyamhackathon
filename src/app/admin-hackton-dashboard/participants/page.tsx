@@ -77,6 +77,14 @@ export default function ParticipantsPage() {
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   // Admin edit of an individual participant's profile (shared dialog with the teams page)
   const [editingParticipant, setEditingParticipant] = useState<IndividualParticipant | null>(null);
+  // Session counters (booked / joined / completed) per participant — Meeting_Trigger.md
+  const [sessionStats, setSessionStats] = useState<Record<string, { booked: number; joined: number; completed: number }>>({});
+  useEffect(() => {
+    fetch('/api/admin/session-stats', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.participants) setSessionStats(d.participants); })
+      .catch(() => {});
+  }, []);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   
@@ -545,6 +553,7 @@ export default function ParticipantsPage() {
                     <th className="border p-2 text-right">المدينة</th>
                     <th className="border p-2 text-right">الحالة</th>
                     <th className="border p-2 text-right">المرحلة</th>
+                    <th className="border p-2 text-right" title="حجوزات · انضم للاجتماع · مكتملة (الطرفان)">الجلسات</th>
                     <th className="border p-2 text-right">تاريخ التسجيل</th>
                     <th className="border p-2 text-right">الإجراءات</th>
                   </tr>
@@ -575,6 +584,9 @@ export default function ParticipantsPage() {
                       <td className="border p-2">{participant.universityMajor || participant.major || 'غير متوفر'}</td>
                       <td className="border p-2">{participant.city || participant.residence || 'غير متوفر'}</td>
                       <td className="border p-2">{getStatusBadge(participant.status)}</td>
+                      <td className="border p-2 whitespace-nowrap text-xs" title="حجوزات · انضم · مكتملة">
+                        {(() => { const s = sessionStats[participant.id]; return s ? <span><span className="font-semibold">{s.booked}</span> حجز · <span className="text-blue-700">{s.joined}</span> انضم · <span className="text-green-700">{s.completed}</span> مكتملة</span> : <span className="text-gray-400">—</span>; })()}
+                      </td>
                       <td className="border p-2">
                         <div className="flex items-center gap-1">
                           <PhaseBadge phase={participant.phase} phaseStatus={participant.phaseStatus} />

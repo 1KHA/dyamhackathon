@@ -170,6 +170,8 @@ model MentorBooking {
   mentorJoinedAt      DateTime?
   participantJoinedAt DateTime?
   completedAt         DateTime?
+  // 5-minute reminder sent (cron /api/cron/booking-reminders)
+  reminderSentAt      DateTime?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 }

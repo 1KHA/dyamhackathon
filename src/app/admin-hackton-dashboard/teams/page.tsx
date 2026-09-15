@@ -120,6 +120,16 @@ export default function TeamsPage() {
   // Member edit (from the team details dialog) — POST /api/admin/update-participant
   const [editedMember, setEditedMember] = useState<Participant | null>(null);
   const [leaderCandidate, setLeaderCandidate] = useState<Participant | null>(null);
+  // Session counters per team / member — Meeting_Trigger.md
+  const [sessionStats, setSessionStats] = useState<{ teams: Record<string, { booked: number; joined: number; completed: number }>; participants: Record<string, { booked: number; joined: number; completed: number }> }>({ teams: {}, participants: {} });
+  useEffect(() => {
+    fetch('/api/admin/session-stats', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.teams) setSessionStats({ teams: d.teams, participants: d.participants || {} }); })
+      .catch(() => {});
+  }, []);
+  const fmtSessions = (s?: { booked: number; joined: number; completed: number }) =>
+    s ? <span><span className="font-semibold">{s.booked}</span> حجز · <span className="text-blue-700">{s.joined}</span> انضم · <span className="text-green-700">{s.completed}</span> مكتملة</span> : <span className="text-gray-400">—</span>;
   const [savingMember, setSavingMember] = useState(false);
   const [participantEmail, setParticipantEmail] = useState("");
   const [makeLeader, setMakeLeader] = useState(false);
@@ -793,6 +803,7 @@ export default function TeamsPage() {
                   <th className="border p-2 text-right">المسار</th>
                   <th className="border p-2 text-right">الأعضاء</th>
                   <th className="border p-2 text-right">قائد الفريق</th>
+                  <th className="border p-2 text-right" title="حجوزات · انضم للاجتماع · مكتملة (الطرفان)">الجلسات</th>
                   <th className="border p-2 text-right">الحالة</th>
                   <th className="border p-2 text-right">المرحلة</th>
                   <th className="border p-2 text-right">تاريخ الإنشاء</th>
@@ -837,6 +848,7 @@ export default function TeamsPage() {
                           </Button>
                         </td>
                         <td className="border p-2">{leader?.fullName || 'غير متوفر'}</td>
+                        <td className="border p-2 whitespace-nowrap text-xs">{fmtSessions(sessionStats.teams[team.id])}</td>
                         <td className="border p-2">
                         <span
                           className={`px-2 py-1 rounded-full text-xs ${
@@ -946,7 +958,7 @@ export default function TeamsPage() {
                       </tr>
                       {expandedTeam === team.id && (
                         <tr className="bg-muted/20">
-                          <td colSpan={10} className="p-0">
+                          <td colSpan={11} className="p-0">
                             <div className="p-4">
                               <div className="flex justify-between items-center mb-4">
                                 <h4 className="font-bold">أعضاء الفريق:</h4>
@@ -1169,6 +1181,7 @@ export default function TeamsPage() {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-2">
                         <p><strong>الاسم الكامل:</strong> {p.fullName}</p>
+                        <p><strong>الجلسات:</strong> {fmtSessions(sessionStats.participants[p.id])}</p>
                         <p><strong>البريد الإلكتروني:</strong> {p.email}</p>
                         <p><strong>رقم الهوية:</strong> {p.nationalId}</p>
                         <p><strong>تاريخ الميلاد:</strong> {p.dob}</p>

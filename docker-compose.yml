@@ -58,6 +58,10 @@ services:
       MAILCHIMP_API_KEY: ${MAILCHIMP_API_KEY:-}
       MAIL_FROM: ${MAIL_FROM:-}
       MAIL_FROM_NAME: ${MAIL_FROM_NAME:-}
+      # Cron endpoints (booking reminders, email queue). LOCAL_CRON=true makes
+      # the container poll them every minute since there is no Vercel Cron here.
+      CRON_SECRET: ${CRON_SECRET:-}
+      LOCAL_CRON: ${LOCAL_CRON:-true}
     ports:
       # Host port 3011 by default: 3000/3001 are commonly taken by other local
       # projects (and by `npm run dev`), so the stack never fights for them.

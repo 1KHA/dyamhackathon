@@ -322,6 +322,32 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       actionUrl: '/participant-dashboard/milestones',
     }),
     def({
+      key: 'bookingReminderParticipant',
+      label: 'تذكير بالجلسة قبل 5 دقائق (للمشارك والفريق)',
+      category: 'participant',
+      variables: ['mentorName', 'dateTime', 'meetingLink', 'minutes'],
+      type: 'info',
+      dashboardTitle: 'جلستك تبدأ خلال {{minutes}} دقائق',
+      dashboardMessage: 'جلسة الإرشاد مع {{mentorName}} تبدأ في {{dateTime}}. اضغط "دخول الاجتماع" للانضمام.',
+      emailSubject: 'تذكير: جلستك مع {{mentorName}} تبدأ خلال {{minutes}} دقائق',
+      emailBody:
+        'تذكير: جلسة الإرشاد مع {{mentorName}} تبدأ في {{dateTime}} (خلال {{minutes}} دقائق).\n\nرابط الاجتماع:\n{{meetingLink}}\n\nيرجى الانضمام في الموعد المحدد.',
+      actionUrl: '/participant-dashboard/mentors',
+    }),
+    def({
+      key: 'bookingReminderMentor',
+      label: 'تذكير بالجلسة قبل 5 دقائق (للموجه)',
+      category: 'mentor',
+      variables: ['participantName', 'dateTime', 'meetingLink', 'minutes'],
+      type: 'info',
+      dashboardTitle: 'جلستك تبدأ خلال {{minutes}} دقائق',
+      dashboardMessage: 'جلسة الإرشاد مع {{participantName}} تبدأ في {{dateTime}}. اضغط "دخول الاجتماع" للانضمام.',
+      emailSubject: 'تذكير: جلسة مع {{participantName}} تبدأ خلال {{minutes}} دقائق',
+      emailBody:
+        'تذكير: جلسة الإرشاد مع {{participantName}} تبدأ في {{dateTime}} (خلال {{minutes}} دقائق).\n\nرابط الاجتماع:\n{{meetingLink}}\n\nيرجى الانضمام في الموعد المحدد.',
+      actionUrl: '/mentor-dashboard/sessions',
+    }),
+    def({
       key: 'bookingConfirmation',
       label: 'تأكيد حجز جلسة إرشاد',
       category: 'participant',
