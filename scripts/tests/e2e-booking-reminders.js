@@ -64,11 +64,12 @@ let savedSettings = null, settingsId = null;
   const leader = await mkP('leader', { teamId: team.id, isLeader: true }), mate = await mkP('mate', { teamId: team.id });
   const solo = await mkP('solo');
   const slot = async (mentorId, minutesAhead) => prisma.mentorAvailability.create({ data: { mentorId, startTime: new Date(Date.now() + minutesAhead * MIN), endTime: new Date(Date.now() + (minutesAhead + 15) * MIN) } });
-  const sSoon = await slot(mentor.id, 3), sLater = await slot(mentor.id, 10), sCancel = await slot(mentor.id, 4), sOrg = await slot(orgA.id, 2);
+  const sSoon = await slot(mentor.id, 3), sLater = await slot(mentor.id, 10), sCancel = await slot(mentor.id, 4), sOrg = await slot(orgA.id, 2), sSix = await slot(mentor.id, 12);
   const bSoon = await prisma.mentorBooking.create({ data: { participantId: leader.id, availabilityId: sSoon.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-R1' } });
   const bLater = await prisma.mentorBooking.create({ data: { participantId: leader.id, availabilityId: sLater.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-R2' } });
   const bCancel = await prisma.mentorBooking.create({ data: { participantId: solo.id, availabilityId: sCancel.id, status: 'cancelled', meetingUrl: 'https://meet.jit.si/Miyahthone-R3' } });
   const bOrg = await prisma.mentorBooking.create({ data: { participantId: solo.id, availabilityId: sOrg.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-R4', organizationId: org.id } });
+  const bSix = await prisma.mentorBooking.create({ data: { participantId: solo.id, availabilityId: sSix.id, status: 'booked', meetingUrl: 'https://meet.jit.si/Miyahthone-R5' } });
 
   section('auth');
   check('no secret -> 401', (await cron(null)).status === 401);
@@ -87,12 +88,12 @@ let savedSettings = null, settingsId = null;
   const nm = await prisma.notification.findMany({ where: { recipientId: mate.id, relatedEntityId: bSoon.id } });
   const nMentor = await prisma.notification.findMany({ where: { recipientId: mentor.id, relatedEntityId: bSoon.id } });
   check('dashboard: leader + teammate + mentor each got ONE reminder', nl.length === 1 && nm.length === 1 && nMentor.length === 1, `l=${nl.length} m=${nm.length} mentor=${nMentor.length}`);
-  check('  dashboard text has the minutes + mentor/participant names', /دقائق/.test(nl[0]?.title || '') && (nl[0]?.message || '').includes(mentor.name) && (nMentor[0]?.message || '').includes(leader.fullName), `${nl[0]?.title} | ${nMentor[0]?.message}`);
+  check('  dashboard text says 5 minutes + mentor/participant names', /خلال 5 دقائق/.test(nl[0]?.title || '') && (nl[0]?.message || '').includes(mentor.name) && (nMentor[0]?.message || '').includes(leader.fullName), `${nl[0]?.title} | ${nMentor[0]?.message}`);
   const expectTime = riyadh(sSoon.startTime), joinLink = `/api/meeting/join/${bSoon.id}`;
   const lm = await mailFor(leader.email), mm = await mailFor(mate.email), mentorMail = await mailFor(mentor.email);
   check('email: leader + teammate + mentor each got ONE reminder email', lm.length === 1 && mm.length === 1 && mentorMail.length === 1, `l=${lm.length} m=${mm.length} mentor=${mentorMail.length}`);
   const lt = lm[0] ? await mailText(lm[0].ID) : '';
-  check(`  participant email has the Riyadh start time (${expectTime}) and the tracked join link`, lt.includes(expectTime) && lt.includes(joinLink) && !lt.includes('meet.jit.si'), lt.slice(0, 160).replace(/\n/g, ' '));
+  check(`  participant email has the Riyadh start time (${expectTime}), says 5 minutes, and the tracked join link`, lt.includes(expectTime) && /خلال 5 دقائق/.test(lt) && lt.includes(joinLink) && !lt.includes('meet.jit.si'), lt.slice(0, 160).replace(/\n/g, ' '));
   const mt = mentorMail[0] ? await mailText(mentorMail[0].ID) : '';
   check('  mentor email has the time, the participant name and the tracked link', mt.includes(expectTime) && mt.includes(leader.fullName) && mt.includes(joinLink));
   check('  the 10-minute booking got no reminder', (await prisma.notification.count({ where: { relatedEntityId: bLater.id } })) === 0 && (await mailFor(solo.email)).filter((x) => /R2/.test(x.Subject)).length === 0);
@@ -105,9 +106,13 @@ let savedSettings = null, settingsId = null;
   check('  unrelated mentor not reminded for the org booking', (await prisma.notification.count({ where: { recipientId: mentor.id, relatedEntityId: bOrg.id } })) === 0);
   check('  org member emails carry the org booking join link', (await mailFor(orgB.email)).length === 1 && (await mailText((await mailFor(orgB.email))[0].ID)).includes(`/api/meeting/join/${bOrg.id}`));
 
-  section('idempotent');
+  section('idempotent + timing: a 12-minute booking waits until it is 5 minutes away');
   r = await cron(CRON);
   check('second run: nothing due, nothing sent', r.status === 200 && r.json?.reminded === 0 && (await prisma.notification.count({ where: { recipientId: leader.id, relatedEntityId: bSoon.id } })) === 1, JSON.stringify(r.json));
+  check('  12-minute booking not reminded yet', (await prisma.mentorBooking.findUnique({ where: { id: bSix.id } })).reminderSentAt === null);
+  await prisma.mentorAvailability.update({ where: { id: sSix.id }, data: { startTime: new Date(Date.now() + 4.9 * MIN) } }); // time passes: now 4.9 min away
+  r = await cron(CRON);
+  check('  once inside the 5-minute window it is reminded (says 5 minutes)', r.json?.reminded === 1 && /خلال 5 دقائق/.test((await prisma.notification.findFirst({ where: { recipientId: solo.id, relatedEntityId: bSix.id } }))?.title || ''), JSON.stringify(r.json));
 
   section('session-stats counters');
   // leader joins bSoon, mentor joins bSoon -> completed; mate joins bLater only
@@ -120,8 +125,8 @@ let savedSettings = null, settingsId = null;
   // leader's second booking counts for that booking (= the booker).
   check('participant (leader): booked 2, joined 2, completed 1', JSON.stringify(st.participants[leader.id]) === JSON.stringify({ booked: 2, joined: 2, completed: 1 }), JSON.stringify(st.participants[leader.id]));
   check('team: booked 2, joined 2 (leader on one, mate on the other), completed 1', JSON.stringify(st.teams[team.id]) === JSON.stringify({ booked: 2, joined: 2, completed: 1 }), JSON.stringify(st.teams[team.id]));
-  check('mentor: booked 2, joined 1, completed 1', JSON.stringify(st.mentors[mentor.id]) === JSON.stringify({ booked: 2, joined: 1, completed: 1 }), JSON.stringify(st.mentors[mentor.id]));
-  check('cancelled booking not counted for solo (only the org booking)', JSON.stringify(st.participants[solo.id]) === JSON.stringify({ booked: 1, joined: 0, completed: 0 }), JSON.stringify(st.participants[solo.id]));
+  check('mentor: booked 3 (soon, later, 12-min), joined 1, completed 1', JSON.stringify(st.mentors[mentor.id]) === JSON.stringify({ booked: 3, joined: 1, completed: 1 }), JSON.stringify(st.mentors[mentor.id]));
+  check('cancelled booking not counted for solo (org booking + 12-min booking only)', JSON.stringify(st.participants[solo.id]) === JSON.stringify({ booked: 2, joined: 0, completed: 0 }), JSON.stringify(st.participants[solo.id]));
   check('session-stats requires admin', (await fetch(`${BASE}/api/admin/session-stats`, { headers: { cookie: cookie({ id: leader.id, participantId: leader.id, role: 'participant' }) } })).status === 401);
   const adminMentors = await (await fetch(`${BASE}/api/admin/mentors`, { headers: { cookie: aCookie } })).json();
   const am = adminMentors.find((m) => m.id === mentor.id);

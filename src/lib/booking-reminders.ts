@@ -22,6 +22,12 @@ import { participantDisplayName } from './credentials';
 export const REMINDER_MINUTES = 5;
 /** Also catch a start time a tick or two ago if a cron run was missed. */
 const GRACE_MINUTES = 2;
+/**
+ * Timing: the cron runs every minute and picks up a booking the first time
+ * its start is within REMINDER_MINUTES, so the reminder goes out 4–5 minutes
+ * before the session (never earlier than 5). A booking made with less than
+ * 5 minutes to go is reminded immediately.
+ */
 
 export interface ReminderRunResult {
   due: number;
@@ -56,7 +62,9 @@ export async function sendDueBookingReminders(now: Date = new Date()): Promise<R
     });
     if (claimed.count === 0) continue;
 
-    const minutes = String(Math.max(1, Math.round((b.availability.startTime.getTime() - now.getTime()) / 60_000)));
+    // The reminder is the "5 minutes before" reminder: say 5, not the exact
+    // remaining minutes (a cron tick lands anywhere inside the 5-minute window).
+    const minutes = String(REMINDER_MINUTES);
     const shared = {
       dateTime: formatRiyadhDateTime(b.availability.startTime),
       meetingLink: getMeetingJoinUrl(b.id),
