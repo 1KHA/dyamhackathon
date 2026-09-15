@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../components/ui/card';
 import { Button } from '../../../../components/ui/button';
 import { Input } from '../../../../components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
   Table,
   TableBody,
@@ -139,6 +140,8 @@ export default function MentorsPage() {
   const [mentors, setMentors] = useState<Mentor[]>([]);
   const [filteredMentors, setFilteredMentors] = useState<Mentor[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  // 'all' | 'none' (mentors without an organization) | organization id
+  const [orgFilter, setOrgFilter] = useState('all');
   const [selectedMentor, setSelectedMentor] = useState<Mentor | null>(null);
   const [availabilityEvents, setAvailabilityEvents] = useState<AvailabilityEvent[]>([]);
   const [isAvailabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
@@ -245,15 +248,33 @@ export default function MentorsPage() {
   });
 
   useEffect(() => {
-    // Filter mentors based on search term
+    // Filter by search + organization, then group: mentors of the same
+    // organization sit together (organizations A→Z, members A→Z), mentors
+    // without an organization last.
     const q = searchTerm.toLowerCase();
     const filtered = mentors.filter(mentor =>
-      mentor.name.toLowerCase().includes(q) ||
-      mentor.specialty.toLowerCase().includes(q) ||
-      (mentor.organization?.name || '').toLowerCase().includes(q)
+      (mentor.name.toLowerCase().includes(q) ||
+        mentor.specialty.toLowerCase().includes(q) ||
+        (mentor.organization?.name || '').toLowerCase().includes(q)) &&
+      (orgFilter === 'all' ||
+        (orgFilter === 'none' ? !mentor.organization : mentor.organization?.id === orgFilter))
     );
+    const byName = (a: string, b: string) => a.localeCompare(b, 'ar');
+    filtered.sort((a, b) => {
+      if (!!a.organization !== !!b.organization) return a.organization ? -1 : 1;
+      if (a.organization && b.organization && a.organization.id !== b.organization.id) {
+        return byName(a.organization.name, b.organization.name);
+      }
+      return byName(a.name, b.name);
+    });
     setFilteredMentors(filtered);
-  }, [searchTerm, mentors]);
+  }, [searchTerm, orgFilter, mentors]);
+
+  // Organizations present in the mentors list (for the filter), A→Z.
+  const mentorOrgOptions = Array.from(
+    new Map(mentors.filter((m) => m.organization).map((m) => [m.organization!.id, m.organization!])).values()
+  ).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  const hasUnaffiliated = mentors.some((m) => !m.organization);
 
   const fetchOrganizationAvailability = async (orgId: string) => {
     try {
@@ -649,14 +670,33 @@ export default function MentorsPage() {
       {/* Search */}
       <Card className="mb-6 sm:mb-8 border-0 shadow-sm overflow-hidden">
         <CardContent className="p-4 sm:p-6">
-          <div className="relative w-full">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-500 h-5 w-5 pointer-events-none" />
-            <Input
-              placeholder={showIndividuals ? "البحث بالاسم، التخصص، أو الجهة..." : "البحث باسم الجهة أو التخصص..."}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-12 pr-12 text-base border-blue-100 focus:border-blue-300 rounded-full"
-            />
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative w-full flex-1">
+              <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-500 h-5 w-5 pointer-events-none" />
+              <Input
+                placeholder={showIndividuals ? "البحث بالاسم، التخصص، أو الجهة..." : "البحث باسم الجهة أو التخصص..."}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full h-12 pr-12 text-base border-blue-100 focus:border-blue-300 rounded-full"
+              />
+            </div>
+            {showIndividuals && mentorOrgOptions.length > 0 && (
+              <Select value={orgFilter} onValueChange={setOrgFilter}>
+                <SelectTrigger className="h-12 w-full sm:w-64 rounded-full border-blue-100 focus:border-blue-300" aria-label="تصفية حسب الجهة">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Building2 className="h-4 w-4 text-blue-500 shrink-0" />
+                    <SelectValue placeholder="كل الجهات" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent dir="rtl" className="text-right">
+                  <SelectItem value="all">كل الجهات</SelectItem>
+                  {mentorOrgOptions.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                  ))}
+                  {hasUnaffiliated && <SelectItem value="none">بدون جهة</SelectItem>}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -757,8 +797,31 @@ export default function MentorsPage() {
               </TableHeader>
             <TableBody>
               {filteredMentors.length > 0 ? (
-                filteredMentors.map((mentor) => (
-                  <TableRow key={mentor.id} className="hover:bg-gray-50 transition-colors duration-150">
+                filteredMentors.map((mentor, index) => {
+                  // Group header when this mentor starts a new organization block
+                  const orgKey = mentor.organization?.id ?? 'none';
+                  const prevKey = index > 0 ? (filteredMentors[index - 1].organization?.id ?? 'none') : null;
+                  const groupSize = filteredMentors.filter((m) => (m.organization?.id ?? 'none') === orgKey).length;
+                  const header = orgKey !== prevKey ? (
+                    <TableRow key={`org-${orgKey}`} className="bg-blue-50/70 hover:bg-blue-50/70">
+                      <TableCell colSpan={5} className="py-2 text-right">
+                        <div className="flex items-center gap-2 font-semibold text-blue-900">
+                          {mentor.organization?.logoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={mentor.organization.logoUrl} alt="" className="h-6 w-6 rounded object-contain border bg-white" />
+                          ) : (
+                            <Building2 className="h-4 w-4 text-blue-500" />
+                          )}
+                          <span>{mentor.organization ? mentor.organization.name : 'موجهون بدون جهة'}</span>
+                          <Badge variant="secondary" className="font-normal text-[11px]">{groupSize} موجه</Badge>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : null;
+                  return (
+                  <React.Fragment key={mentor.id}>
+                  {header}
+                  <TableRow className="hover:bg-gray-50 transition-colors duration-150">
                     <TableCell className="font-medium text-right">
                       <div>{mentor.name}</div>
                       {/* Mobile: organization + specialty + availability stacked under the name */}
@@ -811,7 +874,9 @@ export default function MentorsPage() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
+                  </React.Fragment>
+                  );
+                })
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center py-8 text-gray-500">
