@@ -1,3 +1,4 @@
+import { getAppBaseUrl } from './credentials';
 import crypto from 'crypto';
 
 /**
@@ -26,4 +27,14 @@ export function generateMeetingUrl(): string {
   // security model as a Zoom/Meet invite.
   const token = crypto.randomBytes(9).toString('base64url');
   return `${getMeetingBaseUrl()}/Miyahthone-${token}`;
+}
+
+/** Path of the platform's tracked meeting link for a booking (see /api/meeting/join). */
+export function meetingJoinPath(bookingId: string): string {
+  return `/api/meeting/join/${bookingId}`;
+}
+
+/** Absolute tracked meeting link for emails. */
+export function getMeetingJoinUrl(bookingId: string): string {
+  return `${getAppBaseUrl()}${meetingJoinPath(bookingId)}`;
 }

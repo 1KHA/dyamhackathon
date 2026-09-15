@@ -569,7 +569,7 @@ export default function MentorsPage() {
                     </div>
                     <div className="flex flex-col items-end gap-2 ml-2 shrink-0">
                       <Badge className="bg-green-100 text-green-800">
-                        {booking.status === 'booked' ? 'محجوز' : booking.status}
+                        {booking.status === 'booked' ? 'محجوز' : booking.status === 'completed' ? 'مكتملة' : booking.status}
                       </Badge>
                       {booking.meetingUrl && booking.status === 'booked' && (
                         <Button
@@ -577,7 +577,7 @@ export default function MentorsPage() {
                           size="sm"
                           className="bg-green-600 hover:bg-green-700 h-8 text-xs"
                         >
-                          <a href={booking.meetingUrl} target="_blank" rel="noopener noreferrer">
+                          <a href={`/api/meeting/join/${booking.id}`} target="_blank" rel="noopener noreferrer">
                             دخول الاجتماع
                           </a>
                         </Button>

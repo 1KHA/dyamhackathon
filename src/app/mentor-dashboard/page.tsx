@@ -270,7 +270,7 @@ export default function MentorDashboardPage() {
               <div className="flex flex-col sm:flex-row gap-2 shrink-0 w-full sm:w-auto">
                 {nextSession.meetingUrl && (
                   <Button asChild className="bg-green-600 hover:bg-green-700 w-full sm:w-auto">
-                    <a href={nextSession.meetingUrl} target="_blank" rel="noopener noreferrer">
+                    <a href={`/api/meeting/join/${nextSession.id}`} target="_blank" rel="noopener noreferrer">
                       دخول الاجتماع
                     </a>
                   </Button>

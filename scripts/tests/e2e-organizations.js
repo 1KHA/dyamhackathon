@@ -95,7 +95,11 @@ async function main() {
   const s4 = await mkSlot(m2.id, 24), s5 = await mkSlot(m1.id, 30), s6 = await mkSlot(m2.id, 30);
 
   // ============ shared availability inside the organization ============
-  section('availability added by one member is visible to all members');
+  section('availability added by one member is visible to all members (only when org booking is enabled)');
+  // Default mode is `individual`: even org members see ONLY their own slots.
+  const indivScope = await api('/api/mentor/availability?scope=organization', { cookie: mCookie(m2.id) });
+  check('individual mode: scope=organization returns own slots only (no colleague slots)', indivScope.status === 200 && indivScope.json.every((a) => a.mentorId === m2.id) && !indivScope.json.some((a) => a.id === s1.id), `n=${indivScope.json?.length}`);
+  await setMode(aCookie, 'both');
   const ownOnly = await api('/api/mentor/availability', { cookie: mCookie(m2.id) });
   check('default GET returns only own slots', ownOnly.status === 200 && ownOnly.json.every((a) => a.mentorId === m2.id) && !ownOnly.json.some((a) => a.id === s1.id), `n=${ownOnly.json?.length}`);
   const orgScope = await api('/api/mentor/availability?scope=organization', { cookie: mCookie(m2.id) });
@@ -104,6 +108,7 @@ async function main() {
   check('  own slots flagged shared:false', orgScope.json.filter((a) => a.mentorId === m2.id).every((a) => a.shared === false));
   const outScope = await api('/api/mentor/availability?scope=organization', { cookie: mCookie(outsider.id) });
   check('  mentor without organization sees only own slots', outScope.json.every((a) => a.mentorId === outsider.id));
+  await setMode(aCookie, 'individual'); // back to the default for the mode section below
 
   // ============ booking mode setting ============
   section('booking-mode setting');

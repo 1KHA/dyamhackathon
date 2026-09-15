@@ -397,7 +397,7 @@ export default function MentorSessionsPage() {
                                   asChild
                                   className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-1"
                                 >
-                                  <a href={booking.meetingUrl} target="_blank" rel="noopener noreferrer">
+                                  <a href={`/api/meeting/join/${booking.id}`} target="_blank" rel="noopener noreferrer">
                                     <Video className="h-4 w-4" />
                                     <span>دخول الاجتماع</span>
                                   </a>

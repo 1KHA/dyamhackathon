@@ -120,6 +120,7 @@ async function main() {
   const b3 = await api('/api/participant/book-appointment', { method: 'POST', cookie: pCookie(mate.id), body: { availabilityId: slotC.id } });
   check('booking with email enabled succeeds', b3.status === 201, `status=${b3.status} ${JSON.stringify(b3.json)}`);
   const url3 = b3.json?.booking?.meetingUrl;
+  const join3 = `/api/meeting/join/${b3.json?.booking?.id}`; // emails carry the platform's tracked link
   await wait(900);
 
   const leaderMail = await inboxFor(leader.email);
@@ -128,7 +129,7 @@ async function main() {
   if (mateMail[0]) {
     const full = await mp(`/api/v1/message/${mateMail[0].ID}`);
     const text = (full.Text || '') + (full.HTML || '');
-    check('  participant email contains the meeting link', text.includes(url3), url3);
+    check('  participant email contains the tracked meeting link', text.includes(join3) && !text.includes(url3), join3);
     // Emails must show Saudi local time regardless of the server's zone
     // (Vercel/Docker run in UTC; this used to print the time 3 hours early).
     const riyadhTime = new Intl.DateTimeFormat('ar-SA', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit' }).format(slotC.startTime);
@@ -142,7 +143,7 @@ async function main() {
   if (mentorMail[0]) {
     const full = await mp(`/api/v1/message/${mentorMail[0].ID}`);
     const text = (full.Text || '') + (full.HTML || '');
-    check('  mentor email contains the meeting link', text.includes(url3));
+    check('  mentor email contains the tracked meeting link', text.includes(join3));
     check('  mentor email explains the Google sign-in (moderator) step', text.includes('Google'));
   } else { check('  mentor email contains the meeting link', false); check('  mentor email explains the Google sign-in (moderator) step', false); }
 

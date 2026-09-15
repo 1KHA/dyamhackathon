@@ -28,6 +28,7 @@ const SUITES = [
   'e2e-sliding-session',
   'e2e-member-add-window',
   'e2e-meeting-links',
+  'e2e-meeting-join',
   'e2e-disable-accounts',
   'e2e-event-reminder',
   'e2e-import',

@@ -17,6 +17,9 @@ interface Booking {
   id: string;
   status: string; // booked | cancelled | completed
   meetingUrl: string | null;
+  mentorJoinedAt?: string | null;
+  participantJoinedAt?: string | null;
+  completedAt?: string | null;
   organization: { id: string; name: string; logoUrl: string | null } | null;
   mentor: { id: string; name: string; email: string; specialty: string };
   participant: { id: string; name: string; email: string; phoneNumber: string | null };
@@ -245,7 +248,7 @@ export default function AdminBookingsPage() {
                       <th className="p-3 font-semibold text-blue-900">الموجه</th>
                       <th className="p-3 font-semibold text-blue-900">الجهة</th>
                       <th className="p-3 font-semibold text-blue-900">المشارك</th>
-                      <th className="p-3 font-semibold text-blue-900 w-[100px]">الحالة</th>
+                      <th className="p-3 font-semibold text-blue-900 w-[170px]">الحالة / الحضور</th>
                       <th className="p-3 font-semibold text-blue-900 w-[120px] text-center">الاجتماع</th>
                     </tr>
                   </thead>
@@ -274,11 +277,19 @@ export default function AdminBookingsPage() {
                           <div className="font-medium">{b.participant.name}</div>
                           <div className="text-xs text-gray-500 break-all">{b.participant.email}{b.participant.phoneNumber ? ` · ${b.participant.phoneNumber}` : ""}</div>
                         </td>
-                        <td className="p-3"><Badge className={STATUS_CLASS[b.status] || "bg-gray-100 text-gray-800"}>{STATUS_LABEL[b.status] || b.status}</Badge></td>
+                        <td className="p-3">
+                          <Badge className={STATUS_CLASS[b.status] || "bg-gray-100 text-gray-800"}>{STATUS_LABEL[b.status] || b.status}</Badge>
+                          {b.status !== "cancelled" && (
+                            <div className="mt-1 space-y-0.5 text-[11px]">
+                              <div className={b.mentorJoinedAt ? "text-green-700" : "text-gray-400"}>{b.mentorJoinedAt ? `✓ الموجه انضم ${fmtTime(b.mentorJoinedAt)}` : "— الموجه لم ينضم"}</div>
+                              <div className={b.participantJoinedAt ? "text-green-700" : "text-gray-400"}>{b.participantJoinedAt ? `✓ المشارك انضم ${fmtTime(b.participantJoinedAt)}` : "— المشارك لم ينضم"}</div>
+                            </div>
+                          )}
+                        </td>
                         <td className="p-3 text-center">
                           {b.meetingUrl && b.status === "booked" ? (
                             <Button asChild size="sm" className="bg-green-600 hover:bg-green-700 h-8 text-xs gap-1">
-                              <a href={b.meetingUrl} target="_blank" rel="noopener noreferrer"><Video className="h-3.5 w-3.5" />دخول</a>
+                              <a href={`/api/meeting/join/${b.id}`} target="_blank" rel="noopener noreferrer"><Video className="h-3.5 w-3.5" />دخول</a>
                             </Button>
                           ) : <span className="text-gray-400 text-xs">—</span>}
                         </td>

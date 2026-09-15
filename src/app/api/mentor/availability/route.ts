@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verify } from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { createSlotsForMentor } from '@/lib/slots';
+import { getBookingMode } from '@/lib/organizations';
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
@@ -46,6 +47,14 @@ export async function GET(request: Request) {
 
     if (scope !== 'organization') {
       return NextResponse.json(availabilities);
+    }
+
+    // Colleagues' slots are only shared when the admin allows booking through
+    // organizations. In "individual" mode every mentor manages — and shows —
+    // only their own times, even if they belong to an organization.
+    const mode = await getBookingMode();
+    if (mode === 'individual') {
+      return NextResponse.json(availabilities.map((a) => ({ ...a, shared: false as const })));
     }
 
     const me = await prisma.mentor.findUnique({ where: { id: mentorId }, select: { organizationId: true } });

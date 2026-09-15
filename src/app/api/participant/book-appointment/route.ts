@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
 import { dispatchNotification } from '@/lib/notify';
-import { generateMeetingUrl } from '@/lib/meeting';
+import { generateMeetingUrl, getMeetingJoinUrl } from '@/lib/meeting';
 import { getBookingMode, BOOKABLE_MENTOR_WHERE, organizationBusyAt } from '@/lib/organizations';
 import { formatRiyadhDateTime } from '@/lib/format-dates';
 import { requireActiveParticipant, isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status';
@@ -208,7 +208,8 @@ export async function POST(request: NextRequest) {
       const participantName = participant.fullName || [participant.firstName, participant.secondName, participant.familyName].filter(Boolean).join(' ').trim() || participant.email;
       const dateTime = formatRiyadhDateTime(booking.availability.startTime);
 
-      const meetingLink = booking.meetingUrl || '';
+      // Tracked platform link: records who opened the meeting (Meeting_Trigger.md).
+      const meetingLink = booking.meetingUrl ? getMeetingJoinUrl(booking.id) : '';
       const bookerAudience = participant.teamId
         ? ({ kind: 'team', teamId: participant.teamId } as const)
         : ({ kind: 'participant', id: participant.id } as const);

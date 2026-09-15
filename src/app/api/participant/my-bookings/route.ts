@@ -69,7 +69,9 @@ export async function GET(request: NextRequest) {
     const bookings = await (prisma as any).mentorBooking.findMany({
       where: {
         participantId: participant.id,
-        status: 'booked', // Only get active bookings
+        // Active bookings plus completed sessions (both sides joined via the
+        // platform link); cancelled ones stay hidden.
+        status: { in: ['booked', 'completed'] },
       },
       include: {
         organization: { select: { id: true, name: true, logoUrl: true } },

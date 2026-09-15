@@ -165,6 +165,11 @@ model MentorBooking {
   // personally): every member of that organization is notified.
   organizationId String?
   organization   Organization?      @relation(fields: [organizationId], references: [id])
+  // Join tracking: first click on the platform's meeting link per role
+  // (/api/meeting/join). Both set => status 'completed' + completedAt.
+  mentorJoinedAt      DateTime?
+  participantJoinedAt DateTime?
+  completedAt         DateTime?
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 }

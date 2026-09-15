@@ -63,6 +63,10 @@ export async function GET(request: NextRequest) {
       createdAt: booking.createdAt,
       updatedAt: booking.updatedAt,
       meetingUrl: booking.meetingUrl ?? null,
+      // Join tracking (Meeting_Trigger.md layer 1)
+      mentorJoinedAt: booking.mentorJoinedAt ?? null,
+      participantJoinedAt: booking.participantJoinedAt ?? null,
+      completedAt: booking.completedAt ?? null,
       organization: booking.organization ?? null,
       mentor: {
         id: booking.availability.mentor.id,
