@@ -402,6 +402,10 @@ model TeamSettings {
   memberAddEnd   DateTime?
   // How participants book mentors: individual | organization | both
   mentorBookingMode String  @default("individual")
+  // Max non-cancelled bookings one participant may hold with the same mentor
+  // (or organization). Bookings created before bookingCountResetAt don't count.
+  maxBookingsPerMentor Int       @default(3)
+  bookingCountResetAt  DateTime?
   updatedAt      DateTime  @updatedAt
 }
 

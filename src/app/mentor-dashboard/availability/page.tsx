@@ -200,10 +200,13 @@ const AvailabilityPage = () => {
       });
 
       if (response.ok) {
+        const data = await response.json().catch(() => ({}));
         fetchAvailabilities();
         toast({
           title: "تم بنجاح",
-          description: "تم حذف وقت التوافر بنجاح.",
+          description: data.cancelledBookings
+            ? `تم حذف الوقت وإلغاء ${data.cancelledBookings} حجز عليه — تم إشعار المشاركين.`
+            : "تم حذف وقت التوافر بنجاح.",
         })
       } else {
         toast({

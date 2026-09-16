@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "../../../components/ui/use-toast";
-import { Building2, Loader2, Save, User, Users } from "lucide-react";
+import { Building2, Loader2, RotateCcw, Save, User, Users } from "lucide-react";
 
 type Mode = "individual" | "organization" | "both";
 
@@ -37,6 +39,12 @@ export default function MentorBookingModeSettings() {
   const [saved, setSaved] = useState<Mode>("individual");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Per-participant booking limit + reset mark (TeamSettings.maxBookingsPerMentor / bookingCountResetAt)
+  const [maxBookings, setMaxBookings] = useState(3);
+  const [savedMax, setSavedMax] = useState(3);
+  const [resetAt, setResetAt] = useState<string | null>(null);
+  const [savingLimit, setSavingLimit] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -46,6 +54,8 @@ export default function MentorBookingModeSettings() {
         const data = await res.json();
         const m: Mode = ["individual", "organization", "both"].includes(data.mentorBookingMode) ? data.mentorBookingMode : "individual";
         setMode(m); setSaved(m);
+        if (typeof data.maxBookingsPerMentor === "number") { setMaxBookings(data.maxBookingsPerMentor); setSavedMax(data.maxBookingsPerMentor); }
+        setResetAt(data.bookingCountResetAt ?? null);
       } catch {
         toast({ title: "خطأ", description: "فشل في جلب إعداد طريقة الحجز", variant: "destructive" });
       } finally {
@@ -71,6 +81,43 @@ export default function MentorBookingModeSettings() {
       toast({ title: "خطأ", description: e instanceof Error ? e.message : "فشل الحفظ", variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveLimit = async () => {
+    try {
+      setSavingLimit(true);
+      const res = await fetch("/api/admin/team-settings", {
+        method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+        body: JSON.stringify({ maxBookingsPerMentor: maxBookings }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل الحفظ");
+      setSavedMax(data.maxBookingsPerMentor);
+      toast({ title: "تم الحفظ", description: `الحد الأقصى للحجوزات مع نفس الموجه/الجهة: ${data.maxBookingsPerMentor}` });
+    } catch (e) {
+      toast({ title: "خطأ", description: e instanceof Error ? e.message : "فشل الحفظ", variant: "destructive" });
+    } finally {
+      setSavingLimit(false);
+    }
+  };
+
+  const resetCounts = async () => {
+    if (!window.confirm("سيبدأ جميع المشاركين عدّاً جديداً من الصفر (لن يُلغى أي حجز قائم). متابعة؟")) return;
+    try {
+      setResetting(true);
+      const res = await fetch("/api/admin/team-settings", {
+        method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include",
+        body: JSON.stringify({ resetBookingCounts: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل إعادة التعيين");
+      setResetAt(data.bookingCountResetAt ?? null);
+      toast({ title: "تمت إعادة التعيين", description: "أصبح بإمكان جميع المشاركين الحجز من جديد؛ الحجوزات السابقة لم تعد تُحتسب ضمن الحد." });
+    } catch (e) {
+      toast({ title: "خطأ", description: e instanceof Error ? e.message : "فشل إعادة التعيين", variant: "destructive" });
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -111,6 +158,33 @@ export default function MentorBookingModeSettings() {
           {saving ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}
           حفظ طريقة الحجز
         </Button>
+
+        <div className="border-t pt-4 space-y-3">
+          <div>
+            <div className="font-semibold">الحد الأقصى للحجوزات مع نفس الموجه / الجهة</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              عدد الحجوزات (غير الملغاة) التي يستطيع المشارك الواحد الاحتفاظ بها مع الموجه نفسه أو الجهة نفسها. إلغاء الحجز (من الإدارة أو الموجه) يعيد الرصيد تلقائياً.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="max-bookings">الحد الأقصى</Label>
+              <Input id="max-bookings" type="number" min={1} max={20} value={maxBookings} onChange={(e) => setMaxBookings(Number(e.target.value))} className="w-28" />
+            </div>
+            <Button onClick={saveLimit} disabled={savingLimit || maxBookings === savedMax || maxBookings < 1} variant="outline">
+              {savingLimit ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <Save className="ml-2 h-4 w-4" />}
+              حفظ الحد
+            </Button>
+            <Button onClick={resetCounts} disabled={resetting} variant="outline" className="text-amber-700 border-amber-300 hover:bg-amber-50">
+              {resetting ? <Loader2 className="ml-2 h-4 w-4 animate-spin" /> : <RotateCcw className="ml-2 h-4 w-4" />}
+              إعادة تعيين عدّاد الجميع
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            الحالي: <Badge variant="secondary">{savedMax}</Badge>
+            {resetAt && <> · آخر إعادة تعيين: {new Date(resetAt).toLocaleString("ar-SA", { timeZone: "Asia/Riyadh" })}</>}
+          </p>
+        </div>
       </CardContent>
     </Card>
   );

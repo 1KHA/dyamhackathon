@@ -6,6 +6,7 @@ import { dispatchNotification } from '@/lib/notify';
 import { generateMeetingUrl, getMeetingJoinUrl } from '@/lib/meeting';
 import { getBookingMode, BOOKABLE_MENTOR_WHERE, organizationBusyAt } from '@/lib/organizations';
 import { formatRiyadhDateTime } from '@/lib/format-dates';
+import { getBookingLimit, countBookingsWithMentor, countBookingsWithOrganization, limitMessage } from '@/lib/booking-limits';
 import { requireActiveParticipant, isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
@@ -128,6 +129,8 @@ export async function POST(request: NextRequest) {
 
     // ---- booking mode (admin setting): individual | organization | both ----
     const mode = await getBookingMode();
+    // Per-participant limit with the same mentor/organization (admin setting)
+    const limit = await getBookingLimit();
     let organization: { id: string; name: string } | null = null;
 
     if (organizationId) {
@@ -145,15 +148,12 @@ export async function POST(request: NextRequest) {
       if (availability.mentor.organizationId !== organization.id) {
         return NextResponse.json({ message: 'هذا الموعد لا يتبع الجهة المختارة.' }, { status: 400 });
       }
-      // One active booking per ORGANIZATION per participant
-      const existingOrgBooking = await prisma.mentorBooking.findFirst({
-        where: { participantId: participant.id, status: { not: 'cancelled' }, organizationId: organization.id },
-      });
-      if (existingOrgBooking) {
-        return NextResponse.json(
-          { message: 'لديك حجز بالفعل مع هذه الجهة. يمكنك حجز جلسة واحدة فقط مع كل جهة.' },
-          { status: 400 }
-        );
+      // At most N non-cancelled bookings per ORGANIZATION per participant
+      // (see src/lib/booking-limits.ts — cancelled ones and bookings before
+      // the admin's reset mark don't count).
+      const orgCount = await countBookingsWithOrganization(participant.id, organization.id, limit.resetAt);
+      if (orgCount >= limit.max) {
+        return NextResponse.json({ message: limitMessage('organization', limit.max), limit: limit.max, used: orgCount }, { status: 400 });
       }
       // All members join an organization session, so the organization is
       // busy whenever ANY member already has a session in this window — even
@@ -165,23 +165,11 @@ export async function POST(request: NextRequest) {
       if (mode === 'organization') {
         return NextResponse.json({ message: 'الحجز متاح عبر الجهات فقط، اختر جهة للحجز معها.' }, { status: 403 });
       }
-      // One active booking per mentor per participant: a participant may book
-      // several mentors, but only one (non-cancelled) session with each mentor.
-      const existingBooking = await prisma.mentorBooking.findFirst({
-        where: {
-          participantId: participant.id,
-          status: { not: 'cancelled' },
-          availability: {
-            mentorId: availability.mentorId,
-          },
-        },
-      });
-
-      if (existingBooking) {
-        return NextResponse.json(
-          { message: 'لديك حجز بالفعل مع هذا الموجه. يمكنك حجز جلسة واحدة فقط مع كل موجه.' },
-          { status: 400 }
-        );
+      // At most N non-cancelled bookings per mentor per participant (admin
+      // setting; cancelled bookings and bookings before the reset mark don't count).
+      const mentorCount = await countBookingsWithMentor(participant.id, availability.mentorId, limit.resetAt);
+      if (mentorCount >= limit.max) {
+        return NextResponse.json({ message: limitMessage('mentor', limit.max), limit: limit.max, used: mentorCount }, { status: 400 });
       }
     }
 

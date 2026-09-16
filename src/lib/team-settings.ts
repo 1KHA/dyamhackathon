@@ -8,6 +8,10 @@ export interface TeamSettingsRow {
   memberAddEnd: Date | null;
   /** individual | organization | both — see src/lib/organizations.ts */
   mentorBookingMode: string;
+  /** Max non-cancelled bookings per participant with one mentor/organization */
+  maxBookingsPerMentor: number;
+  /** Bookings created before this don't count toward the limit (admin reset) */
+  bookingCountResetAt: Date | null;
   updatedAt: Date;
 }
 

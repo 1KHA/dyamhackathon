@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formatRiyadhDateTime } from '@/lib/format-dates';
+import { cancelBookingAndNotify } from '@/lib/booking-cancel';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import jwt from 'jsonwebtoken';
@@ -70,6 +71,26 @@ async function notifyMentorOfCancellation(booking: {
   }
 }
 
+/** Participant + team notice for an already-cancelled booking (status written by the caller). */
+async function notifyParticipantOfCancellation(bookingId: string) {
+  try {
+    const b = await prisma.mentorBooking.findUnique({
+      where: { id: bookingId },
+      select: { id: true, participant: { select: { id: true, teamId: true, email: true, fullName: true, firstName: true, secondName: true, familyName: true } }, availability: { select: { startTime: true, mentor: { select: { name: true } } } } },
+    });
+    if (!b) return;
+    await dispatchNotification({
+      templateKey: 'bookingCancelledParticipant',
+      variables: { mentorName: b.availability.mentor.name, dateTime: formatBookingDateTime(b.availability.startTime), cancelledBy: 'إدارة الهاكاثون' },
+      audience: b.participant.teamId ? { kind: 'team', teamId: b.participant.teamId } : { kind: 'participant', id: b.participant.id },
+      relatedEntityType: 'booking',
+      relatedEntityId: b.id,
+    });
+  } catch (error) {
+    console.error('Error notifying participant of cancellation:', error);
+  }
+}
+
 // Helper to check admin auth
 async function isAdmin(request: NextRequest) {
   const cookieStore = cookies();
@@ -114,7 +135,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { bookin
     });
 
     if (updated.status === 'cancelled' && previous?.status !== 'cancelled') {
+      // Participant + team + mentor are told (src/lib/booking-cancel.ts). The
+      // status was already written above; this only sends the notifications.
       await notifyMentorOfCancellation(updated);
+      await notifyParticipantOfCancellation(updated.id);
     }
 
     // Format response
@@ -166,13 +190,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { booki
       include: bookingWithPeople,
     });
 
+    // Deleting a live booking is a cancellation from the participant's point
+    // of view: cancel + notify everyone first, then remove the row.
+    if (booking && booking.status !== 'cancelled') {
+      await cancelBookingAndNotify(bookingId, 'admin');
+    }
     await prisma.mentorBooking.delete({
       where: { id: bookingId },
     });
-
-    if (booking && booking.status !== 'cancelled') {
-      await notifyMentorOfCancellation(booking);
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -467,6 +467,19 @@ export const TEMPLATE_DEFAULTS: Record<string, TemplateDefaults> = Object.fromEn
       actionUrl: '/participant-dashboard/mentors',
     }),
     def({
+      key: 'bookingCancelledParticipant',
+      label: 'إلغاء جلسة (للمشارك والفريق)',
+      category: 'participant',
+      variables: ['mentorName', 'dateTime', 'cancelledBy'],
+      type: 'warning',
+      dashboardTitle: 'تم إلغاء جلسة الإرشاد',
+      dashboardMessage: 'تم إلغاء جلستك مع {{mentorName}} المقررة في {{dateTime}} من قبل {{cancelledBy}}. يمكنك حجز موعد جديد من صفحة الموجهين.',
+      emailSubject: 'تم إلغاء جلستك مع {{mentorName}}',
+      emailBody:
+        'نأسف لإبلاغك بأن جلسة الإرشاد مع {{mentorName}} المقررة في {{dateTime}} تم إلغاؤها من قبل {{cancelledBy}}.\n\nيمكنك حجز موعد جديد في أي وقت من صفحة الموجهين في لوحة المشارك.',
+      actionUrl: '/participant-dashboard/mentors',
+    }),
+    def({
       key: 'bookingCancellation',
       label: 'إلغاء حجز جلسة (للمرشد)',
       category: 'mentor',

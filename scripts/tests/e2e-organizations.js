@@ -162,8 +162,13 @@ async function main() {
   const mine = await api('/api/participant/my-bookings', { cookie: pCookie(leader.id) });
   check('my-bookings exposes the organization', mine.json?.some((b) => b.id === bookingId && b.organization?.id === org.id));
 
+  // The per-organization limit is configurable (default 3); pin it to 1 here
+  // so the original one-per-organization assertion keeps its meaning.
+  const savedMaxOrg = (await prisma.teamSettings.findFirst())?.maxBookingsPerMentor ?? 3;
+  await api('/api/admin/team-settings', { method: 'PUT', cookie: aCookie, body: { maxBookingsPerMentor: 1 } });
   const again = await api('/api/participant/book-appointment', { method: 'POST', cookie: pCookie(leader.id), body: { availabilityId: s2.id, organizationId: org.id } });
-  check('second booking with the same organization refused (400)', again.status === 400 && /جهة/.test(again.json?.message || ''), JSON.stringify(again.json));
+  check('second booking with the same organization refused (400) when the limit is 1', again.status === 400 && /جهة/.test(again.json?.message || '') && again.json?.limit === 1, JSON.stringify(again.json));
+  await api('/api/admin/team-settings', { method: 'PUT', cookie: aCookie, body: { maxBookingsPerMentor: savedMaxOrg } });
 
   // ============ organization busy rule ============
   section('organization is busy whenever any member is busy');

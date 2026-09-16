@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSlotsForMentor } from '@/lib/slots';
+import { cancelBookingsOnSlot } from '@/lib/booking-cancel';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { verifyToken, requireAdmin } from '@/lib/notification-auth';
@@ -90,11 +91,14 @@ export async function DELETE(
       return NextResponse.json({ message: 'Availability not found or does not belong to this mentor.' }, { status: 404 });
     }
 
+    // Live bookings on the slot are cancelled + everyone notified before the
+    // slot row goes away (see src/lib/booking-cancel.ts).
+    const cancelled = await cancelBookingsOnSlot(availabilityId, 'admin');
     await prisma.mentorAvailability.delete({
       where: { id: availabilityId },
     });
 
-    return NextResponse.json({ message: 'Availability deleted successfully.' }, { status: 200 });
+    return NextResponse.json({ message: 'Availability deleted successfully.', cancelledBookings: cancelled }, { status: 200 });
   } catch (error) {
     console.error('Error deleting availability:', error);
     return NextResponse.json({ message: 'An error occurred while deleting availability.' }, { status: 500 });
