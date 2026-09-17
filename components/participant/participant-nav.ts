@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react"
-import { Home, Users, Flag, Star, Book, Calendar, QrCode, type LucideIcon } from "lucide-react"
+import { Home, Users, Flag, Star, Book, Calendar, QrCode, Contact, type LucideIcon } from "lucide-react"
 import { usePermissions } from "@/hooks/usePermissions"
 
 export interface ParticipantNavItem {
@@ -31,6 +31,7 @@ export const participantNavItems: ParticipantNavItem[] = [
   { name: "الموجهون", href: "/participant-dashboard/mentors", icon: Book, permission: { category: "mentorship", action: "view" } },
   { name: "الفعاليات", href: "/participant-dashboard/events", icon: Calendar, permission: { category: "events", action: "view" } },
   { name: "بطاقتي", href: "/participant-dashboard/badge", icon: QrCode, permission: { category: "events", action: "view" } },
+  { name: "أنا مشارك", href: "/participant-dashboard/card", icon: Contact, permission: { category: "events", action: "view" } },
 ]
 
 interface ParticipantNavData {
