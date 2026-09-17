@@ -137,7 +137,7 @@ export default function ParticipantCardPage() {
     ctx.direction = "rtl";
 
     // Track — inside the gradient pill
-    const trackText = track ? `مسار ${track}` : "";
+    const trackText = track ? `مسار | ${track}` : "";
     if (trackText) {
       const size = fitFont(ctx, trackText, 700, 190, PILL.maxWidth);
       ctx.font = `700 ${size}px ${FONT}`;
