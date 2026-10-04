@@ -311,23 +311,20 @@ export default function ParticipantCardPage() {
       </div>
 
       {/* design picker — the new card first; the form below is shared by both */}
-      <div className="space-y-2">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="اختر البطاقة">
-          {CARDS.map((c) => (
-            <Button
-              key={c.id}
-              type="button"
-              role="tab"
-              aria-selected={cardId === c.id}
-              variant={cardId === c.id ? "default" : "outline"}
-              className={cardId === c.id ? "bg-blue-600 hover:bg-blue-700" : ""}
-              onClick={() => setCardId(c.id)}
-            >
-              بطاقة {c.label}
-            </Button>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">بياناتك وصورتك تنطبق على البطاقتين — اختر البطاقة ثم حمّلها أو شاركها.</p>
+      <div className="flex flex-wrap gap-2" role="tablist" aria-label="اختر البطاقة">
+        {CARDS.map((c) => (
+          <Button
+            key={c.id}
+            type="button"
+            role="tab"
+            aria-selected={cardId === c.id}
+            variant={cardId === c.id ? "default" : "outline"}
+            className={cardId === c.id ? "bg-blue-600 hover:bg-blue-700" : ""}
+            onClick={() => setCardId(c.id)}
+          >
+            بطاقة {c.label}
+          </Button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -362,7 +359,7 @@ export default function ParticipantCardPage() {
                   </Button>
                 )}
               </div>
-              <p className="text-xs text-muted-foreground">{photoName ? `الصورة المختارة: ${photoName}` : "تُقصّ الصورة تلقائياً داخل الدائرة. تُعالج على جهازك ولا تُرفع إلى المنصة."}</p>
+              {photoName && <p className="text-xs text-muted-foreground">الصورة المختارة: {photoName}</p>}
               {!photo && (
                 <div className="space-y-1">
                   <Label className="text-xs text-muted-foreground">الصورة الافتراضية</Label>
