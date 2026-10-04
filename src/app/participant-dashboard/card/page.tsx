@@ -11,16 +11,61 @@ import { CHALLENGES } from "@/lib/challenges";
 import { Contact, Download, ImagePlus, Loader2, Share2, Trash2, User, UserRound } from "lucide-react";
 
 /**
- * "بطاقة المشارك" — a shareable card rendered in the browser on top of
- * public/card/basecard.png (8000×4500). Nothing is uploaded or stored: the
- * photo, name, team and track live in this page only, and the PNG is built
- * with a canvas and downloaded/shared from the device.
+ * "بطاقة المشارك" — a shareable card rendered in the browser on top of a base
+ * artwork (8000×4500). Two designs share one form: المعسكر الحضوري
+ * (public/card02, shown first) and المعسكر الرقمي (public/card). Nothing is
+ * uploaded or stored: the photo, name, team and track live in this page only,
+ * and the PNG is built with a canvas and downloaded/shared from the device.
  *
  * Geometry below is measured on the base card (8000×4500 coordinate space)
- * and scaled to the canvas size at draw time.
+ * and scaled to the canvas size at draw time. Both designs have the same
+ * layout (circle, pill, name/team area), so only the images differ.
  */
 const BASE_W = 8000;
 const BASE_H = 4500;
+/** Radius of the white circle as drawn in the artwork (the clip below sits just inside it). */
+const ARTWORK_CIRCLE_R = 940;
+
+interface Silhouette {
+  src: string;
+  /**
+   * The circle this figure was cut with, in the image's own pixels. When set,
+   * the figure is placed so that circle lands exactly on the card's circle
+   * (the designer's placement). Without it, the older 80%-width fit is used.
+   */
+  arc?: { cx: number; cy: number; r: number };
+}
+
+interface CardDesign {
+  id: "camp" | "digital";
+  label: string;
+  base: string;
+  male: Silhouette;
+  female: Silhouette;
+  fileTag: string;
+}
+
+const CARDS: CardDesign[] = [
+  {
+    id: "camp",
+    label: "المعسكر الحضوري",
+    base: "/card02/basecard.png",
+    // arcs measured on the images' alpha edge
+    male: { src: "/card02/male.png", arc: { cx: 1057, cy: 1053, r: 943 } },
+    female: { src: "/card/female.png", arc: { cx: 1189, cy: 1083, r: 943 } },
+    fileTag: "camp",
+  },
+  {
+    id: "digital",
+    label: "المعسكر الرقمي",
+    base: "/card/basecard.png",
+    male: { src: "/card/male.png" },
+    female: { src: "/card/female.png" },
+    fileTag: "digital",
+  },
+];
+type CardId = CardDesign["id"];
+type CardAssets = { base: HTMLImageElement; male: HTMLImageElement; female: HTMLImageElement };
 /** Output size: half of the artwork — 4000×2250 is plenty for social media. */
 const SCALE = 0.5;
 
@@ -69,19 +114,28 @@ export default function ParticipantCardPage() {
   const [avatar, setAvatar] = useState<Avatar>("male");
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
   const [photoName, setPhotoName] = useState<string | null>(null);
-  const assets = useRef<{ base: HTMLImageElement; male: HTMLImageElement; female: HTMLImageElement } | null>(null);
+  const [cardId, setCardId] = useState<CardId>(CARDS[0].id);
+  const design = CARDS.find((c) => c.id === cardId) ?? CARDS[0];
+  // images per design, loaded the first time that design is shown
+  const assets = useRef<Partial<Record<CardId, CardAssets>>>({});
+  const [loadedIds, setLoadedIds] = useState<CardId[]>([]);
+  const cardReady = loadedIds.includes(cardId);
+
+  const loadDesign = useCallback(async (d: CardDesign) => {
+    if (assets.current[d.id]) return;
+    const [base, male, female] = await Promise.all([loadImage(d.base), loadImage(d.male.src), loadImage(d.female.src)]);
+    assets.current[d.id] = { base, male, female };
+    setLoadedIds((ids) => (ids.includes(d.id) ? ids : [...ids, d.id]));
+  }, []);
 
   // ---- prefill from the participant profile --------------------------------
   useEffect(() => {
     (async () => {
       try {
-        const [meRes, base, male, female] = await Promise.all([
+        const [meRes] = await Promise.all([
           fetch("/api/participant/me", { credentials: "include" }),
-          loadImage("/card/basecard.png"),
-          loadImage("/card/male.png"),
-          loadImage("/card/female.png"),
+          loadDesign(CARDS[0]),
         ]);
-        assets.current = { base, male, female };
         if (meRes.ok) {
           const me: Me = await meRes.json();
           setName((me.fullName && me.fullName !== "غير متوفر" ? me.fullName : "") || "");
@@ -100,10 +154,18 @@ export default function ParticipantCardPage() {
     })();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // the other design's images load when its tab is first opened
+  useEffect(() => {
+    if (loading || cardReady) return;
+    loadDesign(design).catch((e) =>
+      toast({ title: "خطأ", description: e instanceof Error ? e.message : "تعذر تحميل البطاقة", variant: "destructive" })
+    );
+  }, [loading, cardReady, design, loadDesign]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---- draw ------------------------------------------------------------------
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
-    const a = assets.current;
+    const a = assets.current[design.id];
     if (!canvas || !a) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -125,10 +187,17 @@ export default function ParticipantCardPage() {
       const w = photo.width * s, h = photo.height * s;
       ctx.drawImage(photo, CIRCLE.cx - w / 2, CIRCLE.cy - h / 2, w, h);
     } else {
-      // silhouette: ~80% of the circle width, sitting on the circle's bottom edge
+      const sil = avatar === "female" ? design.female : design.male;
       const img = avatar === "female" ? a.female : a.male;
-      const w = d * 0.8, h = (img.height / img.width) * w;
-      ctx.drawImage(img, CIRCLE.cx - w / 2, CIRCLE.cy + CIRCLE.r - h, w, h);
+      if (sil.arc) {
+        // the figure's cut circle lands exactly on the card's circle
+        const s = ARTWORK_CIRCLE_R / sil.arc.r;
+        ctx.drawImage(img, CIRCLE.cx - sil.arc.cx * s, CIRCLE.cy - sil.arc.cy * s, img.width * s, img.height * s);
+      } else {
+        // silhouette: ~80% of the circle width, sitting on the circle's bottom edge
+        const w = d * 0.8, h = (img.height / img.width) * w;
+        ctx.drawImage(img, CIRCLE.cx - w / 2, CIRCLE.cy + CIRCLE.r - h, w, h);
+      }
     }
     ctx.restore();
 
@@ -162,9 +231,9 @@ export default function ParticipantCardPage() {
       ctx.fillStyle = TEAM.color;
       ctx.fillText(teamText, TEAM.cx, TEAM.baseline);
     }
-  }, [name, teamName, track, avatar, photo]);
+  }, [name, teamName, track, avatar, photo, design]);
 
-  useEffect(() => { if (!loading) draw(); }, [loading, draw]);
+  useEffect(() => { if (!loading && cardReady) draw(); }, [loading, cardReady, draw]);
 
   // ---- photo pick --------------------------------------------------------------
   const onPickPhoto = async (file: File | null) => {
@@ -188,7 +257,7 @@ export default function ParticipantCardPage() {
       if (!c) return reject(new Error("no canvas"));
       c.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob failed"))), "image/png");
     });
-  const fileName = () => `miyahthon-card-${(name.trim() || "participant").replace(/[\\/:*?"<>|]+/g, "").slice(0, 40)}.png`;
+  const fileName = () => `miyahthon-card-${design.fileTag}-${(name.trim() || "participant").replace(/[\\/:*?"<>|]+/g, "").slice(0, 40)}.png`;
 
   const download = async () => {
     try {
@@ -241,6 +310,26 @@ export default function ParticipantCardPage() {
         </p>
       </div>
 
+      {/* design picker — the new card first; the form below is shared by both */}
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2" role="tablist" aria-label="اختر البطاقة">
+          {CARDS.map((c) => (
+            <Button
+              key={c.id}
+              type="button"
+              role="tab"
+              aria-selected={cardId === c.id}
+              variant={cardId === c.id ? "default" : "outline"}
+              className={cardId === c.id ? "bg-blue-600 hover:bg-blue-700" : ""}
+              onClick={() => setCardId(c.id)}
+            >
+              بطاقة {c.label}
+            </Button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">بياناتك وصورتك تنطبق على البطاقتين — اختر البطاقة ثم حمّلها أو شاركها.</p>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form */}
         <Card className="border-0 shadow-sm lg:order-2">
@@ -285,20 +374,25 @@ export default function ParticipantCardPage() {
               )}
             </div>
             <div className="flex flex-col sm:flex-row gap-2 pt-2">
-              <Button onClick={download} disabled={rendering} className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700">
+              <Button onClick={download} disabled={rendering || !cardReady} className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700">
                 {rendering ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />} تحميل البطاقة (PNG)
               </Button>
-              <Button onClick={share} variant="outline" className="flex-1 gap-2"><Share2 className="h-4 w-4" /> مشاركة</Button>
+              <Button onClick={share} disabled={!cardReady} variant="outline" className="flex-1 gap-2"><Share2 className="h-4 w-4" /> مشاركة</Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Preview */}
         <Card className="border-0 shadow-sm lg:col-span-2 lg:order-1 overflow-hidden">
-          <CardHeader className="pb-3"><CardTitle className="text-lg flex items-center gap-2"><ImagePlus className="h-5 w-5 text-blue-600" /> معاينة البطاقة</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-lg flex items-center gap-2"><ImagePlus className="h-5 w-5 text-blue-600" /> معاينة بطاقة {design.label}</CardTitle></CardHeader>
           <CardContent>
-            <div className="rounded-lg overflow-hidden shadow-md bg-[#0a1a5c]">
-              <canvas ref={canvasRef} className="w-full h-auto block" aria-label="معاينة بطاقة المشارك" />
+            <div className="relative rounded-lg overflow-hidden shadow-md bg-[#0a1a5c]">
+              <canvas ref={canvasRef} className="w-full h-auto block" aria-label={`معاينة بطاقة ${design.label}`} />
+              {!cardReady && (
+                <div className="absolute inset-0 flex items-center justify-center gap-2 bg-[#0a1a5c]/80 text-white text-sm">
+                  <Loader2 className="h-5 w-5 animate-spin" /> جاري تحميل البطاقة...
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
