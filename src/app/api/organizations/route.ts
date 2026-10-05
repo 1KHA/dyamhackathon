@@ -27,9 +27,12 @@ export async function GET(request: NextRequest) {
     if (id) {
       const org = await prisma.organization.findUnique({
         where: { id },
-        select: { id: true, name: true, description: true, logoUrl: true },
+        select: { id: true, name: true, description: true, logoUrl: true, hiddenFromParticipants: true },
       });
-      if (!org) return NextResponse.json({ error: 'الجهة غير موجودة' }, { status: 404 });
+      // An organization the admin hid from participants does not exist for them.
+      if (!org || (org.hiddenFromParticipants && claims.role !== 'admin')) {
+        return NextResponse.json({ error: 'الجهة غير موجودة' }, { status: 404 });
+      }
       const slots = await organizationSlots(id, { viewerParticipantId, revealMentors });
       return NextResponse.json({ mode, organization: org, slots });
     }

@@ -21,6 +21,7 @@ const SUITES = [
   'e2e-delete-cleanup',
   'e2e-upload-paths',
   'e2e-organizations',
+  'e2e-hide-from-participants',
   'e2e-bulk-approval',
   'e2e-slot-split',
   'e2e-admin-member-edit',

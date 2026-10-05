@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import { dispatchNotification } from '@/lib/notify';
 import { generatePassword, getLoginUrl } from '@/lib/credentials';
 import { verifyToken, requireAdmin } from '@/lib/notification-auth';
+import { PARTICIPANT_VISIBLE_MENTOR_WHERE } from '@/lib/organizations';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,8 +22,9 @@ const MENTOR_PUBLIC_FIELDS = {
   updatedAt: true,
   isDisabled: true,
   disabledAt: true,
+  hiddenFromParticipants: true,
   organizationId: true,
-  organization: { select: { id: true, name: true, logoUrl: true } },
+  organization: { select: { id: true, name: true, logoUrl: true, hiddenFromParticipants: true } },
 } as const;
 
 /** Resolves an optional organizationId from a request body: null clears it. */
@@ -45,10 +47,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message: 'غير مصرح' }, { status: 401 });
   }
 
-  // Admins must still see disabled mentors (to re-enable them); everyone else
-  // — i.e. participants browsing before booking — must not.
+  // Admins must still see disabled and hidden mentors (to re-enable/unhide
+  // them); everyone else — i.e. participants browsing before booking — must not.
   const isAdmin = claims.role === 'admin';
-  const visibility = isAdmin ? {} : { isDisabled: false };
+  const visibility = isAdmin ? {} : PARTICIPANT_VISIBLE_MENTOR_WHERE;
 
   const searchParams = request.nextUrl.searchParams;
   const id = searchParams.get('id');
@@ -242,7 +244,7 @@ export async function PUT(request: Request) {
   }
   try {
     const body = await request.json();
-    const { id, name, email, specialty, phone, status, organizationId } = body;
+    const { id, name, email, specialty, phone, status, organizationId, hiddenFromParticipants } = body;
 
     if (!id) {
       return NextResponse.json({ message: 'Mentor ID is required' }, { status: 400 });
@@ -268,6 +270,7 @@ export async function PUT(request: Request) {
         status,
         // only touch the organization when the client sent the field
         ...(organizationId !== undefined ? { organizationId: orgUpdate.value } : {}),
+        ...(typeof hiddenFromParticipants === 'boolean' ? { hiddenFromParticipants } : {}),
       },
       select: MENTOR_PUBLIC_FIELDS,
     });

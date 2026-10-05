@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 const UNAUTHORIZED = () =>
   NextResponse.json({ error: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' }, { status: 401 });
 
-/** PUT — rename / describe / replace or remove the logo. */
+/** PUT — rename / describe / replace or remove the logo / hide from participants. */
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   if (!requireAdmin(cookies().get('token')?.value)) return UNAUTHORIZED();
   try {
@@ -17,7 +17,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     if (!existing) return NextResponse.json({ error: 'الجهة غير موجودة' }, { status: 404 });
 
     const body = await readOrgBody(request);
-    const data: { name?: string; description?: string | null; logoUrl?: string | null } = {};
+    const data: { name?: string; description?: string | null; logoUrl?: string | null; hiddenFromParticipants?: boolean } = {};
     if (body.name !== undefined) {
       const name = body.name.trim();
       if (!name) return NextResponse.json({ error: 'اسم الجهة مطلوب' }, { status: 400 });
@@ -26,6 +26,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       data.name = name;
     }
     if (body.description !== undefined) data.description = body.description.trim() || null;
+    if (body.hiddenFromParticipants !== undefined) data.hiddenFromParticipants = body.hiddenFromParticipants;
     if (body.logo) {
       try { data.logoUrl = await storeLogo(body.logo); }
       catch (e) { return NextResponse.json({ error: (e as Error).message }, { status: 400 }); }
@@ -36,7 +37,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const organization = await prisma.organization.update({
       where: { id: params.id },
       data,
-      select: { id: true, name: true, description: true, logoUrl: true, updatedAt: true },
+      select: { id: true, name: true, description: true, logoUrl: true, hiddenFromParticipants: true, updatedAt: true },
     });
     return NextResponse.json({ organization });
   } catch (error) {

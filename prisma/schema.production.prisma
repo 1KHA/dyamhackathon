@@ -132,6 +132,9 @@ model Mentor {
   // email, and is not bookable. See src/lib/account-status.ts.
   isDisabled     Boolean              @default(false)
   disabledAt     DateTime?
+  // Hidden by an admin from participants: not listed, not bookable (it can
+  // still log in and use its dashboard).
+  hiddenFromParticipants Boolean      @default(false)
   passwordHash   String?
   // Optional grouping: participants can book "the organization" and every
   // member is notified — see mdfiles/organizations.md.
@@ -149,6 +152,8 @@ model Organization {
   name        String          @unique
   description String?
   logoUrl     String?
+  // Hidden by an admin from participants, together with all its members.
+  hiddenFromParticipants Boolean @default(false)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   mentors     Mentor[]

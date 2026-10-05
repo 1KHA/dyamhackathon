@@ -16,13 +16,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "../../../components/ui/use-toast";
-import { Building2, Edit, Loader2, Plus, Trash2, Users } from "lucide-react";
+import { Building2, Edit, Eye, EyeOff, Loader2, Plus, Trash2, Users } from "lucide-react";
 
 export interface OrganizationRow {
   id: string;
   name: string;
   description: string | null;
   logoUrl: string | null;
+  /** Hidden by an admin from participants, with all its members. */
+  hiddenFromParticipants?: boolean;
   mentors: { id: string; name: string; email: string; specialty: string; status: string; isDisabled: boolean }[];
   _count: { bookings: number };
 }
@@ -62,6 +64,26 @@ export default function OrganizationsManager({ onChanged }: { onChanged?: () => 
     }
   };
   useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Hide / show the organization (and its members) on the participant side. */
+  const toggleHidden = async (o: OrganizationRow) => {
+    const hidden = !o.hiddenFromParticipants;
+    try {
+      const res = await fetch(`/api/admin/organizations/${o.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ hiddenFromParticipants: hidden }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "فشل الحفظ");
+      setOrgs((prev) => prev.map((x) => (x.id === o.id ? { ...x, hiddenFromParticipants: hidden } : x)));
+      toast({ title: "تم الحفظ", description: hidden ? `تم إخفاء "${o.name}" وأعضائها عن المشاركين` : `أصبحت "${o.name}" ظاهرة للمشاركين` });
+      onChanged?.();
+    } catch (e) {
+      toast({ title: "خطأ", description: e instanceof Error ? e.message : "فشل الحفظ", variant: "destructive" });
+    }
+  };
 
   const openCreate = () => { setEditing(null); setName(""); setDescription(""); setLogo(null); setRemoveLogo(false); setDialogOpen(true); };
   const openEdit = (o: OrganizationRow) => { setEditing(o); setName(o.name); setDescription(o.description || ""); setLogo(null); setRemoveLogo(false); setDialogOpen(true); };
@@ -148,6 +170,9 @@ export default function OrganizationsManager({ onChanged }: { onChanged?: () => 
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="font-semibold break-words">{o.name}</div>
+                    {o.hiddenFromParticipants && (
+                      <Badge variant="secondary" className="mt-1 bg-gray-200 text-gray-700 font-normal">مخفية عن المشاركين</Badge>
+                    )}
                     {o.description && <div className="text-xs text-muted-foreground line-clamp-2 break-words">{o.description}</div>}
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
                       <Badge variant="secondary" className="flex items-center gap-1"><Users className="h-3 w-3" />{o.mentors.length} موجه</Badge>
@@ -161,6 +186,16 @@ export default function OrganizationsManager({ onChanged }: { onChanged?: () => 
                   </div>
                   <div className="flex flex-col gap-1 shrink-0">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(o)} title="تعديل"><Edit className="h-4 w-4" /></Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-8 w-8 ${o.hiddenFromParticipants ? "text-gray-700 bg-gray-100" : "text-gray-500"}`}
+                      onClick={() => toggleHidden(o)}
+                      title={o.hiddenFromParticipants ? "مخفية عن المشاركين — انقر للإظهار" : "ظاهرة للمشاركين — انقر للإخفاء"}
+                      aria-label={o.hiddenFromParticipants ? "إظهار للمشاركين" : "إخفاء عن المشاركين"}
+                    >
+                      {o.hiddenFromParticipants ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => setToDelete(o)} title="حذف"><Trash2 className="h-4 w-4" /></Button>
                   </div>
                 </div>

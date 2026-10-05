@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const availability = await prisma.mentorAvailability.findUnique({
       where: { id: availabilityId },
       include: {
-        mentor: true,
+        mentor: { include: { organization: { select: { hiddenFromParticipants: true } } } },
         bookings: true,
       },
     });
@@ -95,8 +95,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // A disabled mentor is not bookable, regardless of their status field.
-    if (availability.mentor.isDisabled) {
+    // A disabled mentor is not bookable, regardless of their status field —
+    // nor one the admin hid from participants (directly or via its organization).
+    if (
+      availability.mentor.isDisabled ||
+      availability.mentor.hiddenFromParticipants ||
+      availability.mentor.organization?.hiddenFromParticipants
+    ) {
       return NextResponse.json(
         { error: 'هذا الموجه غير متاح حالياً' },
         { status: 403 }

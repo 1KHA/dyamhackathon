@@ -14,6 +14,7 @@ export const ORG_SELECT = {
   name: true,
   description: true,
   logoUrl: true,
+  hiddenFromParticipants: true,
   createdAt: true,
   updatedAt: true,
   mentors: { select: { id: true, name: true, email: true, specialty: true, status: true, isDisabled: true } },
@@ -22,7 +23,7 @@ export const ORG_SELECT = {
 
 /** Parses JSON or multipart bodies into one shape. */
 export async function readOrgBody(request: NextRequest): Promise<{
-  name?: string; description?: string; logo?: File | null; removeLogo?: boolean;
+  name?: string; description?: string; logo?: File | null; removeLogo?: boolean; hiddenFromParticipants?: boolean;
 }> {
   const ct = request.headers.get('content-type') || '';
   if (ct.includes('multipart/form-data')) {
@@ -33,6 +34,7 @@ export async function readOrgBody(request: NextRequest): Promise<{
       description: fd.has('description') ? String(fd.get('description') ?? '') : undefined,
       logo: logo instanceof File && logo.size > 0 ? logo : null,
       removeLogo: String(fd.get('removeLogo') || '') === 'true',
+      hiddenFromParticipants: fd.has('hiddenFromParticipants') ? String(fd.get('hiddenFromParticipants')) === 'true' : undefined,
     };
   }
   const body = await request.json().catch(() => ({}));
@@ -41,6 +43,7 @@ export async function readOrgBody(request: NextRequest): Promise<{
     description: body.description !== undefined ? String(body.description) : undefined,
     logo: null,
     removeLogo: body.removeLogo === true,
+    hiddenFromParticipants: typeof body.hiddenFromParticipants === 'boolean' ? body.hiddenFromParticipants : undefined,
   };
 }
 

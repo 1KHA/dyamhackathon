@@ -39,6 +39,8 @@ import {
   Ban,
   RotateCcw,
   Video,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -102,8 +104,10 @@ interface Mentor {
   phone: string;
   status: 'pending' | 'active' | 'inactive';
   organizationId?: string | null;
-  organization?: { id: string; name: string; logoUrl: string | null } | null;
+  organization?: { id: string; name: string; logoUrl: string | null; hiddenFromParticipants?: boolean } | null;
   isDisabled?: boolean;
+  /** Hidden by an admin from participants (not listed, not bookable). */
+  hiddenFromParticipants?: boolean;
   createdAt: string;
   updatedAt: string;
   // Computed server-side from real bookings/availability (see
@@ -400,6 +404,29 @@ export default function MentorsPage() {
       });
     } finally {
       setStatusUpdatingId(null);
+    }
+  };
+
+  /** Hide / show a mentor on the participant side (not listed, not bookable). */
+  const handleToggleHidden = async (mentor: Mentor) => {
+    const hidden = !mentor.hiddenFromParticipants;
+    try {
+      const response = await fetch('/api/admin/mentors', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: mentor.id, hiddenFromParticipants: hidden }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'فشل في تحديث الموجه.');
+      }
+      setMentors((prev) => prev.map((m) => (m.id === mentor.id ? { ...m, hiddenFromParticipants: hidden } : m)));
+      toast({
+        title: 'نجاح',
+        description: hidden ? `تم إخفاء ${mentor.name} عن المشاركين.` : `أصبح ${mentor.name} ظاهراً للمشاركين.`,
+      });
+    } catch (error: any) {
+      toast({ title: 'خطأ', description: error.message || 'فشل في تحديث الموجه.', variant: 'destructive' });
     }
   };
 
@@ -961,6 +988,12 @@ export default function MentorsPage() {
                       {mentor.isDisabled && (
                         <span className="px-1.5 py-0.5 rounded-full text-xs bg-red-100 text-red-700">معطل</span>
                       )}
+                      {mentor.hiddenFromParticipants && (
+                        <span className="px-1.5 py-0.5 rounded-full text-xs bg-gray-200 text-gray-700">مخفي عن المشاركين</span>
+                      )}
+                      {!mentor.hiddenFromParticipants && mentor.organization?.hiddenFromParticipants && (
+                        <span className="px-1.5 py-0.5 rounded-full text-xs bg-gray-100 text-gray-600">جهته مخفية</span>
+                      )}
                     </div>
                     <div className="text-sm text-gray-500">{mentor.email}</div>
                   </TableCell>
@@ -1043,6 +1076,16 @@ export default function MentorsPage() {
                       >
                         <Mail className="h-4 w-4" />
                         <span>إرسال رسالة</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className={mentor.hiddenFromParticipants ? 'bg-gray-100 text-gray-700 border-gray-300' : 'text-gray-500'}
+                        title={mentor.hiddenFromParticipants ? 'مخفي عن المشاركين — انقر للإظهار' : 'ظاهر للمشاركين — انقر للإخفاء'}
+                        aria-label={mentor.hiddenFromParticipants ? 'إظهار للمشاركين' : 'إخفاء عن المشاركين'}
+                        onClick={() => handleToggleHidden(mentor)}
+                      >
+                        {mentor.hiddenFromParticipants ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

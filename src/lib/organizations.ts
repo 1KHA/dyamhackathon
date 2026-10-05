@@ -35,8 +35,18 @@ export async function getBookingMode(): Promise<BookingMode> {
   return isBookingMode(m) ? m : 'individual';
 }
 
-/** Members who can actually receive bookings. */
-export const BOOKABLE_MENTOR_WHERE = { status: 'active', isDisabled: false } as const;
+/** Members who can actually receive bookings (an admin can hide a mentor from participants). */
+export const BOOKABLE_MENTOR_WHERE = { status: 'active', isDisabled: false, hiddenFromParticipants: false } as const;
+
+/**
+ * Mentors participants may see: not disabled, not hidden by an admin, and not
+ * in an organization the admin hid (hiding an organization hides its members).
+ */
+export const PARTICIPANT_VISIBLE_MENTOR_WHERE = {
+  isDisabled: false,
+  hiddenFromParticipants: false,
+  OR: [{ organizationId: null }, { organization: { hiddenFromParticipants: false } }],
+};
 
 export interface OrgSlot {
   /** Representative availability id (a free host slot when one exists). */
@@ -143,6 +153,7 @@ export async function organizationSlots(
 export async function listOrganizationsPublic(revealMentors: boolean) {
   const now = new Date();
   const orgs = await prisma.organization.findMany({
+    where: { hiddenFromParticipants: false },
     orderBy: { name: 'asc' },
     select: {
       id: true,
