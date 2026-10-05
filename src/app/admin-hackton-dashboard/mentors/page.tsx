@@ -66,7 +66,7 @@ import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/ar'; // Import Arabic locale
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { SLOT_STEP_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
+import { SLOT_GRID_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
 
 moment.locale('ar'); // Set moment to use Arabic
 const localizer = momentLocalizer(moment);
@@ -205,19 +205,27 @@ export default function MentorsPage() {
         body: JSON.stringify({ start: slotToAdd.start, end: slotToAdd.end }),
       });
 
+      const data = await response.json().catch(() => ({}));
       if (response.ok) {
+        // The range is split server-side into 20-minute slots with a 5-minute
+        // break; slots clashing with existing ones are skipped.
+        const created = Number(data.created ?? 1);
+        const skipped = Number(data.skipped ?? 0);
         toast({
-          title: 'Success',
-          description: 'Availability added successfully.',
+          title: created === 0 ? 'لم تُضف أي فترة' : 'تمت الإضافة',
+          description:
+            created === 0
+              ? 'الأوقات مضافة مسبقاً أو قريبة جداً من فترات موجودة (يجب ترك 5 دقائق بين الفترات).'
+              : `تمت إضافة ${created} فترة${skipped ? ` — تم تجاوز ${skipped} فترة لتداخلها مع أوقات موجودة أو قربها منها` : ''}.`,
         });
         fetchMentorAvailability(mentorForAvailability.id); // Refresh events
       } else {
-        throw new Error('Failed to add availability');
+        throw new Error(data.message || 'An error occurred while adding availability.');
       }
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'An error occurred while adding availability.',
+        description: error instanceof Error ? error.message : 'An error occurred while adding availability.',
         variant: 'destructive',
       });
     } finally {
@@ -1483,7 +1491,7 @@ export default function MentorsPage() {
           <div style={{ height: '70vh', backgroundColor: 'white', padding: '20px', borderRadius: '8px' }}>
             <BigCalendar
               localizer={localizer}
-              step={SLOT_STEP_MINUTES}
+              step={SLOT_GRID_MINUTES}
               timeslots={SLOT_TIMESLOTS_PER_HOUR}
               events={availabilityEvents}
               startAccessor="start"

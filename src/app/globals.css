@@ -527,7 +527,7 @@ html, body {
 }
 
 /* react-big-calendar (mentor availability, participant booking, admin
-   mentor calendar): slots are 15 minutes, so the event box only has room
+   mentor calendar): slots are 20 minutes, so the event box only has room
    for the time. Hide the status/title text in the time grid and keep the
    hover tooltip (title attribute) for the details. */
 .rbc-time-view .rbc-event {

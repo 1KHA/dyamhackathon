@@ -18,10 +18,14 @@ export const ALLOWED_FILE_TYPES = [
   "image/png",
 ];
 
-// Mentor availability slot granularity (minutes). One knob for every calendar:
-// change to 30 later to widen the booking grid everywhere at once.
-export const SLOT_STEP_MINUTES = 15;
-export const SLOT_TIMESLOTS_PER_HOUR = 60 / SLOT_STEP_MINUTES;
+// Mentor availability slots: every slot is SLOT_DURATION_MINUTES long and is
+// followed by a SLOT_BREAK_MINUTES empty break, so no two slots of a mentor (or
+// of an organization's shared calendar) are ever back-to-back. Times snap to
+// SLOT_GRID_MINUTES, which is also the row size of every calendar.
+export const SLOT_DURATION_MINUTES = 20;
+export const SLOT_BREAK_MINUTES = 5;
+export const SLOT_GRID_MINUTES = 5;
+export const SLOT_TIMESLOTS_PER_HOUR = 60 / SLOT_GRID_MINUTES;
 
 // Maximum team size (leader + members). Enforced server-side when a team
 // leader adds a member; the add window itself is stored in TeamSettings.

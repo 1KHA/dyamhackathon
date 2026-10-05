@@ -110,8 +110,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Start time and end time are required' }, { status: 400 });
     }
 
-    // Any range (click-and-drag included) becomes 15-minute slots; existing
-    // identical windows are skipped. See src/lib/slots.ts.
+    // Any range (click-and-drag included) becomes 20-minute slots with a
+    // 5-minute break after each; clashing windows are skipped. See src/lib/slots.ts.
     const result = await createSlotsForMentor(mentorId, startTime, endTime);
     if (!result.ok) {
       return NextResponse.json({ error: result.error }, { status: 400 });

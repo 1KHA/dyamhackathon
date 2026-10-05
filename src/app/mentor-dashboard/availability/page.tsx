@@ -6,7 +6,7 @@ import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/ar'; // Import Arabic locale
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { SLOT_STEP_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
+import { SLOT_BREAK_MINUTES, SLOT_DURATION_MINUTES, SLOT_GRID_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
 import { Button } from '../../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '../../../../components/ui/label';
@@ -33,8 +33,8 @@ const messages = {
   showMore: (total: number) => `+${total} المزيد`,
 };
 
-// Working-hours window for the grid: with 15-minute rows a full 24h day is
-// 96 rows — unreadable. 07:00–23:00 keeps every realistic slot visible.
+// Working-hours window for the grid: with 5-minute rows a full 24h day is
+// 288 rows — unreadable. 07:00–23:00 keeps every realistic slot visible.
 const DAY_START = new Date(1970, 0, 1, 7, 0, 0);
 const DAY_END = new Date(1970, 0, 1, 23, 0, 0);
 const SCROLL_TO = new Date(1970, 0, 1, 9, 0, 0);
@@ -173,8 +173,8 @@ const AvailabilityPage = () => {
           title: "تم بنجاح",
           description:
             created === 0
-              ? "هذه الأوقات مضافة مسبقاً."
-              : `تمت إضافة ${created} فترة (${SLOT_STEP_MINUTES} دقيقة لكل فترة)${skipped ? ` — تم تجاوز ${skipped} فترة مضافة مسبقاً` : ''}.`,
+              ? `لم تُضف أي فترة: هذه الأوقات مضافة مسبقاً أو قريبة جداً من فترات موجودة (يجب ترك ${SLOT_BREAK_MINUTES} دقائق بين الفترات).`
+              : `تمت إضافة ${created} فترة (${SLOT_DURATION_MINUTES} دقيقة لكل فترة، تليها استراحة ${SLOT_BREAK_MINUTES} دقائق)${skipped ? ` — تم تجاوز ${skipped} فترة لتداخلها مع أوقات موجودة أو قربها منها` : ''}.`,
         })
       } else {
         toast({
@@ -252,8 +252,8 @@ const AvailabilityPage = () => {
       toast({ title: "خطأ", description: "لا يمكن إضافة وقت في الماضي.", variant: "destructive" });
       return;
     }
-    // Every slot is exactly one step long (15 min) — no duration choice.
-    const end = start.clone().add(SLOT_STEP_MINUTES, 'minutes');
+    // Every slot is exactly SLOT_DURATION_MINUTES long (20 min) — no duration choice.
+    const end = start.clone().add(SLOT_DURATION_MINUTES, 'minutes');
     setAdding(true);
     await handleSelectSlot({ start: start.toDate(), end: end.toDate() });
     setAdding(false);
@@ -280,7 +280,7 @@ const AvailabilityPage = () => {
     <div className="container mx-auto p-0 sm:p-4" dir="rtl">
       <h1 className="text-2xl font-bold mb-2 sm:mb-4">إدارة أوقات التوافر الخاصة بك</h1>
       <p className="mb-4 hidden md:block text-muted-foreground">
-        انقر واسحب على التقويم لإنشاء فترات توافر جديدة، أو أضف وقتاً بدقة من النموذج الجانبي. أي مدة تختارها تُقسَّم تلقائياً إلى فترات من {SLOT_STEP_MINUTES} دقيقة (كل فترة تُحجز على حدة). انقر على فترة في التقويم أو على سلة المهملات في القائمة لحذفها.
+        انقر واسحب على التقويم لإنشاء فترات توافر جديدة، أو أضف وقتاً بدقة من النموذج الجانبي. أي مدة تختارها تُقسَّم تلقائياً إلى فترات من {SLOT_DURATION_MINUTES} دقيقة تفصل بينها استراحة {SLOT_BREAK_MINUTES} دقائق (كل فترة تُحجز على حدة). انقر على فترة في التقويم أو على سلة المهملات في القائمة لحذفها.
       </p>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start">
@@ -311,11 +311,11 @@ const AvailabilityPage = () => {
                 id="slot-time"
                 type="time"
                 value={formTime}
-                step={SLOT_STEP_MINUTES * 60}
+                step={SLOT_GRID_MINUTES * 60}
                 onChange={(e) => setFormTime(e.target.value)}
                 className="w-full p-2 border rounded-md bg-white"
               />
-              <p className="text-xs text-muted-foreground">مدة كل فترة {SLOT_STEP_MINUTES} دقيقة</p>
+              <p className="text-xs text-muted-foreground">مدة كل فترة {SLOT_DURATION_MINUTES} دقيقة، تليها استراحة {SLOT_BREAK_MINUTES} دقائق</p>
             </div>
             <Button onClick={handleAddFromForm} disabled={adding} className="w-full">
               {adding ? (
@@ -495,7 +495,7 @@ const AvailabilityPage = () => {
         <div className="min-w-[760px]" style={{ height: '68vh' }}>
         <Calendar
           localizer={localizer}
-          step={SLOT_STEP_MINUTES}
+          step={SLOT_GRID_MINUTES}
           timeslots={SLOT_TIMESLOTS_PER_HOUR}
           events={events}
           startAccessor="start"

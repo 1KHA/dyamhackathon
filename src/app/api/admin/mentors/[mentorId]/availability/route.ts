@@ -49,8 +49,8 @@ export async function POST(
       return NextResponse.json({ message: 'Start and end times are required.' }, { status: 400 });
     }
 
-    // Same rule as the mentor's own page: the range is split into 15-minute
-    // slots, existing identical windows are skipped. See src/lib/slots.ts.
+    // Same rule as the mentor's own page: the range is split into 20-minute
+    // slots with a 5-minute break after each; clashing windows are skipped. See src/lib/slots.ts.
     const result = await createSlotsForMentor(mentorId, start, end);
     if (!result.ok) {
       return NextResponse.json({ message: result.error }, { status: 400 });

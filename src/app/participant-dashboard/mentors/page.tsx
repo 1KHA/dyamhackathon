@@ -38,7 +38,7 @@ import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/ar'; // Import Arabic locale
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import { SLOT_STEP_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
+import { SLOT_GRID_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 
 moment.locale('ar'); // Set moment to use Arabic
@@ -982,7 +982,7 @@ export default function MentorsPage() {
               <>
                 <BigCalendar
                   localizer={localizer}
-                  step={SLOT_STEP_MINUTES}
+                  step={SLOT_GRID_MINUTES}
                   timeslots={SLOT_TIMESLOTS_PER_HOUR}
                   events={availabilityEvents.map(event => ({
                     ...event,
