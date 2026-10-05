@@ -103,9 +103,12 @@ async function main() {
   const ownOnly = await api('/api/mentor/availability', { cookie: mCookie(m2.id) });
   check('default GET returns only own slots', ownOnly.status === 200 && ownOnly.json.every((a) => a.mentorId === m2.id) && !ownOnly.json.some((a) => a.id === s1.id), `n=${ownOnly.json?.length}`);
   const orgScope = await api('/api/mentor/availability?scope=organization', { cookie: mCookie(m2.id) });
-  const sharedS1 = orgScope.json?.find((a) => a.id === s1.id);
-  check('scope=organization shows colleague slot flagged shared with host name', !!sharedS1 && sharedS1.shared === true && sharedS1.hostMentor?.name === m1.name && sharedS1.isBooked === false, JSON.stringify(sharedS1 && { shared: sharedS1.shared, host: sharedS1.hostMentor?.name }));
+  const sharedS3 = orgScope.json?.find((a) => a.id === s3.id);
+  check('scope=organization shows colleague slot flagged shared with host name', !!sharedS3 && sharedS3.shared === true && sharedS3.hostMentor?.name === m1.name && sharedS3.hostMentors?.length === 1 && sharedS3.isBooked === false, JSON.stringify(sharedS3 && { shared: sharedS3.shared, host: sharedS3.hostMentor?.name }));
   check('  own slots flagged shared:false', orgScope.json.filter((a) => a.mentorId === m2.id).every((a) => a.shared === false));
+  const at24 = orgScope.json.filter((a) => new Date(a.startTime).getTime() === s1.startTime.getTime());
+  check('  a window offered by m1 AND m2 appears ONCE, as m2 own slot listing m1 as co-host', at24.length === 1 && at24[0].id === s4.id && at24[0].shared === false && at24[0].hostMentors?.some((h) => h.id === m1.id), JSON.stringify(at24.map((a) => ({ id: a.id, shared: a.shared, hosts: a.hostMentors?.length }))));
+  check('  every time window appears once (4 windows: 24h, 26h, 28h, 30h)', orgScope.json.length === 4 && new Set(orgScope.json.map((a) => a.startTime)).size === 4, `n=${orgScope.json.length}`);
   const outScope = await api('/api/mentor/availability?scope=organization', { cookie: mCookie(outsider.id) });
   check('  mentor without organization sees only own slots', outScope.json.every((a) => a.mentorId === outsider.id));
   await setMode(aCookie, 'individual'); // back to the default for the mode section below
@@ -177,8 +180,8 @@ async function main() {
   check('the 24h window shows booked although m2 slot (s4) itself is free', !!w24b && w24b.isBooked === true, JSON.stringify(w24b && { booked: w24b.isBooked }));
   const dbl = await api('/api/participant/book-appointment', { method: 'POST', cookie: pCookie(solo.id), body: { availabilityId: s4.id, organizationId: org.id } });
   check('booking the org again in that window via the other member -> 400', dbl.status === 400 && /محجوزة/.test(dbl.json?.message || ''), `status=${dbl.status} ${dbl.json?.message}`);
-  const s2Shared = (await api('/api/mentor/availability?scope=organization', { cookie: mCookie(m2.id) })).json.find((a) => a.id === s1.id);
-  check('colleague dashboard shows the shared slot as booked', s2Shared?.isBooked === true);
+  const w24m2 = (await api('/api/mentor/availability?scope=organization', { cookie: mCookie(m2.id) })).json.filter((a) => new Date(a.startTime).getTime() === s1.startTime.getTime());
+  check('colleague dashboard shows that window once, as booked', w24m2.length === 1 && w24m2[0].isBooked === true, JSON.stringify(w24m2.map((a) => ({ id: a.id, booked: a.isBooked }))));
 
   // ============ both mode ============
   section('both mode: either path works');

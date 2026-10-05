@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verify } from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { createSlotsForMentor } from '@/lib/slots';
-import { getBookingMode } from '@/lib/organizations';
+import { getBookingMode, organizationActiveBookings } from '@/lib/organizations';
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
@@ -11,10 +11,14 @@ export const dynamic = 'force-dynamic';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 /**
- * GET — the mentor's own slots. With `?scope=organization` the slots of the
- * mentor's organization colleagues are appended too (flagged `shared: true`,
- * with `hostMentor`), since a slot any member adds is automatically an
- * organization slot that every member can be invited to.
+ * GET — the mentor's own slots. With `?scope=organization` the organization's
+ * calendar is returned instead: a slot any member adds is automatically an
+ * organization slot, and the organization has ONE slot per time window no
+ * matter how many members offer it (same rule as organizationSlots). So every
+ * window appears once — as the mentor's own slot (`shared: false`) when they
+ * offer it, otherwise as one `shared: true` entry — with `hostMentors` = the
+ * colleagues offering that exact window and `isBooked` = the organization has
+ * a session in it.
  */
 export async function GET(request: Request) {
   console.log('GET /api/mentor/availability');
@@ -58,29 +62,56 @@ export async function GET(request: Request) {
     }
 
     const me = await prisma.mentor.findUnique({ where: { id: mentorId }, select: { organizationId: true } });
-    const shared = me?.organizationId
-      ? await prisma.mentorAvailability.findMany({
-          where: {
-            mentorId: { not: mentorId },
-            mentor: { organizationId: me.organizationId, status: 'active', isDisabled: false },
-          },
-          include: {
-            mentor: { select: { id: true, name: true } },
-            bookings: { where: { status: { not: 'cancelled' } }, select: { id: true } },
-          },
-          orderBy: { startTime: 'asc' },
-        })
-      : [];
+    if (!me?.organizationId) {
+      return NextResponse.json(availabilities.map((a) => ({ ...a, shared: false as const })));
+    }
 
-    return NextResponse.json([
-      ...availabilities.map((a) => ({ ...a, shared: false as const })),
-      ...shared.map(({ mentor, bookings, ...a }) => ({
-        ...a,
-        shared: true as const,
-        hostMentor: mentor,
-        isBooked: bookings.length > 0,
-      })),
+    const [colleagueSlots, busy] = await Promise.all([
+      prisma.mentorAvailability.findMany({
+        where: {
+          mentorId: { not: mentorId },
+          mentor: { organizationId: me.organizationId, status: 'active', isDisabled: false },
+        },
+        include: { mentor: { select: { id: true, name: true } } },
+        orderBy: { startTime: 'asc' },
+      }),
+      organizationActiveBookings(me.organizationId, new Date(0)),
     ]);
+
+    const windowKey = (a: { startTime: Date; endTime: Date }) => `${a.startTime.getTime()}-${a.endTime.getTime()}`;
+    const hostsByWindow = new Map<string, typeof colleagueSlots>();
+    for (const c of colleagueSlots) {
+      const g = hostsByWindow.get(windowKey(c));
+      if (g) g.push(c);
+      else hostsByWindow.set(windowKey(c), [c]);
+    }
+    // The organization is busy whenever any member has a session overlapping the window.
+    const isBooked = (w: { startTime: Date; endTime: Date }) =>
+      busy.some((b) => b.startTime < w.endTime && w.startTime < b.endTime);
+    const ownWindows = new Set(availabilities.map(windowKey));
+
+    const own = availabilities.map((a) => ({
+      ...a,
+      shared: false as const,
+      hostMentors: (hostsByWindow.get(windowKey(a)) ?? []).map((c) => c.mentor),
+      isBooked: isBooked(a),
+    }));
+    const colleaguesOnly = Array.from(hostsByWindow.entries())
+      .filter(([key]) => !ownWindows.has(key))
+      .map(([, group]) => {
+        const { mentor, ...a } = group[0];
+        return {
+          ...a,
+          shared: true as const,
+          hostMentor: mentor,
+          hostMentors: group.map((c) => c.mentor),
+          isBooked: isBooked(a),
+        };
+      });
+
+    return NextResponse.json(
+      [...own, ...colleaguesOnly].sort((x, y) => x.startTime.getTime() - y.startTime.getTime())
+    );
   } catch (error) {
     console.error('Error verifying token:', error);
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 });

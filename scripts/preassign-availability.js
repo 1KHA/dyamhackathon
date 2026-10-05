@@ -15,6 +15,7 @@
  *   node scripts/preassign-availability.js --from 2026-10-06 --to 2026-10-08 --start 13:00 --end 16:00
  * Create the rows (prints a manifest of every created id for rollback):
  *   ... --apply [--manifest path.json]
+ * Leave specific mentors out: --exclude <mentorId>,<mentorId>
  *
  * Uses DATABASE_URL from the environment (nothing is loaded from .env here).
  */
@@ -36,6 +37,7 @@ const START = arg('start', '13:00');
 const END = arg('end', '16:00');
 const APPLY = process.argv.includes('--apply');
 const MANIFEST = arg('manifest');
+const EXCLUDE = (arg('exclude', '') || '').split(',').map((x) => x.trim()).filter(Boolean);
 
 if (!/^\d{4}-\d{2}-\d{2}$/.test(FROM || '') || !/^\d{4}-\d{2}-\d{2}$/.test(TO || '') || !/^\d{2}:\d{2}$/.test(START) || !/^\d{2}:\d{2}$/.test(END)) {
   console.error('usage: --from YYYY-MM-DD [--to YYYY-MM-DD] [--start HH:MM] [--end HH:MM] [--apply] [--manifest file]');
@@ -80,7 +82,7 @@ async function main() {
     const settings = await prisma.teamSettings.findFirst();
     const mode = settings?.mentorBookingMode || 'individual';
     const mentors = await prisma.mentor.findMany({
-      where: { status: 'active', isDisabled: false },
+      where: { status: 'active', isDisabled: false, id: { notIn: EXCLUDE } },
       select: { id: true, name: true, organizationId: true, organization: { select: { name: true } } },
       orderBy: { name: 'asc' },
     });
@@ -113,6 +115,10 @@ async function main() {
     console.log(`Days: ${days().join(', ')}  window ${START}–${END} Riyadh`);
     console.log(`Slots per day: ${slotsForDay(FROM).map((s) => `${riyadh(s.startTime)}–${riyadh(s.endTime)}`).join('  ')}`);
     console.log(`Bookable mentors: ${mentors.length}  (excluded: ${excluded.map((e) => `${e.status}${e.isDisabled ? '/disabled' : ''}=${e._count}`).join(', ') || 'none'})`);
+    if (EXCLUDE.length) {
+      const left = await prisma.mentor.findMany({ where: { id: { in: EXCLUDE } }, select: { name: true } });
+      console.log(`Left out by --exclude (${left.length}/${EXCLUDE.length} found): ${left.map((m) => m.name).join('، ')}`);
+    }
     console.log(`Slots to create: ${plan.length}  (max ${mentors.length * candidates.length})`);
     console.table(report);
 

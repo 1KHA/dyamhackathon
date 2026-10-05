@@ -46,7 +46,9 @@ interface Availability {
   title: string;
   /** A colleague's slot in my organization — visible, not editable here. */
   shared?: boolean;
-  hostName?: string;
+  /** Colleagues offering this exact window (the organization shows it once). */
+  hostNames?: string[];
+  /** The organization has a session in this window. */
   isBooked?: boolean;
 }
 
@@ -94,15 +96,22 @@ const AvailabilityPage = () => {
       const response = await fetch('/api/mentor/availability?scope=organization', { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
-        const formattedEvents = data.map((avail: any) => ({
-          id: avail.id,
-          start: new Date(avail.startTime),
-          end: new Date(avail.endTime),
-          title: avail.shared ? `وقت الجهة (${avail.hostMentor?.name ?? 'زميل'})` : 'متاح',
-          shared: !!avail.shared,
-          hostName: avail.hostMentor?.name,
-          isBooked: !!avail.isBooked,
-        }));
+        // One entry per time window (the API merges members offering the same window).
+        const formattedEvents = data.map((avail: any) => {
+          const hostNames: string[] = (avail.hostMentors ?? []).map((m: any) => m.name);
+          const booked = avail.isBooked ? ' • محجوز' : '';
+          return {
+            id: avail.id,
+            start: new Date(avail.startTime),
+            end: new Date(avail.endTime),
+            title: avail.shared
+              ? `وقت الجهة (${hostNames.join('، ') || 'زميل'})${booked}`
+              : `متاح${hostNames.length ? ` — يقدّمه معك: ${hostNames.join('، ')}` : ''}${booked}`,
+            shared: !!avail.shared,
+            hostNames,
+            isBooked: !!avail.isBooked,
+          };
+        });
         setEvents(formattedEvents);
         setHasSharedSlots(formattedEvents.some((e: Availability) => e.shared));
       } else if (response.status === 401) {
@@ -228,7 +237,7 @@ const AvailabilityPage = () => {
     if (event.shared) {
       toast({
         title: "وقت الجهة",
-        description: `أضافه ${event.hostName ?? 'زميل في الجهة'} ويظهر لجميع أعضاء الجهة؛ لا يمكن تعديله من هنا.`,
+        description: `أضافه ${event.hostNames?.join('، ') || 'زميل في الجهة'} ويظهر لجميع أعضاء الجهة؛ لا يمكن تعديله من هنا.`,
       });
       return;
     }
@@ -343,7 +352,7 @@ const AvailabilityPage = () => {
           <CardContent className="space-y-4">
             {hasSharedSlots && (
               <p className="text-xs text-purple-700 bg-purple-50 border border-purple-100 rounded-md p-2">
-                الأوقات البنفسجية أضافها زملاؤك في الجهة؛ تظهر تلقائياً لجميع الأعضاء، وعند حجزها عبر الجهة يصلكم جميعاً الإشعار ورابط الاجتماع.
+                الأوقات البنفسجية أضافها زملاؤك في الجهة؛ تظهر تلقائياً لجميع الأعضاء، وكل وقت يظهر مرة واحدة مهما كان عدد الأعضاء الذين أضافوه. عند حجزه عبر الجهة يصلكم جميعاً الإشعار ورابط الاجتماع.
               </p>
             )}
             {upcomingByDay.length === 0 ? (
@@ -366,11 +375,16 @@ const AvailabilityPage = () => {
                           <span className="text-sm font-medium" dir="ltr">
                             {fmtTime(slot.start)} – {fmtTime(slot.end)}
                           </span>
-                          {slot.shared && (
+                          {slot.shared ? (
                             <div className="text-[11px] text-purple-700 mt-0.5 truncate">
-                              وقت الجهة — أضافه {slot.hostName ?? 'زميل'}{slot.isBooked ? ' • محجوز' : ''}
+                              وقت الجهة — أضافه {slot.hostNames?.join('، ') || 'زميل'}{slot.isBooked ? ' • محجوز' : ''}
                             </div>
-                          )}
+                          ) : (slot.hostNames?.length || slot.isBooked) ? (
+                            <div className="text-[11px] text-purple-700 mt-0.5 truncate">
+                              {slot.hostNames?.length ? `يقدّمه معك: ${slot.hostNames.join('، ')}` : ''}
+                              {slot.isBooked ? `${slot.hostNames?.length ? ' • ' : ''}محجوز` : ''}
+                            </div>
+                          ) : null}
                         </div>
                         {slot.shared ? (
                           <span className="text-[11px] text-muted-foreground shrink-0">للاطلاع</span>
@@ -418,7 +432,7 @@ const AvailabilityPage = () => {
       <div className="hidden md:block min-w-0 lg:order-1">
         {hasSharedSlots && (
           <p className="mb-3 text-xs text-purple-700 bg-purple-50 border border-purple-100 rounded-md p-2">
-            الأوقات البنفسجية أضافها زملاؤك في الجهة؛ تظهر تلقائياً لجميع الأعضاء، وعند حجزها عبر الجهة يصلكم جميعاً الإشعار ورابط الاجتماع.
+            الأوقات البنفسجية أضافها زملاؤك في الجهة؛ تظهر تلقائياً لجميع الأعضاء، وكل وقت يظهر مرة واحدة مهما كان عدد الأعضاء الذين أضافوه. عند حجزه عبر الجهة يصلكم جميعاً الإشعار ورابط الاجتماع.
           </p>
         )}
       {/* Date Selection UI */}
