@@ -184,14 +184,18 @@ export default function MentorsPage() {
     }
   };
 
-  const fetchMentors = async () => {
+  const fetchMentors = async (mode: BookingMode) => {
     const response = await fetch('/api/admin/mentors');
     if (!response.ok) {
       throw new Error('فشل في جلب قائمة الموجهين');
     }
     const data = await response.json();
-    // Filter only active mentors
-    const activeMentors = data.filter((mentor: Mentor) => mentor.status === 'active');
+    // Active mentors only. In "both" mode organization members are booked
+    // through their organization's card, so the individual list keeps only
+    // mentors without an organization.
+    const activeMentors = data.filter(
+      (mentor: Mentor) => mentor.status === 'active' && (mode !== 'both' || !mentor.organization)
+    );
     // availability/availableSlots come from the API, computed from real
     // future slots — this used to be Math.random() mock data.
     setMentors(activeMentors);
@@ -219,7 +223,7 @@ export default function MentorsPage() {
       const mode = await fetchOrganizations();
       setProgress(60);
       if (mode !== 'organization') {
-        await fetchMentors();
+        await fetchMentors(mode);
       } else {
         setMentors([]);
         setFilteredMentors([]);
@@ -380,7 +384,7 @@ export default function MentorsPage() {
     if (selectedOrg) fetchOrganizationAvailability(selectedOrg.id);
     else if (selectedMentor) fetchMentorAvailability(selectedMentor.id);
     fetchOrganizations().catch(() => {});
-    if (showIndividuals) fetchMentors().catch(() => {});
+    if (showIndividuals) fetchMentors(bookingMode).catch(() => {});
   };
   
   const handleSelectEvent = (event: AvailabilityEvent) => {
