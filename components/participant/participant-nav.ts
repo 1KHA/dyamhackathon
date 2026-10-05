@@ -28,7 +28,7 @@ export const participantNavItems: ParticipantNavItem[] = [
   { name: "الفرق", href: "/participant-dashboard/teams", icon: Users, permission: { category: "users", action: "view" }, showWhen: "noTeam" },
   { name: "الدعوات المستلمة", href: "/participant-dashboard/join-requests", icon: Users, permission: { category: "users", action: "view" }, showWhen: "isLeader" },
   { name: "التسليمات", href: "/participant-dashboard/milestones", icon: Star, permission: { category: "startups", action: "view" } },
-  { name: "الموجهون", href: "/participant-dashboard/mentors", icon: Book, permission: { category: "mentorship", action: "view" } },
+  { name: "الإرشاد والتوجيه", href: "/participant-dashboard/mentors", icon: Book, permission: { category: "mentorship", action: "view" } },
   { name: "الفعاليات", href: "/participant-dashboard/events", icon: Calendar, permission: { category: "events", action: "view" } },
   { name: "بطاقتي", href: "/participant-dashboard/badge", icon: QrCode, permission: { category: "events", action: "view" } },
   { name: "أنا مشارك", href: "/participant-dashboard/card", icon: Contact, permission: { category: "events", action: "view" } },
