@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
                 name: true,
                 email: true,
                 specialty: true,
+                organization: { select: { id: true, name: true } },
               },
             },
           },
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
         name: booking.availability.mentor.name,
         email: booking.availability.mentor.email,
         specialty: booking.availability.mentor.specialty,
+        organization: booking.availability.mentor.organization ?? null,
       },
       participant: {
         id: booking.participant.id,

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -559,11 +559,19 @@ export default function MentorsPage() {
     createdAt: string;
     updatedAt: string;
     meetingUrl?: string | null;
-    mentor: { id: string; name: string; email: string; specialty: string };
+    /** Set when the participant booked through the organization. */
+    organization?: { id: string; name: string } | null;
+    mentor: { id: string; name: string; email: string; specialty: string; organization?: { id: string; name: string } | null };
     participant: { id: string; name: string; email: string; phoneNumber: string };
     availability: { id: string; startTime: string; endTime: string };
   }
   const [bookings, setBookings] = useState<Booking[]>([]);
+  // "جميع حجوزات الموجهين": filters + 15-per-page pagination (all client-side).
+  const [bookingDayFilter, setBookingDayFilter] = useState('all');
+  const [bookingTimeFilter, setBookingTimeFilter] = useState('all');
+  const [bookingOrgFilter, setBookingOrgFilter] = useState('all');
+  const [bookingSort, setBookingSort] = useState<'created' | 'session'>('created');
+  const [bookingPage, setBookingPage] = useState(1);
   const [bookingsLoading, setBookingsLoading] = useState(false);
   const [bookingsError, setBookingsError] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
@@ -575,6 +583,61 @@ export default function MentorsPage() {
   const [deleteBookingLoading, setDeleteBookingLoading] = useState(false);
   const [availableSlots, setAvailableSlots] = useState<{ id: string; startTime: string; endTime: string }[]>([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
+
+  // Session day / start time in Riyadh time, so filters match what the camp sees.
+  const BOOKINGS_PER_PAGE = 15;
+  const riyadhDayKey = (iso: string) => new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Riyadh' });
+  const riyadhTimeKey = (iso: string) =>
+    new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit' });
+  const bookingOrg = (b: Booking) => b.mentor.organization ?? b.organization ?? null;
+
+  const bookingDayOptions = useMemo(
+    () => Array.from(new Set(bookings.map((b) => riyadhDayKey(b.availability.startTime)))).sort(),
+    [bookings]
+  );
+  const bookingTimeOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          bookings
+            .filter((b) => bookingDayFilter === 'all' || riyadhDayKey(b.availability.startTime) === bookingDayFilter)
+            .map((b) => riyadhTimeKey(b.availability.startTime))
+        )
+      ).sort(),
+    [bookings, bookingDayFilter]
+  );
+  const bookingOrgOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    bookings.forEach((b) => { const o = bookingOrg(b); if (o) map.set(o.id, o.name); });
+    return Array.from(map, ([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+  }, [bookings]);
+
+  const filteredBookings = useMemo(() => {
+    const list = bookings.filter((b) => {
+      if (bookingDayFilter !== 'all' && riyadhDayKey(b.availability.startTime) !== bookingDayFilter) return false;
+      if (bookingTimeFilter !== 'all' && riyadhTimeKey(b.availability.startTime) !== bookingTimeFilter) return false;
+      if (bookingOrgFilter !== 'all') {
+        const o = bookingOrg(b);
+        if (bookingOrgFilter === 'none' ? !!o : o?.id !== bookingOrgFilter) return false;
+      }
+      return true;
+    });
+    if (bookingSort === 'session') {
+      list.sort((a, b) => new Date(a.availability.startTime).getTime() - new Date(b.availability.startTime).getTime());
+    }
+    return list; // 'created': the API already returns newest bookings first
+  }, [bookings, bookingDayFilter, bookingTimeFilter, bookingOrgFilter, bookingSort]);
+
+  const bookingPageCount = Math.max(1, Math.ceil(filteredBookings.length / BOOKINGS_PER_PAGE));
+  const currentBookingPage = Math.min(bookingPage, bookingPageCount);
+  const pagedBookings = filteredBookings.slice(
+    (currentBookingPage - 1) * BOOKINGS_PER_PAGE,
+    currentBookingPage * BOOKINGS_PER_PAGE
+  );
+  // Any filter change starts again from page 1.
+  useEffect(() => { setBookingPage(1); }, [bookingDayFilter, bookingTimeFilter, bookingOrgFilter, bookingSort]);
+  // A time picked for one day may not exist on another.
+  useEffect(() => { setBookingTimeFilter('all'); }, [bookingDayFilter]);
 
   // Fetch all bookings for admin
   const fetchBookings = async () => {
@@ -1154,6 +1217,64 @@ export default function MentorsPage() {
           ) : bookings.length === 0 ? (
             <div className="p-8 text-center text-gray-500">لا توجد حجوزات حالياً.</div>
           ) : (
+            <>
+            <div className="flex flex-wrap items-center gap-2 border-b bg-gray-50/60 p-4" dir="rtl">
+              <Select value={bookingDayFilter} onValueChange={setBookingDayFilter}>
+                <SelectTrigger className="w-full sm:w-52 bg-white" aria-label="تصفية حسب اليوم">
+                  <SelectValue placeholder="كل الأيام" />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="all">كل الأيام</SelectItem>
+                  {bookingDayOptions.map((d) => (
+                    <SelectItem key={d} value={d}>
+                      {new Date(`${d}T12:00:00+03:00`).toLocaleDateString('ar-EG', { timeZone: 'Asia/Riyadh', weekday: 'long', day: 'numeric', month: 'long' })}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={bookingTimeFilter} onValueChange={setBookingTimeFilter}>
+                <SelectTrigger className="w-full sm:w-40 bg-white" aria-label="تصفية حسب الوقت">
+                  <SelectValue placeholder="كل الأوقات" />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="all">كل الأوقات</SelectItem>
+                  {bookingTimeOptions.map((t) => (
+                    <SelectItem key={t} value={t}>{t}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={bookingOrgFilter} onValueChange={setBookingOrgFilter}>
+                <SelectTrigger className="w-full sm:w-60 bg-white" aria-label="تصفية حسب الجهة">
+                  <SelectValue placeholder="كل الجهات" />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="all">كل الجهات</SelectItem>
+                  {bookingOrgOptions.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>
+                  ))}
+                  <SelectItem value="none">بدون جهة</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={bookingSort} onValueChange={(v) => setBookingSort(v as 'created' | 'session')}>
+                <SelectTrigger className="w-full sm:w-52 bg-white" aria-label="الترتيب">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent dir="rtl">
+                  <SelectItem value="created">الأحدث حجزاً أولاً</SelectItem>
+                  <SelectItem value="session">حسب موعد الجلسة (التاريخ والوقت)</SelectItem>
+                </SelectContent>
+              </Select>
+              {(bookingDayFilter !== 'all' || bookingTimeFilter !== 'all' || bookingOrgFilter !== 'all') && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => { setBookingDayFilter('all'); setBookingTimeFilter('all'); setBookingOrgFilter('all'); }}
+                >
+                  مسح التصفية
+                </Button>
+              )}
+              <span className="text-sm text-muted-foreground mr-auto">{filteredBookings.length} حجز</span>
+            </div>
             <Table className="border-collapse">
               <TableHeader>
                 <TableRow className="bg-blue-50 hover:bg-blue-50">
@@ -1169,11 +1290,21 @@ export default function MentorsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bookings.map((booking) => (
+                {pagedBookings.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">لا توجد حجوزات مطابقة للتصفية.</TableCell>
+                  </TableRow>
+                )}
+                {pagedBookings.map((booking) => (
                   <TableRow key={booking.id} className="hover:bg-gray-50 transition-colors duration-150">
                     <TableCell>
                       <div>{booking.mentor.name}</div>
                       <div className="text-xs text-gray-500">{booking.mentor.email}</div>
+                      {bookingOrg(booking) && (
+                        <div className="text-xs text-blue-700 flex items-center gap-1 mt-0.5">
+                          <Building2 className="h-3 w-3" /> {bookingOrg(booking)!.name}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>{booking.participant.name}</TableCell>
                     <TableCell>{booking.participant.email}</TableCell>
@@ -1239,6 +1370,20 @@ export default function MentorsPage() {
                 ))}
               </TableBody>
             </Table>
+            {bookingPageCount > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t p-4" dir="rtl">
+                <span className="text-sm text-muted-foreground">
+                  عرض {(currentBookingPage - 1) * BOOKINGS_PER_PAGE + 1}–{Math.min(currentBookingPage * BOOKINGS_PER_PAGE, filteredBookings.length)} من {filteredBookings.length} · صفحة {currentBookingPage} من {bookingPageCount}
+                </span>
+                <div className="flex items-center gap-1">
+                  <Button variant="outline" size="sm" disabled={currentBookingPage === 1} onClick={() => setBookingPage(1)}>الأولى</Button>
+                  <Button variant="outline" size="sm" disabled={currentBookingPage === 1} onClick={() => setBookingPage(currentBookingPage - 1)}>السابق</Button>
+                  <Button variant="outline" size="sm" disabled={currentBookingPage === bookingPageCount} onClick={() => setBookingPage(currentBookingPage + 1)}>التالي</Button>
+                  <Button variant="outline" size="sm" disabled={currentBookingPage === bookingPageCount} onClick={() => setBookingPage(bookingPageCount)}>الأخيرة</Button>
+                </div>
+              </div>
+            )}
+            </>
           )}
         </CardContent>
       </Card>
