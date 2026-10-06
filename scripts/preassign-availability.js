@@ -16,6 +16,8 @@
  * Create the rows (prints a manifest of every created id for rollback):
  *   ... --apply [--manifest path.json]
  * Leave specific mentors out: --exclude <mentorId>,<mentorId>
+ * Only mentors of specific organizations: --orgs <organizationId>,<organizationId>
+ * Slots that already started are skipped, so it can run mid-window.
  *
  * Uses DATABASE_URL from the environment (nothing is loaded from .env here).
  */
@@ -38,6 +40,7 @@ const END = arg('end', '16:00');
 const APPLY = process.argv.includes('--apply');
 const MANIFEST = arg('manifest');
 const EXCLUDE = (arg('exclude', '') || '').split(',').map((x) => x.trim()).filter(Boolean);
+const ORGS = (arg('orgs', '') || '').split(',').map((x) => x.trim()).filter(Boolean);
 
 if (!/^\d{4}-\d{2}-\d{2}$/.test(FROM || '') || !/^\d{4}-\d{2}-\d{2}$/.test(TO || '') || !/^\d{2}:\d{2}$/.test(START) || !/^\d{2}:\d{2}$/.test(END)) {
   console.error('usage: --from YYYY-MM-DD [--to YYYY-MM-DD] [--start HH:MM] [--end HH:MM] [--apply] [--manifest file]');
@@ -72,9 +75,9 @@ const riyadh = (d) => new Date(d.getTime() + 3 * 3600e3).toISOString().slice(11,
 async function main() {
   const prisma = new PrismaClient();
   try {
-    const candidates = days().flatMap(slotsForDay);
-    if (candidates.length === 0) throw new Error('the window is shorter than one slot');
-    if (candidates[0].startTime < new Date()) throw new Error('the first slot is in the past');
+    const all = days().flatMap(slotsForDay);
+    const candidates = all.filter((s) => s.startTime > new Date());
+    if (candidates.length === 0) throw new Error('no future slot in this window');
     const first = candidates[0].startTime;
     const last = candidates[candidates.length - 1].endTime;
     const near = { startTime: { lt: new Date(last.getTime() + BREAK_MIN * MIN) }, endTime: { gt: new Date(first.getTime() - BREAK_MIN * MIN) } };
@@ -82,7 +85,7 @@ async function main() {
     const settings = await prisma.teamSettings.findFirst();
     const mode = settings?.mentorBookingMode || 'individual';
     const mentors = await prisma.mentor.findMany({
-      where: { status: 'active', isDisabled: false, id: { notIn: EXCLUDE } },
+      where: { status: 'active', isDisabled: false, id: { notIn: EXCLUDE }, ...(ORGS.length ? { organizationId: { in: ORGS } } : {}) },
       select: { id: true, name: true, organizationId: true, organization: { select: { name: true } } },
       orderBy: { name: 'asc' },
     });
@@ -114,6 +117,11 @@ async function main() {
     console.log(`Booking mode: ${mode}`);
     console.log(`Days: ${days().join(', ')}  window ${START}–${END} Riyadh`);
     console.log(`Slots per day: ${slotsForDay(FROM).map((s) => `${riyadh(s.startTime)}–${riyadh(s.endTime)}`).join('  ')}`);
+    if (all.length > candidates.length) console.log(`Already started (skipped): ${all.length - candidates.length} slot times`);
+    if (ORGS.length) {
+      const found = await prisma.organization.findMany({ where: { id: { in: ORGS } }, select: { name: true } });
+      console.log(`Only organizations (${found.length}/${ORGS.length} found): ${found.map((o) => o.name).join('، ')}`);
+    }
     console.log(`Bookable mentors: ${mentors.length}  (excluded: ${excluded.map((e) => `${e.status}${e.isDisabled ? '/disabled' : ''}=${e._count}`).join(', ') || 'none'})`);
     if (EXCLUDE.length) {
       const left = await prisma.mentor.findMany({ where: { id: { in: EXCLUDE } }, select: { name: true } });
