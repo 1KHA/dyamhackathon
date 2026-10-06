@@ -279,6 +279,11 @@ export default function MentorsPage() {
     new Map(mentors.filter((m) => m.organization).map((m) => [m.organization!.id, m.organization!])).values()
   ).sort((a, b) => a.name.localeCompare(b.name, 'ar'));
   const hasUnaffiliated = mentors.some((m) => !m.organization);
+  // The organization column and group headers only make sense when the list
+  // mixes organizations (individual mode). In "both" mode it holds only
+  // mentors without an organization, so both are hidden.
+  const showOrgColumn = mentors.some((m) => m.organization);
+  const tableCols = showOrgColumn ? 5 : 4;
 
   const fetchOrganizationAvailability = async (orgId: string) => {
     try {
@@ -793,7 +798,7 @@ export default function MentorsPage() {
               <TableHeader>
                 <TableRow className="bg-blue-50 hover:bg-blue-50">
                   <TableHead className="text-right font-semibold text-blue-900">الاسم</TableHead>
-                  <TableHead className="text-right font-semibold text-blue-900 hidden sm:table-cell">الجهة</TableHead>
+                  {showOrgColumn && <TableHead className="text-right font-semibold text-blue-900 hidden sm:table-cell">الجهة</TableHead>}
                   <TableHead className="text-right font-semibold text-blue-900 hidden sm:table-cell">التخصص</TableHead>
                   <TableHead className="text-right font-semibold text-blue-900 hidden sm:table-cell">التوفر</TableHead>
                   <TableHead className="text-center font-semibold text-blue-900 w-[140px]">المواعيد</TableHead>
@@ -806,9 +811,9 @@ export default function MentorsPage() {
                   const orgKey = mentor.organization?.id ?? 'none';
                   const prevKey = index > 0 ? (filteredMentors[index - 1].organization?.id ?? 'none') : null;
                   const groupSize = filteredMentors.filter((m) => (m.organization?.id ?? 'none') === orgKey).length;
-                  const header = orgKey !== prevKey ? (
+                  const header = showOrgColumn && orgKey !== prevKey ? (
                     <TableRow key={`org-${orgKey}`} className="bg-blue-50/70 hover:bg-blue-50/70">
-                      <TableCell colSpan={5} className="py-2 text-right">
+                      <TableCell colSpan={tableCols} className="py-2 text-right">
                         <div className="flex items-center gap-2 font-semibold text-blue-900">
                           {mentor.organization?.logoUrl ? (
                             // eslint-disable-next-line @next/next/no-img-element
@@ -826,21 +831,22 @@ export default function MentorsPage() {
                   <React.Fragment key={mentor.id}>
                   {header}
                   <TableRow className="hover:bg-gray-50 transition-colors duration-150">
-                    <TableCell className="font-medium text-right">
-                      <div>{mentor.name}</div>
+                    <TableCell className="text-right">
+                      <div className="text-base sm:text-lg font-semibold text-gray-900">{mentor.name}</div>
                       {/* Mobile: organization + specialty + availability stacked under the name */}
-                      <div className="sm:hidden text-xs text-gray-500 mt-1 space-y-1">
+                      <div className="sm:hidden text-sm text-gray-600 mt-1 space-y-1">
                         {mentor.organization && (
                           <div className="flex items-center gap-1">
                             <Building2 className="h-3 w-3" /> {mentor.organization.name}
                           </div>
                         )}
                         <div className="flex items-center gap-1">
-                          <Briefcase className="h-3 w-3" /> {mentor.specialty}
+                          <Briefcase className="h-4 w-4" /> {mentor.specialty}
                         </div>
                         <div>{getAvailabilityBadge(mentor)}</div>
                       </div>
                     </TableCell>
+                    {showOrgColumn && (
                     <TableCell className="hidden sm:table-cell text-right">
                       {mentor.organization ? (
                         <div className="flex items-center gap-2 min-w-0">
@@ -856,10 +862,11 @@ export default function MentorsPage() {
                         <span className="text-gray-400 text-xs">—</span>
                       )}
                     </TableCell>
+                    )}
                     <TableCell className="hidden sm:table-cell text-right">
                       <div className="flex items-center gap-2">
-                        <Briefcase className="h-4 w-4 text-gray-500" />
-                        <span>{mentor.specialty}</span>
+                        <Briefcase className="h-5 w-5 text-gray-500" />
+                        <span className="text-base">{mentor.specialty}</span>
                       </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell text-right">
@@ -883,7 +890,7 @@ export default function MentorsPage() {
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={tableCols} className="text-center py-8 text-gray-500">
                     لا يوجد موجهين متطابقين مع البحث
                   </TableCell>
                 </TableRow>
