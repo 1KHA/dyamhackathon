@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { formatRiyadhDate } from '@/lib/format-dates';
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { autoAdvanceForMilestone, markFailedForMilestone } from "@/lib/phases";
 import { dispatchNotification } from "@/lib/notify";
 import { requireAdmin } from "@/lib/notification-auth";
 
@@ -95,26 +94,15 @@ export async function POST(
       },
     });
 
-    // --- phase movement -------------------------------------------------
-    // Accepting advances the submitter's team (or the individual) to the next
-    // phase, but ONLY when the milestone belongs to their current phase — that
-    // makes re-saving a review idempotent. Rejecting marks them failed. Never
-    // blocks the review itself.
-    let phaseResult: { advanced: boolean; advancedTo?: string; reason?: string } = { advanced: false };
-    if (reviewStatus === 'accepted') {
-      phaseResult = await autoAdvanceForMilestone({
-        milestonePhaseId: (submissionDetails.milestone as any).phaseId ?? null,
-        teamId: submissionDetails.participant.teamId ?? null,
-        participantId: submissionDetails.participant.id,
-      });
-    } else if (reviewStatus === 'rejected') {
-      await markFailedForMilestone({
-        teamId: submissionDetails.participant.teamId ?? null,
-        participantId: submissionDetails.participant.id,
-      });
-    }
-    // 'needs_resubmission' deliberately changes nothing: they stay in the
-    // phase and are NOT marked failed.
+    // --- no phase movement ----------------------------------------------
+    // A milestone's phase is now the GROUP that sees it (الرياض / رابغ), not a
+    // pipeline step, so a review never moves a team or marks it failed —
+    // admins move teams between groups on the phases page.
+    // See Milestone_Groups_Report.md.
+    const phaseResult: { advanced: boolean; advancedTo?: string; reason?: string } = {
+      advanced: false,
+      reason: 'المراجعة لا تنقل الفريق بين المراحل — النقل يدوي من صفحة المراحل',
+    };
 
     // Create notifications for team members about the review result
     try {

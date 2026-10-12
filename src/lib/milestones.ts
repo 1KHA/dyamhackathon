@@ -97,3 +97,28 @@ export function evaluateSubmission(params: {
 
   return { canSubmit: true, isLate: past, isResubmission, effectiveDeadline: deadline };
 }
+
+/**
+ * Which milestones a participant sees (see Milestone_Groups_Report.md).
+ * Milestone.phaseId is the GROUP the milestone belongs to: none = everyone,
+ * otherwise only that phase's members (a team member's phase is the team's,
+ * an individual's their own). A milestone the participant or their team
+ * already submitted to stays visible, so moving groups never hides their own
+ * submission and its review.
+ */
+export function milestoneVisibleTo(
+  milestonePhaseId: string | null | undefined,
+  viewerPhaseId: string | null,
+  alreadySubmitted = false
+): boolean {
+  return !milestonePhaseId || milestonePhaseId === viewerPhaseId || alreadySubmitted;
+}
+
+/** The phase that decides a participant's milestones: their team's, else their own. */
+export function groupPhaseId(participant: {
+  teamId: string | null;
+  phaseId: string | null;
+  team?: { phaseId: string | null } | null;
+}): string | null {
+  return participant.teamId ? participant.team?.phaseId ?? null : participant.phaseId;
+}

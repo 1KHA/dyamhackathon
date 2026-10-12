@@ -69,14 +69,15 @@ export async function POST(request: NextRequest) {
       SELECT * FROM "Milestone" WHERE id = ${id}
     `;
 
-    // Create notifications for all participants about the new milestone
+    // Announce the new milestone to the participants who will see it: its
+    // group (phase) only, or everyone when it has no group.
     // Use a non-blocking approach to avoid Vercel timeout
     try {
-      // Bulk fan-out to every participant (BCC-batched on the email side)
+      // Bulk fan-out (BCC-batched on the email side)
       await dispatchNotification({
         templateKey: 'newMilestoneAvailable',
         variables: { milestoneTitle: title },
-        audience: { kind: 'allParticipants' },
+        audience: phaseId ? { kind: 'phaseMembers', phaseId } : { kind: 'allParticipants' },
         relatedEntityType: 'milestone',
         relatedEntityId: id,
       });

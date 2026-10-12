@@ -159,25 +159,24 @@ export default function CreateMilestonePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="milestone-phase">المرحلة (اختياري)</Label>
+              <Label htmlFor="milestone-phase">يظهر لـ</Label>
               <Select
                 value={phaseId || "none"}
                 onValueChange={(v) => setPhaseId(v === "none" ? "" : v)}
                 disabled={phases.length === 0}
               >
                 <SelectTrigger id="milestone-phase" className="w-full">
-                  <SelectValue placeholder="بدون ربط بمرحلة" />
+                  <SelectValue placeholder="الجميع" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">بدون ربط بمرحلة</SelectItem>
+                  <SelectItem value="none">الجميع</SelectItem>
                   {phases.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                عند ربط التسليم بمرحلة، قبول التسليم ينقل الفريق تلقائياً إلى المرحلة التالية،
-                ورفضه يضع عليه علامة &quot;متعثّر&quot;.
+                اختر «الجميع» ليظهر لكل المشاركين، أو مرحلة ليظهر لأعضائها فقط (فرقها ومشاركيها الأفراد) ويصلهم وحدهم إشعار التسليم الجديد. من سلّم مسبقاً يبقى التسليم ظاهراً له. المراجعة لا تنقل الفرق بين المراحل.
               </p>
             </div>
 

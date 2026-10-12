@@ -188,7 +188,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   out = await bc({ type: 'phase', phaseId: p1.id });
   check('re-enabling the phase restores them', out.emails.includes(`${TAG}-la`), JSON.stringify(out.emails));
 
-  section('auto-advance on milestone acceptance');
+  section('a review never moves a team between phases (phases are groups now)');
   const mkMilestone = async (title, phaseId) => {
     const res = await api('/api/admin/milestones', { cookie: aCookie, method: 'POST', body: {
       title, description: 'd', requirements: 'r', status: 'active',
@@ -206,24 +206,24 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   let sub = await submit(leadA.id, msP1.id);
   let rr = await review(msP1.id, sub.id, 'accepted');
-  check('accept 200 and reports the advance', rr.status === 200 && rr.json.phaseAdvanced === true, JSON.stringify(rr.json));
-  check('team A moved to phase 2', (await prisma.team.findUnique({ where: { id: teamA.id } })).phaseId === p2.id);
+  check('accept 200, reports no move', rr.status === 200 && rr.json.phaseAdvanced === false, JSON.stringify(rr.json));
+  check('team A stays in phase 1', (await prisma.team.findUnique({ where: { id: teamA.id } })).phaseId === p1.id);
 
   rr = await review(msP1.id, sub.id, 'accepted');
-  check('re-accepting is idempotent — no second advance',
-        rr.json.phaseAdvanced === false && (await prisma.team.findUnique({ where: { id: teamA.id } })).phaseId === p2.id,
+  check('re-accepting still moves nobody',
+        rr.json.phaseAdvanced === false && (await prisma.team.findUnique({ where: { id: teamA.id } })).phaseId === p1.id,
         JSON.stringify(rr.json));
 
-  section('rejection marks failed, resubmission does not');
+  section('rejection does not mark failed either');
   await api('/api/admin/phases/assign', { cookie: aCookie, method: 'POST', body: { teamIds: [teamB.id], mode: 'set', phaseId: p1.id } });
   let subB = await submit(leadB.id, msP1.id);
   rr = await review(msP1.id, subB.id, 'rejected');
   let tb = await prisma.team.findUnique({ where: { id: teamB.id } });
-  check('rejected -> failed, same phase', tb.phaseStatus === 'failed' && tb.phaseId === p1.id, JSON.stringify({ s: tb.phaseStatus }));
+  check('rejected -> still active, same phase', tb.phaseStatus === 'active' && tb.phaseId === p1.id, JSON.stringify({ s: tb.phaseStatus }));
   rr = await review(msP1.id, subB.id, 'needs_resubmission');
   tb = await prisma.team.findUnique({ where: { id: teamB.id } });
   check('needs_resubmission leaves the phase untouched', tb.phaseId === p1.id, String(tb.phaseId === p1.id));
-  check('a failed team is not auto-advanced', rr.json.phaseAdvanced !== true);
+  check('…and reports no move', rr.json.phaseAdvanced !== true);
 
   section('a milestone with no phase moves nobody');
   const msNone = await mkMilestone(`${TAG} تسليم بلا مرحلة`, null);
@@ -236,18 +236,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         (await prisma.team.findUnique({ where: { id: teamB.id } })).phaseId === before,
         JSON.stringify(rr.json));
 
-  section('an UNASSIGNED team advances as if in the milestone phase');
-  // teamB was cleared above (phaseId=null, active). Accepting a phase-1
-  // milestone must move it to phase 2 — the production bug was a silent no-op.
+  section('accepting never moves the team, whatever its phase');
+  // 'clear' above only reset phaseStatus; teamB is still in phase 1.
+  const phaseBefore = (await prisma.team.findUnique({ where: { id: teamB.id } })).phaseId;
   rr = await review(msP1.id, subB.id, 'accepted');
   tb = await prisma.team.findUnique({ where: { id: teamB.id } });
-  check('accept advances the unassigned team to phase 2',
-        rr.status === 200 && rr.json.phaseAdvanced === true && tb.phaseId === p2.id,
-        JSON.stringify({ res: rr.json, phase: tb.phaseId === p2.id }));
-  rr = await review(msP1.id, subB.id, 'accepted');
-  check('…and re-accepting stays idempotent',
-        rr.json.phaseAdvanced === false && (await prisma.team.findUnique({ where: { id: teamB.id } })).phaseId === p2.id,
-        JSON.stringify(rr.json));
+  check('accept leaves the team in its phase',
+        rr.status === 200 && rr.json.phaseAdvanced === false && tb.phaseId === phaseBefore,
+        JSON.stringify({ res: rr.json, same: tb.phaseId === phaseBefore }));
 
   await prisma.emailSettings.update({ where: { id: settings.id }, data: savedSettings });
 

@@ -561,6 +561,8 @@ export type Audience =
   | { kind: 'admins' }
   | { kind: 'team'; teamId: string }
   | { kind: 'allParticipants' }
+  /** Approved members of one phase (group): team members via the team's phase, individuals via their own. */
+  | { kind: 'phaseMembers'; phaseId: string }
   /** Everyone still registered for a given event (admin-triggered reminders). */
   | { kind: 'eventRegistrants'; eventId: string };
 
@@ -747,6 +749,27 @@ export async function createNotificationRows(
         recipientId: reg.participant.id,
         email: reg.participant.email,
         variables: varsFor(reg.participant.id),
+      });
+    }
+  } else if (audience.kind === 'phaseMembers') {
+    // A group's milestone is announced to that group only (same approval and
+    // disabled rules as allParticipants below).
+    const participants = await prisma.participant.findMany({
+      where: {
+        AND: [
+          ELIGIBLE_PARTICIPANT_WHERE,
+          { OR: [{ teamId: null, phaseId: audience.phaseId }, { team: { is: { phaseId: audience.phaseId } } }] },
+        ],
+      },
+      select: { id: true, email: true },
+    });
+    for (const p of participants) {
+      recipients.push({
+        notificationId: crypto.randomUUID(),
+        recipientType: 'participant',
+        recipientId: p.id,
+        email: p.email,
+        variables: varsFor(p.id),
       });
     }
   } else {

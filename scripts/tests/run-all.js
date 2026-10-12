@@ -39,6 +39,7 @@ const SUITES = [
   'e2e-milestone',
   'e2e-milestone-submission',
   'e2e-phases',
+  'e2e-milestone-groups',
   'e2e-pending-no-email',
   'e2e-phase1',
   'e2e-phase2',

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
-import { evaluateSubmission } from '@/lib/milestones';
+import { evaluateSubmission, groupPhaseId, milestoneVisibleTo } from '@/lib/milestones';
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
@@ -29,6 +29,7 @@ type MilestoneFromDB = {
   submissionLink?: string | null;
   createdAt: Date;
   updatedAt: Date;
+  phaseId?: string | null;
 };
 
 // GET /api/milestones - Get all milestones
@@ -89,6 +90,7 @@ export async function GET() {
     // Get the participant from the database
     const participant = await prisma.participant.findUnique({
       where: { id: participantId },
+      include: { team: { select: { phaseId: true } } },
     });
     
     // If no participant is found, return milestones without hasSubmitted
@@ -122,8 +124,22 @@ export async function GET() {
     });
     const byMilestone = new Map(submissions.map((sub) => [sub.milestoneId, sub]));
 
+    // Group visibility: milestones for everyone + the participant's group
+    // (phase), plus anything they or their team already submitted to.
+    const viewerPhase = groupPhaseId(participant);
+    const teamSubmitted = participant.teamId
+      ? await prisma.milestoneSubmission.findMany({
+          where: { participant: { teamId: participant.teamId } },
+          select: { milestoneId: true },
+        })
+      : [];
+    const submittedIds = new Set([...submissions, ...teamSubmitted].map((s) => s.milestoneId));
+    const visible = (milestones as MilestoneFromDB[]).filter((m) =>
+      milestoneVisibleTo(m.phaseId, viewerPhase, submittedIds.has(m.id))
+    );
+
     const now = new Date();
-    const formattedMilestones = (milestones as MilestoneFromDB[]).map((milestone) => {
+    const formattedMilestones = visible.map((milestone) => {
       const sub = byMilestone.get(milestone.id) ?? null;
       // Same helper the submission API enforces with, so the button state and
       // the server's answer can never disagree.

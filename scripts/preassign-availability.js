@@ -17,6 +17,7 @@
  *   ... --apply [--manifest path.json]
  * Leave specific mentors out: --exclude <mentorId>,<mentorId>
  * Only mentors of specific organizations: --orgs <organizationId>,<organizationId>
+ * Only specific mentors: --only <mentorId>,<mentorId>
  * Slots that already started are skipped, so it can run mid-window.
  *
  * Uses DATABASE_URL from the environment (nothing is loaded from .env here).
@@ -41,6 +42,7 @@ const APPLY = process.argv.includes('--apply');
 const MANIFEST = arg('manifest');
 const EXCLUDE = (arg('exclude', '') || '').split(',').map((x) => x.trim()).filter(Boolean);
 const ORGS = (arg('orgs', '') || '').split(',').map((x) => x.trim()).filter(Boolean);
+const ONLY = (arg('only', '') || '').split(',').map((x) => x.trim()).filter(Boolean);
 
 if (!/^\d{4}-\d{2}-\d{2}$/.test(FROM || '') || !/^\d{4}-\d{2}-\d{2}$/.test(TO || '') || !/^\d{2}:\d{2}$/.test(START) || !/^\d{2}:\d{2}$/.test(END)) {
   console.error('usage: --from YYYY-MM-DD [--to YYYY-MM-DD] [--start HH:MM] [--end HH:MM] [--apply] [--manifest file]');
@@ -85,7 +87,12 @@ async function main() {
     const settings = await prisma.teamSettings.findFirst();
     const mode = settings?.mentorBookingMode || 'individual';
     const mentors = await prisma.mentor.findMany({
-      where: { status: 'active', isDisabled: false, id: { notIn: EXCLUDE }, ...(ORGS.length ? { organizationId: { in: ORGS } } : {}) },
+      where: {
+        status: 'active',
+        isDisabled: false,
+        id: { notIn: EXCLUDE, ...(ONLY.length ? { in: ONLY } : {}) },
+        ...(ORGS.length ? { organizationId: { in: ORGS } } : {}),
+      },
       select: { id: true, name: true, organizationId: true, organization: { select: { name: true } } },
       orderBy: { name: 'asc' },
     });

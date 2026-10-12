@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, Flag, Clock, Loader2, Save, X } from "lucide-react";
+import { Plus, Calendar, Flag, Clock, Loader2, Save, X, Users } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -48,6 +48,8 @@ type DialogType = "details" | "edit" | "delete" | null;
 
 export default function MilestonesPage() {
   const [milestones, setMilestones] = useState<Milestone[]>([]);
+  // Filter the overview by group: all | everyone (no phase) | a phase id
+  const [groupFilter, setGroupFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -304,7 +306,21 @@ export default function MilestonesPage() {
       </div>
 
       <div className="mt-8">
-        <h2 className="text-xl font-bold mb-4">نظرة عامة على التسليمات</h2>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-4">
+          <h2 className="text-xl font-bold">نظرة عامة على التسليمات</h2>
+          <Select value={groupFilter} onValueChange={setGroupFilter}>
+            <SelectTrigger className="w-full sm:w-64" aria-label="تصفية حسب المجموعة">
+              <SelectValue placeholder="كل التسليمات" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل التسليمات</SelectItem>
+              <SelectItem value="everyone">تظهر للجميع</SelectItem>
+              {phases.map((p) => (
+                <SelectItem key={p.id} value={p.id}>تظهر لـ {p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         
         {loading ? (
           <div className="flex justify-center items-center py-12">
@@ -316,12 +332,22 @@ export default function MilestonesPage() {
           </div>
         ) : milestones.length > 0 ? (
           <div className="grid grid-cols-1 gap-4">
-            {milestones.map((milestone) => (
+            {milestones
+              .filter((m) => groupFilter === "all" || (groupFilter === "everyone" ? !m.phaseId : m.phaseId === groupFilter))
+              .map((milestone) => (
               <Card key={milestone.id} className="overflow-hidden">
                 <div className="p-6">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-lg font-semibold">{milestone.title}</h3>
+                      <span
+                        className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
+                          milestone.phaseId ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        <Users className="h-3 w-3" />
+                        يظهر لـ: {milestone.phaseId ? (phases.find((p) => p.id === milestone.phaseId)?.name ?? "مرحلة محذوفة") : "الجميع"}
+                      </span>
                       <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
@@ -492,24 +518,24 @@ export default function MilestonesPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="edit-phase">المرحلة (اختياري)</Label>
+              <Label htmlFor="edit-phase">يظهر لـ</Label>
               <Select
                 value={editForm.phaseId || "none"}
                 onValueChange={(v) => setEditForm({ ...editForm, phaseId: v === "none" ? "" : v })}
                 disabled={phases.length === 0}
               >
                 <SelectTrigger id="edit-phase" className="w-full">
-                  <SelectValue placeholder="بدون ربط بمرحلة" />
+                  <SelectValue placeholder="الجميع" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">بدون ربط بمرحلة</SelectItem>
+                  <SelectItem value="none">الجميع</SelectItem>
                   {phases.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                قبول التسليم ينقل الفريق إلى المرحلة التالية تلقائياً، ورفضه يضع علامة &quot;متعثّر&quot;.
+                اختر «الجميع» ليظهر لكل المشاركين، أو مرحلة ليظهر لأعضائها فقط (فرقها ومشاركيها الأفراد) ويصلهم وحدهم إشعار التسليم الجديد. من سلّم مسبقاً يبقى التسليم ظاهراً له. المراجعة لا تنقل الفرق بين المراحل.
               </p>
             </div>
 
