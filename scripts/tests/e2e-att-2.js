@@ -115,15 +115,17 @@ async function main() {
   check('absent -> attended with wasAbsent flag', s3.status === 200 && s3.json.result === 'attended' && s3.json.wasAbsent === true,
     JSON.stringify(s3.json));
 
+  // Anyone at the door is let in (2026-10-12): cancelled -> re-activated,
+  // never registered -> registered on the spot. Both are recorded.
   const s4 = await scan(codeCan);
-  check('cancelled -> 409, nothing written',
-    s4.status === 409 && s4.json.result === 'cancelled' &&
-    (await prisma.attendanceRecord.count({ where: { participantId: pCan.id } })) === 0);
+  check('cancelled -> re-activated and attended, recorded',
+    s4.status === 200 && s4.json.result === 'attended' && s4.json.reactivated === true &&
+    (await prisma.attendanceRecord.count({ where: { participantId: pCan.id } })) === 1, JSON.stringify(s4.json));
 
   const s5 = await scan(codeNone);
-  check('not registered -> 409 with identity, nothing written',
-    s5.status === 409 && s5.json.result === 'notRegistered' && s5.json.fullName === 'مشارك none' &&
-    (await prisma.attendanceRecord.count({ where: { participantId: pNone.id } })) === 0,
+  check('not registered -> registered on the spot + attended, with identity',
+    s5.status === 200 && s5.json.result === 'attended' && s5.json.autoRegistered === true && s5.json.fullName === 'مشارك none' &&
+    (await prisma.attendanceRecord.count({ where: { participantId: pNone.id } })) === 1,
     JSON.stringify(s5.json));
 
   check('unknown badge -> 404', (await scan('MIYAHTHONE-ZZZZZZZZZZZZ')).status === 404);
@@ -151,9 +153,10 @@ async function main() {
 
   section('stats');
   const ev = await api(`/api/admin/attendance?mode=event&eventId=${event.id}`, { cookie: aCookie });
+  // 4 now: the cancelled one was re-activated and the unregistered one registered at the door
   check('event stats: counts correct',
-    ev.status === 200 && ev.json.counts.registered === 3 && ev.json.counts.attended === 2 &&
-    ev.json.counts.cancelled === 1 && ev.json.counts.remaining === 0,
+    ev.status === 200 && ev.json.counts.registered === 4 && ev.json.counts.attended === 4 &&
+    ev.json.counts.cancelled === 0 && ev.json.counts.remaining === 0,
     JSON.stringify(ev.json.counts));
   check('  rows carry name/team/status/scannedAt',
     ev.json.rows.every(r => r.name && 'teamName' in r && r.status) &&
@@ -163,12 +166,17 @@ async function main() {
   const regRow = await prisma.eventRegistration.findUnique({
     where: { participantId_eventId: { participantId: pCan.id, eventId: event.id } },
   });
+  const manualBack = await api(`/api/admin/event-registrations/${event.id}`, {
+    method: 'PUT', cookie: aCookie, body: { registrationId: regRow.id, status: 'registered' },
+  });
+  const evBack = await api(`/api/admin/attendance?mode=event&eventId=${event.id}`, { cookie: aCookie });
+  check('  manual un-marking counted (attended=3)', manualBack.status === 200 && evBack.json.counts.attended === 3, JSON.stringify(evBack.json.counts));
   const manualPut = await api(`/api/admin/event-registrations/${event.id}`, {
     method: 'PUT', cookie: aCookie, body: { registrationId: regRow.id, status: 'attended' },
   });
   check('events-page manual PUT still works (authed)', manualPut.status === 200, `status=${manualPut.status}`);
   const ev2 = await api(`/api/admin/attendance?mode=event&eventId=${event.id}`, { cookie: aCookie });
-  check('  manual marking counted by stats (attended=3)', ev2.json.counts.attended === 3, JSON.stringify(ev2.json.counts));
+  check('  manual marking counted by stats (attended=4)', ev2.json.counts.attended === 4, JSON.stringify(ev2.json.counts));
 
   const gen = await api(`/api/admin/attendance?mode=general&date=${g1.json.date}`, { cookie: aCookie });
   check('general stats: checked-in list + absentee diff',

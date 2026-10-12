@@ -2,27 +2,24 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
-import { CalendarClock, Camera, LogOut, ScanLine, Search } from "lucide-react";
-import { playScanSound, unlockScanAudio } from "@/lib/scan-sounds";
+import { CalendarClock, Contact, LogOut, RotateCcw, ScanLine, Search } from "lucide-react";
+import { playScanSound } from "@/lib/scan-sounds";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import BadgeScanner, { type ScanFlash } from "@/components/attendance/badge-scanner";
 import ParticipantDetailsPanel, { type ParticipantDetails } from "@/components/attendance/participant-details-panel";
 import BookingsBoard from "@/components/attendance/bookings-board";
-import { formatMinutes, formatTime } from "@/components/attendance/time-format";
-
-// camera lib must never touch SSR
-const QrScanner = dynamic(() => import("@/components/attendance/qr-scanner"), { ssr: false });
+import { formatMinutes, formatRange, formatTime } from "@/components/attendance/time-format";
+import ScanModeToggle, { useRememberedDirection, type ScanDirection } from "@/components/attendance/scan-mode-toggle";
 
 /**
- * Organizer (منظم) page:
- *  - badge scanner: entries AND exits (any number per day) for the venue or
- *    for one event; every scan shows the participant's full details, team,
- *    members and mentor sessions
- *  - read-only participant lookup (click a row for the same details)
- *  - the day's mentor sessions board, sorted by time
- * No undo — an admin corrects mistakes from the admin attendance page.
+ * Organizer (منظم) page — three tabs, each with its own scanner:
+ *  - «تسجيل الدخول والخروج»: the ONLY scanner that records (entry / exit)
+ *  - «معلومات المشارك»: scan or search → full details, records nothing
+ *  - «جلسات الإرشاد»: the day's sessions; scan → that team's sessions, records nothing
+ * An organizer can take back their own scan for a few minutes; older
+ * corrections are for an admin.
  */
 
 interface Me {
@@ -31,7 +28,9 @@ interface Me {
   today: string;
 }
 
-type Direction = "auto" | "in" | "out";
+// «تلقائي» (auto) is hidden for now: with several doors and organizers, a scan
+// for another reason could record an exit by mistake. The API still accepts it.
+type Direction = ScanDirection;
 
 interface ScanResult {
   kind: "in" | "out" | "duplicate" | "rejected";
@@ -39,12 +38,17 @@ interface ScanResult {
   name?: string;
   teamName?: string | null;
   presenceLine?: string;
+  participantId?: string;
 }
 
 interface RecentScan {
+  scanId: string;
   name: string;
+  where: string;
   time: string;
+  at: number;
   direction: "in" | "out";
+  undone?: boolean;
 }
 
 interface SearchRow {
@@ -63,21 +67,24 @@ interface EventOption {
   endDate: string;
 }
 
+const UNDO_MINUTES = 5; // same as ORGANIZER_UNDO_MINUTES on the server
+
 const RESULT_STYLES: Record<ScanResult["kind"], string> = {
   in: "bg-green-50 border-green-500 text-green-800",
-  out: "bg-blue-50 border-blue-500 text-blue-800",
+  out: "bg-red-50 border-red-600 text-red-800",
   duplicate: "bg-yellow-50 border-yellow-500 text-yellow-800",
-  rejected: "bg-red-50 border-red-500 text-red-800",
+  // dark, not red: red means «خروج» on this page
+  rejected: "bg-gray-900 border-black text-white",
 };
 
 const MESSAGES: Record<string, string> = {
   checkedIn: "تم تسجيل الدخول ✓",
   attended: "تم تسجيل الحضور ✓",
   reEntered: "تم تسجيل العودة (دخول) ✓",
-  alreadyCheckedIn: "مسجّل دخوله بالفعل",
-  alreadyAttended: "مسجّل حضوره بالفعل",
+  alreadyCheckedIn: "مسجّل دخوله بالفعل — لم يُسجَّل شيء",
+  alreadyAttended: "مسجّل حضوره بالفعل — لم يُسجَّل شيء",
   checkedOut: "تم تسجيل الخروج ✓",
-  alreadyOut: "مسجّل خروجه بالفعل",
+  alreadyOut: "مسجّل خروجه بالفعل — لم يُسجَّل شيء",
 };
 
 function presenceLine(p: any): string | undefined {
@@ -94,7 +101,7 @@ function presenceLine(p: any): string | undefined {
 export default function OrganizerDashboardPage() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
-  const [tab, setTab] = useState<"scan" | "search" | "bookings">("scan");
+  const [tab, setTab] = useState<"attendance" | "info" | "sessions">("attendance");
 
   // ---- session ---------------------------------------------------------------
   const goToLogin = useCallback(() => router.replace("/organizer-login"), [router]);
@@ -114,59 +121,99 @@ export default function OrganizerDashboardPage() {
     goToLogin();
   };
 
-  // ---- participant details (after a scan, or from search) --------------------
-  const [details, setDetails] = useState<ParticipantDetails | null>(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
-  const loadDetails = useCallback(
-    async (participantId: string) => {
-      setDetailsLoading(true);
+  // ---- read-only lookups (info + sessions tabs, and «عرض التفاصيل») ------------
+  const [infoDetails, setInfoDetails] = useState<ParticipantDetails | null>(null);
+  const [sessionsDetails, setSessionsDetails] = useState<ParticipantDetails | null>(null);
+  const [attendanceDetails, setAttendanceDetails] = useState<ParticipantDetails | null>(null);
+  const [lookupBusy, setLookupBusy] = useState(false);
+  const [lookupError, setLookupError] = useState<string | null>(null);
+
+  /** by badge code (scanner) or participant id (search / details button) — never records */
+  const lookup = useCallback(
+    async (q: { badgeCode?: string; participantId?: string }): Promise<ParticipantDetails | null> => {
+      setLookupBusy(true);
+      setLookupError(null);
       try {
-        const res = await fetch(`/api/organizer/participants/${participantId}`, { credentials: "include" });
-        if (res.status === 401) return goToLogin();
-        if (res.ok) setDetails(await res.json());
+        const url = q.badgeCode
+          ? `/api/organizer/lookup?badgeCode=${encodeURIComponent(q.badgeCode)}`
+          : `/api/organizer/participants/${q.participantId}`;
+        const res = await fetch(url, { credentials: "include" });
+        if (res.status === 401) {
+          goToLogin();
+          return null;
+        }
+        const data = await res.json();
+        if (!res.ok) {
+          setLookupError(data.error || "تعذر جلب البيانات");
+          playScanSound("error");
+          return null;
+        }
+        return data as ParticipantDetails;
       } catch {
-        /* keep the scan result; details are a bonus */
+        setLookupError("تعذر الاتصال بالخادم");
+        return null;
       } finally {
-        setDetailsLoading(false);
+        setLookupBusy(false);
       }
     },
     [goToLogin]
   );
 
-  // ---- scanner ---------------------------------------------------------------
+  // ---- attendance (the only scanner that records) ------------------------------
   const [scope, setScope] = useState<"general" | "event">("general");
   const [events, setEvents] = useState<EventOption[]>([]);
   const [eventId, setEventId] = useState("");
-  const [direction, setDirection] = useState<Direction>("auto");
-  const [cameraOn, setCameraOn] = useState(false);
-  const [manualCode, setManualCode] = useState("");
+  // remembered per device, so an exit door stays in «خروج» after a reload
+  const [direction, setDirection] = useRememberedDirection("miyahthone-scan-direction-organizer");
   const [result, setResult] = useState<ScanResult | null>(null);
   const [recent, setRecent] = useState<RecentScan[]>([]);
+  const [scanBusy, setScanBusy] = useState(false);
   const scanBusyRef = useRef(false);
   const resultTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [, forceTick] = useState(0); // re-render so undo buttons expire on time
+  const [flash, setFlash] = useState<ScanFlash>(null);
+  const detailsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch("/api/organizer/events", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : { events: [] }))
       .then((d) => setEvents(d.events ?? []))
       .catch(() => {});
+    const t = setInterval(() => forceTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
   }, []);
 
   const showResult = (r: ScanResult) => {
     playScanSound(r.kind === "rejected" ? "error" : r.kind === "duplicate" ? "duplicate" : "success");
+    // a short buzz on phones that support it: one for OK, two for a problem
+    try {
+      navigator.vibrate?.(r.kind === "rejected" ? [90, 60, 90] : r.kind === "duplicate" ? [40, 40, 40] : 70);
+    } catch {
+      /* not supported */
+    }
+    setFlash({ kind: r.kind, key: Date.now() });
     setResult(r);
     if (resultTimerRef.current) clearTimeout(resultTimerRef.current);
-    resultTimerRef.current = setTimeout(() => setResult(null), 6000);
+    resultTimerRef.current = setTimeout(() => setResult(null), 10000);
   };
 
-  const submitCode = useCallback(
+  // details opened below the scanner: bring them into view
+  const openDetails = (d: ParticipantDetails | null, set: (d: ParticipantDetails | null) => void) => {
+    if (!d) return;
+    set(d);
+    setTimeout(() => detailsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+
+  const recordScan = useCallback(
     async (badgeCode: string, method: "scan" | "manual") => {
-      if (scanBusyRef.current) return;
+      if (scanBusyRef.current) return; // one request at a time per device
       if (scope === "event" && !eventId) {
         showResult({ kind: "rejected", message: "اختر الفعالية أولاً" });
         return;
       }
       scanBusyRef.current = true;
+      setScanBusy(true);
+      setAttendanceDetails(null);
       try {
         const res = await fetch("/api/organizer/scan", {
           method: "POST",
@@ -177,60 +224,79 @@ export default function OrganizerDashboardPage() {
         if (res.status === 401) return goToLogin(); // session expired or account disabled
         const payload = await res.json();
         if (res.ok && payload.success) {
-          const isDuplicate = ["alreadyCheckedIn", "alreadyAttended", "alreadyOut"].includes(payload.result) && !payload.scanId;
-          const kind: ScanResult["kind"] = isDuplicate ? "duplicate" : payload.direction === "out" ? "out" : "in";
-          showResult({
-            kind,
-            message: MESSAGES[payload.result] ?? "تم ✓",
-            name: payload.fullName,
-            teamName: payload.teamName,
-            presenceLine: presenceLine(payload.presence),
-          });
-          if (payload.date) setMe((m) => (m && m.today !== payload.date ? { ...m, today: payload.date } : m));
-          if (payload.scanId) {
-            setRecent((prev) => [
-              { name: payload.fullName, time: formatTime(new Date()), direction: payload.direction },
-              ...prev.slice(0, 29),
-            ]);
+          if (payload.result === "repeatIgnored") {
+            showResult({
+              kind: "duplicate",
+              message: `مسح مكرر — آخر عملية (${payload.direction === "out" ? "خروج" : "دخول"}) قبل ${payload.secondsAgo} ثانية، لم يُسجَّل شيء`,
+              name: payload.fullName,
+              teamName: payload.teamName,
+              presenceLine: `${presenceLine(payload.presence) ?? ""}${payload.direction === "in" ? " — لتسجيل خروجه الآن اختر «خروج»" : " — لتسجيل دخوله الآن اختر «دخول»"}`,
+              participantId: payload.participantId,
+            });
+          } else {
+            const kind: ScanResult["kind"] = !payload.scanId ? "duplicate" : payload.direction === "out" ? "out" : "in";
+            showResult({
+              kind,
+              message: payload.autoRegistered
+                ? "لم يكن مسجلاً في الفعالية — تم تسجيله وتسجيل دخوله ✓"
+                : payload.reactivated
+                  ? "كان تسجيله ملغى — أُعيد تسجيله وسُجّل دخوله ✓"
+                  : MESSAGES[payload.result] ?? "تم ✓",
+              name: payload.fullName,
+              teamName: payload.teamName,
+              presenceLine: presenceLine(payload.presence),
+              participantId: payload.participantId,
+            });
+            if (payload.scanId) {
+              setRecent((prev) => [
+                { scanId: payload.scanId, name: payload.fullName, where: payload.eventTitle ?? "الحضور العام", time: formatTime(new Date()), at: Date.now(), direction: payload.direction },
+                ...prev.slice(0, 29),
+              ]);
+            }
           }
+          if (payload.date) setMe((m) => (m && m.today !== payload.date ? { ...m, today: payload.date } : m));
         } else {
-          showResult({ kind: "rejected", message: payload.error || "فشل التسجيل", name: payload.fullName, teamName: payload.teamName });
+          showResult({ kind: "rejected", message: payload.error || "فشل التسجيل", name: payload.fullName, teamName: payload.teamName, participantId: payload.participantId });
         }
-        if (payload.participantId) loadDetails(payload.participantId);
       } catch {
-        showResult({ kind: "rejected", message: "تعذر الاتصال بالخادم" });
+        showResult({ kind: "rejected", message: "تعذر الاتصال بالخادم — أعد المسح" });
       } finally {
         scanBusyRef.current = false;
+        setScanBusy(false);
       }
     },
-    [goToLogin, direction, scope, eventId, loadDetails]
+    [goToLogin, direction, scope, eventId]
   );
 
-  const handleDecoded = useCallback(
-    (text: string) => {
-      const code = text.trim().toUpperCase();
-      // legacy DYAM- accepted: badges issued before the rename stay scannable
-      if (!code.startsWith("MIYAHTHONE-") && !code.startsWith("DYAM-")) return; // stray QR — ignore silently
-      submitCode(code, "scan");
-    },
-    [submitCode]
-  );
-
-  const handleManual = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualCode.trim()) return;
-    await submitCode(manualCode.trim().toUpperCase(), "manual");
-    setManualCode("");
+  const undo = async (scan: RecentScan) => {
+    try {
+      const res = await fetch("/api/organizer/scan/undo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ scanId: scan.scanId }),
+      });
+      if (res.status === 401) return goToLogin();
+      const data = await res.json();
+      if (!res.ok) {
+        showResult({ kind: "rejected", message: data.error || "فشل التراجع" });
+        return;
+      }
+      setRecent((prev) => prev.map((s) => (s.scanId === scan.scanId ? { ...s, undone: true } : s)));
+      showResult({ kind: "duplicate", message: `تم التراجع عن ${scan.direction === "in" ? "دخول" : "خروج"} ${scan.name}` });
+    } catch {
+      showResult({ kind: "rejected", message: "تعذر الاتصال بالخادم" });
+    }
   };
 
-  // ---- search (read-only) ----------------------------------------------------
+  // ---- info tab: search ------------------------------------------------------
   const [query, setQuery] = useState("");
   const [rows, setRows] = useState<SearchRow[]>([]);
   const [truncated, setTruncated] = useState(false);
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
-    if (tab !== "search") return;
+    if (tab !== "info") return;
     const q = query.trim();
     if (q.length < 2) {
       setRows([]);
@@ -268,79 +334,161 @@ export default function OrganizerDashboardPage() {
     );
   }
 
-  const detailsBlock =
-    details || detailsLoading ? (
-      detailsLoading && !details ? (
-        <p className="text-sm text-muted-foreground">جاري تحميل بيانات المشارك...</p>
-      ) : details ? (
-        <ParticipantDetailsPanel details={details} onClose={() => setDetails(null)} />
-      ) : null
-    ) : null;
+  const switchTab = (t: typeof tab) => {
+    setTab(t);
+    setLookupError(null);
+  };
+
+  // sessions tab: the scanned team's sessions today, now/next first
+  const todaysSessions = (sessionsDetails?.bookings ?? []).filter(
+    (b) => b.upcoming && new Date(b.startTime).toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" }) === me.today
+  );
+
+  // event picker: today's first (running one marked), then upcoming, then past
+  const evDay = (d: string) => new Date(d).toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" });
+  const nowMs = Date.now();
+  const isRunning = (e: EventOption) => new Date(e.startDate).getTime() <= nowMs && nowMs < new Date(e.endDate).getTime();
+  const rank = (e: EventOption) => (evDay(e.startDate) === me.today ? 0 : new Date(e.startDate).getTime() > nowMs ? 1 : 2);
+  const sortedEvents = [...events].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      (rank(a) === 2
+        ? new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+        : new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+  );
+  const selectedEvent = events.find((e) => e.id === eventId) ?? null;
+  const chooseEventScope = () => {
+    setScope("event");
+    if (!eventId) {
+      const running = sortedEvents.find(isRunning);
+      if (running) setEventId(running.id);
+    }
+  };
+  const whereLabel = scope === "general" ? "الحضور العام (المقر)" : selectedEvent ? selectedEvent.title : "اختر الفعالية";
+  const counts = recent.reduce((c, s) => (s.undone ? c : { ...c, [s.direction]: c[s.direction] + 1 }), { in: 0, out: 0 });
+
+  const resultCard = result ? (
+    <div className={`rounded-lg border-r-4 p-3 ${RESULT_STYLES[result.kind]}`}>
+      <div className="flex flex-wrap items-center gap-2">
+        {(result.kind === "in" || result.kind === "out") && (
+          <span className={`rounded px-2 py-0.5 text-sm font-bold text-white ${result.kind === "in" ? "bg-green-600" : "bg-red-600"}`}>
+            {result.kind === "in" ? "دخول" : "خروج"}
+          </span>
+        )}
+        <span className="text-base font-bold sm:text-lg">{result.kind === "rejected" ? `✕ ${result.message}` : result.message}</span>
+      </div>
+      {result.name && (
+        <div className="mt-1 text-sm font-medium">
+          {result.name}
+          {result.teamName ? ` — فريق ${result.teamName}` : ""}
+        </div>
+      )}
+      {result.presenceLine && <div className="mt-1 text-xs sm:text-sm">{result.presenceLine}</div>}
+      {result.participantId && (
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2 bg-white text-gray-900 hover:bg-gray-100"
+          onClick={async () => openDetails(await lookup({ participantId: result.participantId! }), setAttendanceDetails)}
+        >
+          عرض التفاصيل
+        </Button>
+      )}
+    </div>
+  ) : (
+    <div className="flex h-[92px] items-center justify-center rounded-lg border border-dashed text-sm text-muted-foreground">
+      جاهز للمسح — وجّه الكاميرا إلى رمز QR أو أدخل الرمز
+    </div>
+  );
+
+  const TABS = [
+    { id: "attendance" as const, icon: ScanLine, short: "الحضور", full: "تسجيل الدخول والخروج" },
+    { id: "info" as const, icon: Contact, short: "معلومات", full: "معلومات المشارك" },
+    { id: "sessions" as const, icon: CalendarClock, short: "الجلسات", full: "جلسات الإرشاد" },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 p-3 sm:p-4">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-3 px-3 py-2 sm:p-4">
           <div className="min-w-0">
-            <h1 className="text-lg font-bold sm:text-xl">لوحة المنظم</h1>
-            <p className="truncate text-sm text-muted-foreground">{me.name}</p>
+            <h1 className="text-base font-bold sm:text-xl">لوحة المنظم</h1>
+            <p className="truncate text-xs text-muted-foreground sm:text-sm">
+              {me.name} · <span dir="ltr">{me.today}</span>
+            </p>
           </div>
-          <Button variant="outline" size="sm" onClick={logout}>
+          {/* not «خروج» alone: that word is the exit scan mode on this page */}
+          <Button variant="ghost" size="sm" className="shrink-0 text-muted-foreground" onClick={logout}>
             <LogOut className="ml-1 h-4 w-4" />
-            خروج
+            خروج من الحساب
           </Button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl space-y-4 p-3 sm:p-4">
-        <div className="flex flex-wrap gap-2">
-          <Button variant={tab === "scan" ? "default" : "outline"} size="sm" onClick={() => setTab("scan")}>
-            <ScanLine className="ml-1 h-4 w-4" />
-            مسح البطاقات
-          </Button>
-          <Button variant={tab === "search" ? "default" : "outline"} size="sm" onClick={() => setTab("search")}>
-            <Search className="ml-1 h-4 w-4" />
-            البحث عن مشارك
-          </Button>
-          <Button variant={tab === "bookings" ? "default" : "outline"} size="sm" onClick={() => setTab("bookings")}>
-            <CalendarClock className="ml-1 h-4 w-4" />
-            جلسات الإرشاد
-          </Button>
+      {/* one row of tabs, always visible */}
+      <nav className="sticky top-0 z-20 border-b bg-background/95 backdrop-blur">
+        <div className="mx-auto grid max-w-4xl grid-cols-3 gap-1 p-1.5 sm:gap-2 sm:p-2">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              aria-label={t.full}
+              aria-pressed={tab === t.id}
+              onClick={() => switchTab(t.id)}
+              className={`flex flex-col items-center justify-center gap-0.5 rounded-lg py-1.5 text-xs font-semibold sm:flex-row sm:gap-2 sm:text-sm ${
+                tab === t.id ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <t.icon className="h-5 w-5 sm:h-4 sm:w-4" />
+              <span className="sm:hidden">{t.short}</span>
+              <span className="hidden sm:inline">{t.full}</span>
+            </button>
+          ))}
         </div>
+      </nav>
 
-        {tab === "scan" && (
+      <main className="mx-auto max-w-4xl space-y-3 p-3 sm:space-y-4 sm:p-4">
+        {/* ================= attendance: records ================= */}
+        {tab === "attendance" && (
           <>
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ScanLine className="h-5 w-5" />
-                  تسجيل الدخول والخروج
-                </CardTitle>
-                <CardDescription>
-                  امسح رمز QR من بطاقة المشارك أو أدخل رمز البطاقة يدوياً. يُسجَّل بتاريخ اليوم (<span dir="ltr">{me.today}</span>)،
-                  ويمكن تسجيل الدخول والخروج أكثر من مرة في اليوم.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3 p-3 sm:space-y-4 sm:p-6">
                 {/* where */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium">المكان:</span>
-                  <Button size="sm" variant={scope === "general" ? "default" : "outline"} onClick={() => setScope("general")}>
-                    الحضور العام (المقر)
-                  </Button>
-                  <Button size="sm" variant={scope === "event" ? "default" : "outline"} onClick={() => setScope("event")}>
-                    فعالية / جلسة
-                  </Button>
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">المكان:</div>
+                  {/* same size as the «دخول / خروج» buttons below */}
+                  <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="المكان">
+                    {([
+                      ["general", "الحضور العام (المقر)", () => setScope("general")],
+                      ["event", "فعالية / جلسة", chooseEventScope],
+                    ] as const).map(([value, label, onClick]) => (
+                      <button
+                        key={value}
+                        type="button"
+                        role="radio"
+                        aria-checked={scope === value}
+                        onClick={onClick}
+                        className={`flex h-14 items-center justify-center rounded-lg border-2 px-2 text-base font-bold transition-colors sm:text-lg ${
+                          scope === value
+                            ? "border-blue-800 bg-primary text-primary-foreground shadow-md"
+                            : "border-blue-200 bg-white text-blue-800 hover:bg-blue-50"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                   {scope === "event" && (
                     <select
-                      className="min-w-[220px] rounded-md border bg-white p-2 text-sm"
+                      className="h-11 w-full rounded-md border bg-white px-2 text-sm"
                       value={eventId}
                       onChange={(e) => setEventId(e.target.value)}
                     >
                       <option value="">اختر الفعالية...</option>
-                      {events.map((ev) => (
+                      {sortedEvents.map((ev) => (
                         <option key={ev.id} value={ev.id}>
-                          {ev.title} — {new Date(ev.startDate).toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh" })} {formatTime(ev.startDate)}
+                          {isRunning(ev) ? "● الآن — " : ""}
+                          {ev.title} — {evDay(ev.startDate) === me.today ? "اليوم" : new Date(ev.startDate).toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", day: "numeric", month: "short" })} {formatTime(ev.startDate)}
                         </option>
                       ))}
                     </select>
@@ -348,164 +496,240 @@ export default function OrganizerDashboardPage() {
                 </div>
 
                 {/* in / out */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-medium">نوع المسح:</span>
-                  {([
-                    ["auto", "تلقائي (دخول/خروج)"],
-                    ["in", "دخول"],
-                    ["out", "خروج"],
-                  ] as const).map(([v, label]) => (
-                    <Button
-                      key={v}
-                      size="sm"
-                      variant={direction === v ? "default" : "outline"}
-                      className={direction === v && v === "out" ? "bg-blue-700 hover:bg-blue-800" : direction === v && v === "in" ? "bg-green-700 hover:bg-green-800" : ""}
-                      onClick={() => setDirection(v)}
-                    >
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  «تلقائي»: إن كان المشارك داخل المكان يُسجَّل خروجه، وإلا يُسجَّل دخوله. استخدم «دخول» عند البوابة و«خروج» عند المخرج إن كان لكل منهما منظم.
-                </p>
+                <ScanModeToggle value={direction} onChange={setDirection} />
 
-                {result && (
-                  <div className={`rounded-md border-r-4 p-4 ${RESULT_STYLES[result.kind]}`}>
-                    <div className="text-lg font-bold">{result.message}</div>
-                    {result.name && (
-                      <div className="mt-1 text-sm">
-                        {result.name}
-                        {result.teamName ? ` — فريق ${result.teamName}` : ""}
-                      </div>
-                    )}
-                    {result.presenceLine && <div className="mt-1 text-sm">{result.presenceLine}</div>}
-                  </div>
-                )}
-
-                {cameraOn ? (
-                  <>
-                    <QrScanner onScan={handleDecoded} paused={false} />
-                    <div className="text-center">
-                      <Button variant="outline" size="sm" onClick={() => setCameraOn(false)}>
-                        إيقاف الكاميرا
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex flex-wrap justify-center gap-2">
-                    <Button onClick={() => { unlockScanAudio(); setCameraOn(true); }} className="bg-blue-600 hover:bg-blue-700">
-                      <Camera className="ml-2 h-4 w-4" />
-                      تشغيل الكاميرا للمسح
-                    </Button>
-                  </div>
-                )}
-
-                <form onSubmit={handleManual} className="flex flex-col gap-2 md:mx-auto md:max-w-md md:flex-row">
-                  <Input
-                    dir="ltr"
-                    className="text-left font-mono"
-                    placeholder="MIYAHTHONE-XXXXXXXXXXXX"
-                    value={manualCode}
-                    onChange={(e) => setManualCode(e.target.value)}
-                  />
-                  <Button type="submit" variant="outline" disabled={!manualCode.trim()}>
-                    تسجيل يدوي
-                  </Button>
-                </form>
+                <BadgeScanner
+                  tone={direction}
+                  label={
+                    <>
+                      يسجّل الآن: <span className="font-extrabold">{direction === "in" ? "دخول" : "خروج"}</span> — {whereLabel}
+                    </>
+                  }
+                  busy={scanBusy}
+                  onCode={recordScan}
+                  result={resultCard}
+                  flash={flash}
+                  cameraKey="miyahthone-camera-organizer-attendance"
+                />
 
                 {recent.length > 0 && (
                   <div className="rounded-md border p-3">
-                    <h4 className="mb-2 text-sm font-semibold">آخر عمليات المسح (هذه الجلسة)</h4>
-                    <div className="max-h-40 space-y-1 overflow-y-auto">
-                      {recent.map((s, i) => (
-                        <div key={i} className="text-sm">
-                          <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${s.direction === "in" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}>
-                            {s.direction === "in" ? "دخول" : "خروج"}
-                          </span>
-                          {s.name} <span className="text-xs text-muted-foreground">({s.time})</span>
-                        </div>
-                      ))}
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <h4 className="text-sm font-semibold">آخر عمليات المسح</h4>
+                      <span className="text-xs text-muted-foreground">
+                        على هذا الجهاز: <span className="font-semibold text-green-700">{counts.in} دخول</span> ·{" "}
+                        <span className="font-semibold text-red-700">{counts.out} خروج</span> — التراجع خلال {UNDO_MINUTES} دقائق
+                      </span>
+                    </div>
+                    <div className="max-h-56 divide-y overflow-y-auto">
+                      {recent.map((s) => {
+                        const canUndo = !s.undone && Date.now() - s.at < UNDO_MINUTES * 60_000;
+                        return (
+                          <div key={s.scanId} className="flex items-center justify-between gap-2 py-1.5 text-sm">
+                            <span className={`min-w-0 ${s.undone ? "text-muted-foreground line-through" : ""}`}>
+                              <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${s.direction === "in" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                                {s.direction === "in" ? "دخول" : "خروج"}
+                              </span>
+                              {s.name}
+                              <span className="block text-xs text-muted-foreground">
+                                {s.time} · {s.where}
+                              </span>
+                            </span>
+                            {canUndo && (
+                              <button
+                                type="button"
+                                onClick={() => undo(s)}
+                                className="flex shrink-0 items-center gap-1 rounded-md border border-red-200 px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                              >
+                                <RotateCcw className="h-3 w-3" />
+                                تراجع
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
               </CardContent>
             </Card>
-            {detailsBlock}
+            {attendanceDetails && (
+              <div ref={detailsRef} className="scroll-mt-16">
+                <ParticipantDetailsPanel details={attendanceDetails} onClose={() => setAttendanceDetails(null)} />
+              </div>
+            )}
           </>
         )}
 
-        {tab === "search" && (
+        {/* ================= info: view only ================= */}
+        {tab === "info" && (
           <>
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Search className="h-5 w-5" />
-                  البحث عن مشارك
+              <CardHeader className="p-3 pb-0 sm:p-6 sm:pb-0">
+                <CardTitle className="flex items-center gap-2 text-base sm:text-xl">
+                  <Contact className="h-5 w-5" />
+                  معلومات المشارك
                 </CardTitle>
-                <CardDescription>المشاركون النشطون فقط — للعرض فقط. اضغط على مشارك لعرض بياناته وفريقه وحجوزاته.</CardDescription>
+                <CardDescription>امسح البطاقة أو ابحث بالاسم لعرض بيانات المشارك وفريقه وجلساته — لا يُسجَّل أي حضور هنا.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <Input
-                  placeholder="ابحث بالاسم أو البريد أو اسم الفريق..."
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  autoFocus
+              <CardContent className="space-y-3 p-3 sm:p-6">
+                <BadgeScanner
+                  tone="view"
+                  label="مسح للعرض فقط — لا يُسجَّل حضور"
+                  busy={lookupBusy}
+                  cameraKey="miyahthone-camera-organizer-info"
+                  onCode={async (code) => {
+                    const d = await lookup({ badgeCode: code });
+                    if (d) {
+                      playScanSound("success");
+                      openDetails(d, setInfoDetails);
+                    }
+                  }}
                 />
-                {query.trim().length < 2 ? (
-                  <p className="text-sm text-muted-foreground">اكتب حرفين على الأقل للبحث.</p>
-                ) : searching && rows.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">جاري البحث...</p>
-                ) : rows.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">لا توجد نتائج.</p>
-                ) : (
-                  <>
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-collapse text-sm">
-                        <thead>
-                          <tr className="bg-muted/50">
-                            <th className="border p-2 text-right">الاسم</th>
-                            <th className="border p-2 text-right">الفريق</th>
-                            <th className="border p-2 text-right">البريد الإلكتروني</th>
-                            <th className="border p-2 text-right">حضور اليوم</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((r) => (
-                            <tr
-                              key={r.participantId}
-                              className="cursor-pointer hover:bg-blue-50"
-                              onClick={() => loadDetails(r.participantId)}
-                            >
-                              <td className="border p-2 font-medium text-blue-800 underline-offset-2 hover:underline">{r.name}</td>
-                              <td className="border p-2">{r.teamName || "بدون فريق"}</td>
-                              <td className="border p-2" dir="ltr">{r.email}</td>
-                              <td className="border p-2">
-                                {r.checkedInToday ? (
-                                  <span className="rounded bg-green-100 px-2 py-0.5 text-green-800">
-                                    حاضر{r.checkedInAt ? ` — ${formatTime(r.checkedInAt)}` : ""}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground">لم يسجل بعد</span>
-                                )}
-                              </td>
+                {lookupError && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{lookupError}</p>}
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="pr-10" placeholder="أو ابحث بالاسم أو البريد أو اسم الفريق..." value={query} onChange={(e) => setQuery(e.target.value)} />
+                </div>
+                {query.trim().length >= 2 &&
+                  (searching && rows.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">جاري البحث...</p>
+                  ) : rows.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">لا توجد نتائج.</p>
+                  ) : (
+                    <>
+                      {/* phones: tappable cards */}
+                      <div className="space-y-2 sm:hidden">
+                        {rows.map((r) => (
+                          <button
+                            key={r.participantId}
+                            type="button"
+                            className="w-full rounded-lg border bg-white p-3 text-right hover:bg-blue-50"
+                            onClick={async () => openDetails(await lookup({ participantId: r.participantId }), setInfoDetails)}
+                          >
+                            <div className="font-semibold text-blue-800">{r.name}</div>
+                            <div className="text-xs text-muted-foreground">{r.teamName ? `فريق ${r.teamName}` : "بدون فريق"}</div>
+                            <div className="mt-1 text-xs">
+                              {r.checkedInToday ? (
+                                <span className="rounded bg-green-100 px-2 py-0.5 text-green-800">حاضر اليوم{r.checkedInAt ? ` — ${formatTime(r.checkedInAt)}` : ""}</span>
+                              ) : (
+                                <span className="text-muted-foreground">لم يسجل اليوم</span>
+                              )}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      <div className="hidden overflow-x-auto sm:block">
+                        <table className="w-full border-collapse text-sm">
+                          <thead>
+                            <tr className="bg-muted/50">
+                              <th className="border p-2 text-right">الاسم</th>
+                              <th className="border p-2 text-right">الفريق</th>
+                              <th className="border p-2 text-right">البريد الإلكتروني</th>
+                              <th className="border p-2 text-right">حضور اليوم</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {rows.map((r) => (
+                              <tr
+                                key={r.participantId}
+                                className="cursor-pointer hover:bg-blue-50"
+                                onClick={async () => openDetails(await lookup({ participantId: r.participantId }), setInfoDetails)}
+                              >
+                                <td className="border p-2 font-medium text-blue-800">{r.name}</td>
+                                <td className="border p-2">{r.teamName || "بدون فريق"}</td>
+                                <td className="border p-2" dir="ltr">{r.email}</td>
+                                <td className="border p-2">
+                                  {r.checkedInToday ? (
+                                    <span className="rounded bg-green-100 px-2 py-0.5 text-green-800">حاضر{r.checkedInAt ? ` — ${formatTime(r.checkedInAt)}` : ""}</span>
+                                  ) : (
+                                    <span className="text-muted-foreground">لم يسجل بعد</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {truncated && <p className="text-xs text-muted-foreground">تظهر أول 50 نتيجة — حدّد البحث أكثر.</p>}
+                    </>
+                  ))}
+              </CardContent>
+            </Card>
+            {infoDetails && (
+              <div ref={detailsRef} className="scroll-mt-16">
+                <ParticipantDetailsPanel details={infoDetails} onClose={() => setInfoDetails(null)} />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ================= sessions: view only ================= */}
+        {tab === "sessions" && (
+          <>
+            <Card>
+              <CardContent className="space-y-3 pt-6">
+                <BadgeScanner
+                  tone="view"
+                  label="مسح البطاقة لمعرفة جلسة الفريق — للعرض فقط"
+                  busy={lookupBusy}
+                  cameraKey="miyahthone-camera-organizer-sessions"
+                  onCode={async (code) => {
+                    const d = await lookup({ badgeCode: code });
+                    if (d) {
+                      playScanSound("success");
+                      setSessionsDetails(d);
+                    }
+                  }}
+                />
+                {lookupError && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{lookupError}</p>}
+                {sessionsDetails && (
+                  <div className="rounded-md border-2 border-orange-300 bg-orange-50 p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="font-semibold">
+                        {sessionsDetails.participant.name}
+                        {sessionsDetails.team ? ` — فريق ${sessionsDetails.team.name}` : " — مشارك فردي"}
+                      </div>
+                      <button type="button" className="text-xs text-muted-foreground hover:underline" onClick={() => setSessionsDetails(null)}>
+                        إخفاء
+                      </button>
                     </div>
-                    {truncated && (
-                      <p className="text-xs text-muted-foreground">تظهر أول 50 نتيجة — حدّد البحث أكثر.</p>
+                    {todaysSessions.length === 0 ? (
+                      <p className="mt-1 text-sm text-muted-foreground">لا توجد جلسات قادمة اليوم.</p>
+                    ) : (
+                      <div className="mt-2 space-y-1">
+                        {todaysSessions.map((b, i) => {
+                          const isNow = new Date(b.startTime).getTime() <= Date.now();
+                          return (
+                            <div key={b.id} className="text-sm">
+                              <span className={`ml-1 rounded px-1.5 py-0.5 text-xs text-white ${isNow ? "bg-green-600" : i === 0 ? "bg-blue-600" : "bg-gray-500"}`}>
+                                {isNow ? "الآن" : i === 0 ? "التالية" : "لاحقاً"}
+                              </span>
+                              <span className="font-semibold">{formatRange(b.startTime, b.endTime)}</span> مع{" "}
+                              <span className="font-semibold text-blue-800">{b.mentorName}</span>
+                              {b.mentorOrganization ? ` (${b.mentorOrganization})` : ""}
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
-            {detailsBlock}
+            <BookingsBoard
+              onUnauthorized={goToLogin}
+              highlight={
+                sessionsDetails
+                  ? {
+                      teamName: sessionsDetails.team?.name ?? null,
+                      names: sessionsDetails.team ? sessionsDetails.team.members.map((m) => m.name) : [sessionsDetails.participant.name],
+                    }
+                  : null
+              }
+            />
           </>
         )}
-
-        {tab === "bookings" && <BookingsBoard onUnauthorized={goToLogin} />}
       </main>
     </div>
   );

@@ -9,6 +9,7 @@ import { riyadhToday } from "@/lib/badge-dates";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatMinutes, formatTime } from "@/components/attendance/time-format";
+import ScanModeToggle, { useRememberedDirection } from "@/components/attendance/scan-mode-toggle";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -32,7 +33,7 @@ interface EventOption {
 interface ScanResult {
   kind:
     | "attended" | "wasAbsent" | "alreadyAttended" | "checkedIn" | "alreadyCheckedIn"
-    | "reEntered" | "checkedOut" | "alreadyOut" | "rejected";
+    | "reEntered" | "checkedOut" | "alreadyOut" | "repeatIgnored" | "rejected";
   message: string;
   /** time inside / exits after this scan */
   presenceLine?: string;
@@ -99,7 +100,7 @@ interface PresenceRow {
   email: string;
   teamName: string | null;
   summary: PresenceSummary;
-  scans: { id: string; direction: string; at: string; by: string; method: string }[];
+  scans: { id: string; direction: string; at: string; by: string; byName: string; method: string }[];
 }
 
 interface PresenceData {
@@ -146,8 +147,9 @@ export default function AttendancePage() {
   const [today, setToday] = useState<string>("");
   const todayRef = useRef("");
   const [cameraOn, setCameraOn] = useState(false);
-  // auto = exit if inside now, entry otherwise
-  const [direction, setDirection] = useState<"auto" | "in" | "out">("auto");
+  // «تلقائي» (auto) is hidden for now (several doors / scanners); the API still accepts it
+  // remembered per device, so an exit door stays in «خروج» after a reload
+  const [direction, setDirection] = useRememberedDirection("miyahthone-scan-direction-admin");
   const [presence, setPresence] = useState<PresenceData | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   // Audible scan feedback (preference remembered per browser)
@@ -253,7 +255,7 @@ export default function AttendancePage() {
     playScanSound(
       r.kind === "rejected"
         ? "error"
-        : r.kind === "alreadyAttended" || r.kind === "alreadyCheckedIn" || r.kind === "alreadyOut"
+        : r.kind === "alreadyAttended" || r.kind === "alreadyCheckedIn" || r.kind === "alreadyOut" || r.kind === "repeatIgnored"
           ? "duplicate"
           : "success"
     );
@@ -294,8 +296,10 @@ export default function AttendancePage() {
             reEntered: "reEntered",
             checkedOut: "checkedOut",
             alreadyOut: "alreadyOut",
+            repeatIgnored: "repeatIgnored",
           };
-          const kind = kindMap[payload.result] ?? "attended";
+          // an unknown result must never look like a fresh check-in
+          const kind = kindMap[payload.result] ?? (payload.scanId ? "attended" : "alreadyCheckedIn");
           const messages: Record<ScanResult["kind"], string> = {
             attended: "تم تسجيل الحضور ✓",
             wasAbsent: "كان مسجلاً كغائب — تم تحديثه إلى حاضر ✓",
@@ -305,13 +309,18 @@ export default function AttendancePage() {
             reEntered: "تم تسجيل العودة (دخول) ✓",
             checkedOut: "تم تسجيل الخروج ✓",
             alreadyOut: "مسجّل خروجه بالفعل",
+            repeatIgnored: `مسح مكرر — آخر عملية (${payload.direction === "out" ? "خروج" : "دخول"}) قبل ${payload.secondsAgo ?? 0} ثانية، لم يُسجَّل شيء`,
             rejected: "",
           };
           // general check-ins are saved under the server's today, not the picked day
           const savedDate: string | undefined = mode === "general" ? payload.date : undefined;
           showResult({
             kind,
-            message: messages[kind],
+            message: payload.autoRegistered
+              ? "لم يكن مسجلاً في الفعالية — تم تسجيله وتسجيل حضوره ✓"
+              : payload.reactivated
+                ? "كان تسجيله ملغى — أُعيد تسجيله وسُجّل حضوره ✓"
+                : messages[kind],
             name: payload.fullName,
             teamName: payload.teamName,
             participantId: payload.participantId,
@@ -380,8 +389,8 @@ export default function AttendancePage() {
         credentials: "include",
         body: JSON.stringify(
           scan.scanId
-            ? // exactly this entry/exit; the day's check-in only if this scan created it
-              { scanId: scan.scanId, revertCheckin: scan.createdCheckin }
+            ? // exactly this entry/exit; the server reverts the day's check-in only if this scan created it
+              { scanId: scan.scanId }
             : {
                 participantId: scan.participantId,
                 mode,
@@ -456,10 +465,22 @@ export default function AttendancePage() {
     alreadyAttended: "bg-yellow-50 border-yellow-500 text-yellow-800",
     alreadyCheckedIn: "bg-yellow-50 border-yellow-500 text-yellow-800",
     reEntered: "bg-green-50 border-green-500 text-green-800",
-    checkedOut: "bg-blue-50 border-blue-500 text-blue-800",
+    checkedOut: "bg-red-50 border-red-600 text-red-800",
     alreadyOut: "bg-yellow-50 border-yellow-500 text-yellow-800",
-    rejected: "bg-red-50 border-red-500 text-red-800",
+    repeatIgnored: "bg-yellow-50 border-yellow-500 text-yellow-800",
+    // dark, not red: red means «خروج» on this page
+    rejected: "bg-gray-900 border-black text-white",
   };
+
+  // flat log of every scan in the selected day / event, newest first
+  const scanLog = useMemo(
+    () =>
+      (presence?.rows ?? [])
+        .flatMap((r) => r.scans.map((x) => ({ ...x, name: r.name, teamName: r.teamName })))
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()),
+    [presence]
+  );
+  const [showLog, setShowLog] = useState(false);
 
   const exportPresence = () => {
     if (!presence) return;
@@ -480,11 +501,21 @@ export default function AttendancePage() {
           }
         : {}),
       "لم يسجل خروج": r.summary.missingCheckout ? "نعم" : "",
-      "السجل": r.scans.map((x) => `${x.direction === "in" ? "دخول" : "خروج"} ${formatTime(x.at)}`).join(" | "),
+      "السجل": r.scans.map((x) => `${x.direction === "in" ? "دخول" : "خروج"} ${formatTime(x.at)} (${x.byName})`).join(" | "),
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "الدخول والخروج");
+    // every single scan: who was scanned, in/out, when, and by whom
+    const log = scanLog.map((x) => ({
+      الوقت: formatTime(x.at),
+      المشارك: x.name,
+      الفريق: x.teamName || "بدون فريق",
+      العملية: x.direction === "in" ? "دخول" : "خروج",
+      "بواسطة": x.byName,
+      الطريقة: x.method === "manual" ? "يدوي" : "مسح",
+    }));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(log), "سجل المسح");
     const label = mode === "event" ? events.find((e) => e.id === eventId)?.title || "فعالية" : `عام_${presence.date}`;
     XLSX.writeFile(wb, `الدخول_والخروج_${label}.xlsx`);
   };
@@ -600,22 +631,16 @@ export default function AttendancePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm font-medium">نوع المسح:</span>
-            {([
-              ["auto", "تلقائي (دخول/خروج)"],
-              ["in", "دخول"],
-              ["out", "خروج"],
-            ] as const).map(([v, label]) => (
-              <Button key={v} size="sm" variant={direction === v ? "default" : "outline"} onClick={() => setDirection(v)}>
-                {label}
-              </Button>
-            ))}
-            <span className="text-xs text-muted-foreground">«تلقائي»: داخل المكان ← خروج، وإلا ← دخول. يمكن الدخول والخروج أكثر من مرة.</span>
-          </div>
+          <ScanModeToggle value={direction} onChange={setDirection} />
           {result && (
             <div className={`border-r-4 rounded-md p-4 ${resultStyles[result.kind]}`}>
-              <div className="font-bold text-lg">{result.message}</div>
+              <div className="font-bold text-lg">
+                {result.kind === "checkedOut" && <span className="ml-2 rounded bg-red-600 px-2 py-0.5 text-sm text-white">خروج</span>}
+                {(result.kind === "checkedIn" || result.kind === "attended" || result.kind === "wasAbsent" || result.kind === "reEntered") && (
+                  <span className="ml-2 rounded bg-green-600 px-2 py-0.5 text-sm text-white">دخول</span>
+                )}
+                {result.kind === "rejected" ? `✕ ${result.message}` : result.message}
+              </div>
               {result.name && (
                 <div className="text-sm mt-1">
                   {result.name}
@@ -682,7 +707,7 @@ export default function AttendancePage() {
                   <div key={`${s.participantId}-${i}`} className="flex items-center justify-between text-sm">
                     <span className={s.undone ? "line-through text-muted-foreground" : ""}>
                       {s.direction && (
-                        <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${s.direction === "in" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}>
+                        <span className={`ml-1 rounded px-1.5 py-0.5 text-xs ${s.direction === "in" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                           {s.direction === "in" ? "دخول" : "خروج"}
                         </span>
                       )}
@@ -738,6 +763,46 @@ export default function AttendancePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {presence.rows.length > 0 && (
+                  <div className="mb-3">
+                    <Button variant="outline" size="sm" onClick={() => setShowLog((v) => !v)}>
+                      {showLog ? "إخفاء سجل المسح" : `سجل المسح الكامل — من سجّل من (${scanLog.length})`}
+                    </Button>
+                    {showLog && (
+                      <div className="mt-2 max-h-96 overflow-auto rounded border">
+                        <table className="w-full border-collapse text-sm">
+                          <thead className="sticky top-0 bg-muted">
+                            <tr>
+                              <th className="border p-2 text-right">الوقت</th>
+                              <th className="border p-2 text-right">المشارك</th>
+                              <th className="border p-2 text-right">العملية</th>
+                              <th className="border p-2 text-right">بواسطة</th>
+                              <th className="border p-2 text-right">الطريقة</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {scanLog.map((x) => (
+                              <tr key={x.id}>
+                                <td className="border p-2" dir="ltr">{formatTime(x.at)}</td>
+                                <td className="border p-2">
+                                  {x.name}
+                                  <div className="text-xs text-muted-foreground">{x.teamName || "بدون فريق"}</div>
+                                </td>
+                                <td className="border p-2">
+                                  <span className={`rounded px-1.5 py-0.5 text-xs ${x.direction === "in" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                                    {x.direction === "in" ? "دخول" : "خروج"}
+                                  </span>
+                                </td>
+                                <td className="border p-2">{x.byName}</td>
+                                <td className="border p-2">{x.method === "manual" ? "يدوي" : "مسح"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
                 {presence.rows.length === 0 ? (
                   <p className="text-center p-4 text-muted-foreground">لا توجد عمليات دخول أو خروج مسجلة لهذا الاختيار.</p>
                 ) : (
@@ -772,7 +837,7 @@ export default function AttendancePage() {
                                 {r.summary.state === "inside" ? (
                                   <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800">داخل الآن</span>
                                 ) : (
-                                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">خارج</span>
+                                  <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs text-red-800">خارج</span>
                                 )}
                                 {r.summary.missingCheckout && (
                                   <div className="mt-1 text-xs text-yellow-700">لم يُسجَّل خروجه</div>
@@ -794,10 +859,9 @@ export default function AttendancePage() {
                                     {r.scans.map((x) => (
                                       <span
                                         key={x.id}
-                                        className={`rounded px-1.5 py-0.5 text-xs ${x.direction === "in" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}
+                                        className={`rounded px-1.5 py-0.5 text-xs ${x.direction === "in" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
                                       >
-                                        {x.direction === "in" ? "دخول" : "خروج"} {formatTime(x.at)}
-                                        {x.by === "organizer" ? " (منظم)" : ""}
+                                        {x.direction === "in" ? "دخول" : "خروج"} {formatTime(x.at)} · {x.byName}
                                       </span>
                                     ))}
                                   </div>

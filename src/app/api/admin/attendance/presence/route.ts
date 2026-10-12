@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
 import { riyadhToday } from '@/lib/badge-dates';
-import { riyadhDayOf, summarizeScans } from '@/lib/attendance-scans';
+import { riyadhDayOf, scannerNames, summarizeScans } from '@/lib/attendance-scans';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,13 +45,14 @@ export async function GET(request: NextRequest) {
       where: { eventId, day },
       orderBy: { createdAt: 'asc' },
       select: {
-        id: true, participantId: true, direction: true, createdAt: true, scannerRole: true, method: true,
+        id: true, participantId: true, direction: true, createdAt: true, scannedBy: true, scannerRole: true, method: true,
         participant: { select: { fullName: true, firstName: true, secondName: true, familyName: true, email: true, team: { select: { teamName: true } } } },
       },
     });
 
     const now = new Date();
     const isToday = day === riyadhToday();
+    const names = await scannerNames(scans);
     const byParticipant = new Map<string, typeof scans>();
     for (const s of scans) {
       const list = byParticipant.get(s.participantId);
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
         email: p.email,
         teamName: p.team?.teamName ?? null,
         summary: summarizeScans(list, { now, isToday, window }),
-        scans: list.map((s) => ({ id: s.id, direction: s.direction, at: s.createdAt, by: s.scannerRole, method: s.method })),
+        scans: list.map((s) => ({ id: s.id, direction: s.direction, at: s.createdAt, by: s.scannerRole, byName: names.get(s.scannedBy) ?? '—', method: s.method })),
       };
     });
     const order = { inside: 0, outside: 1, none: 2 } as const;

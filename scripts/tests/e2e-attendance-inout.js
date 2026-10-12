@@ -50,6 +50,12 @@ const made = { participants: [], teams: [], events: [], mentors: [], organizers:
   const P2 = await mk('p2', {});
 
   const scanA = (p, extra) => api('/api/admin/attendance/scan', { cookie: aCk, method: 'POST', body: { badgeCode: p.badgeCode, mode: 'general', method: 'scan', ...extra } });
+  const scanO = (p, extra, ck = oCk) => api('/api/organizer/scan', { cookie: ck, method: 'POST', body: { badgeCode: p.badgeCode, mode: 'general', method: 'scan', ...extra } });
+  // make a person's scans in a scope look older (to step past the auto-repeat guard on purpose)
+  const age = (p, eventId, seconds) =>
+    eventId
+      ? prisma.$executeRawUnsafe(`UPDATE "AttendanceScan" SET "createdAt" = "createdAt" - ($1 || ' seconds')::interval WHERE "participantId" = $2 AND "eventId" = $3`, String(seconds), p.id, eventId)
+      : prisma.$executeRawUnsafe(`UPDATE "AttendanceScan" SET "createdAt" = "createdAt" - ($1 || ' seconds')::interval WHERE "participantId" = $2 AND "eventId" IS NULL`, String(seconds), p.id);
   const venueScans = (p) => prisma.attendanceScan.count({ where: { participantId: p.id, eventId: null, day: today } });
 
   section('venue: entries and exits, many times a day');
@@ -63,9 +69,13 @@ const made = { participants: [], teams: [], events: [], mentors: [], organizers:
   r = await scanA(L, { direction: 'out' });
   check('exit again while outside -> alreadyOut, nothing written', r.json.result === 'alreadyOut' && !r.json.scanId && (await venueScans(L)) === 2);
   r = await scanA(L, { direction: 'auto' });
-  check('auto while outside -> re-entry', r.json.result === 'reEntered' && r.json.direction === 'in' && r.json.presence?.state === 'inside', JSON.stringify(r.json));
+  check('auto right after the exit -> repeatIgnored, nothing written', r.status === 200 && r.json.result === 'repeatIgnored' && !r.json.scanId && r.json.direction === 'out' && typeof r.json.secondsAgo === 'number' && (await venueScans(L)) === 2, JSON.stringify(r.json));
+  await age(L, null, 120);
   r = await scanA(L, { direction: 'auto' });
-  check('auto while inside -> exit (2 exits)', r.json.result === 'checkedOut' && r.json.direction === 'out' && r.json.presence?.exits === 2, JSON.stringify(r.json));
+  check('auto while outside (2 min later) -> re-entry', r.json.result === 'reEntered' && r.json.direction === 'in' && r.json.presence?.state === 'inside', JSON.stringify(r.json));
+  await age(L, null, 120);
+  r = await scanA(L, { direction: 'auto' });
+  check('auto while inside (2 min later) -> exit (2 exits)', r.json.result === 'checkedOut' && r.json.direction === 'out' && r.json.presence?.exits === 2, JSON.stringify(r.json));
   check('  4 scans logged, still ONE daily check-in record', (await venueScans(L)) === 4 && (await prisma.attendanceRecord.count({ where: { participantId: L.id, eventId: null } })) === 1);
   r = await scanA(S, { direction: 'out' });
   check('exit without any entry today -> 409 notInside, nothing written', r.status === 409 && r.json.result === 'notInside' && (await venueScans(S)) === 0, JSON.stringify(r.json));
@@ -103,18 +113,25 @@ const made = { participants: [], teams: [], events: [], mentors: [], organizers:
   check('registered, auto -> attended + entry', r.status === 200 && r.json.result === 'attended' && r.json.direction === 'in' && r.json.createdCheckin === true, JSON.stringify(r.json));
   check('  registration now attended', (await prisma.eventRegistration.findFirst({ where: { participantId: L.id, eventId: liveEvent.id } })).status === 'attended');
   r = await scanE(aCk, L, 'auto');
-  check('auto -> exit from the event', r.json.result === 'checkedOut' && r.json.presence?.exits === 1 && typeof r.json.presence?.missedMinutes === 'number', JSON.stringify(r.json));
+  check('auto again at once -> repeatIgnored (no in+out by a double scan)', r.json.result === 'repeatIgnored' && !r.json.scanId, JSON.stringify(r.json));
+  await age(L, liveEvent.id, 120);
+  r = await scanE(aCk, L, 'auto');
+  check('auto 2 min later -> exit from the event', r.json.result === 'checkedOut' && r.json.presence?.exits === 1 && typeof r.json.presence?.missedMinutes === 'number', JSON.stringify(r.json));
   r = await scanE(oCk, L, 'in', '/api/organizer/scan');
   check('organizer can scan event entries too -> reEntered', r.status === 200 && r.json.result === 'reEntered', JSON.stringify(r.json));
-  r = await scanE(aCk, M, 'in');
-  check('not registered -> 409 notRegistered, nothing written', r.status === 409 && r.json.result === 'notRegistered' && (await prisma.attendanceScan.count({ where: { participantId: M.id, eventId: liveEvent.id } })) === 0);
-  r = await scanE(aCk, M, 'out');
-  check('exit without entry -> 409 notInside', r.status === 409 && r.json.result === 'notInside');
+  r = await scanE(oCk, M, 'in', '/api/organizer/scan');
+  check('not registered -> registered on the spot + entry (organizer)', r.status === 200 && r.json.result === 'attended' && r.json.autoRegistered === true && !!r.json.scanId, JSON.stringify(r.json));
+  check('  registration created as attended', (await prisma.eventRegistration.findFirst({ where: { participantId: M.id, eventId: liveEvent.id } }))?.status === 'attended');
+  r = await scanE(oCk, M, 'out', '/api/organizer/scan');
+  check('  and checked out', r.status === 200 && r.json.result === 'checkedOut');
+  r = await scanE(aCk, S, 'out');
+  check('exit without any entry -> 409 notInside, nothing written', r.status === 409 && r.json.result === 'notInside' && (await prisma.attendanceScan.count({ where: { participantId: S.id, eventId: liveEvent.id } })) === 0);
   r = await api('/api/organizer/scan', { cookie: oCk, method: 'POST', body: { badgeCode: L.badgeCode, mode: 'event' } });
   check('organizer event mode without event -> 400', r.status === 400);
   r = await api(`/api/admin/attendance/presence?mode=event&eventId=${liveEvent.id}&date=${today}`, { cookie: aCk });
   const live = r.json?.rows?.find((x) => x.participantId === L.id);
   check('event presence today: inside now, 1 exit, scanned by admin + organizer', live && live.summary.state === 'inside' && live.summary.exits === 1 && live.scans.some((x) => x.by === 'organizer'), JSON.stringify(live?.summary));
+  check('  every scan names who did it (organizer name / admin username)', live && live.scans.some((x) => x.byName.includes(org.username)) && live.scans.some((x) => x.byName.includes(admin.username)), JSON.stringify(live?.scans.map((x) => x.byName)));
 
   section('organizer: participant details');
   const mentor = await prisma.mentor.create({ data: { name: `${TAG} الموجه`, email: `${TAG}-m@t.local`, specialty: 'x', phone: '05', status: 'active' } });
@@ -149,12 +166,54 @@ const made = { participants: [], teams: [], events: [], mentors: [], organizers:
   check('participant -> organizer bookings 401', (await api('/api/organizer/bookings', { cookie: pCk })).status === 401);
   check('organizer -> admin presence report 401', (await api('/api/admin/attendance/presence?mode=general', { cookie: oCk })).status === 401);
 
+  section('double scans and simultaneous devices never duplicate');
+  const D1 = await mk('dup1', {}), D2 = await mk('dup2', {}), D3 = await mk('dup3', {});
+  r = await scanA(D1, { direction: 'in' });
+  r = await scanA(D1, { direction: 'out' });
+  check('explicit «خروج» right after «دخول» is allowed (deliberate choice)', r.json.result === 'checkedOut' && !!r.json.scanId, JSON.stringify(r.json));
+  let burst = await Promise.all([1, 2, 3, 4, 5, 6].map((i) => (i % 2 ? scanA(D2, { direction: 'auto' }) : scanO(D2, { direction: 'auto' }))));
+  check('6 simultaneous auto scans (admin + organizer) -> exactly 1 entry written', (await venueScans(D2)) === 1 && burst.filter((x) => x.json?.scanId).length === 1, JSON.stringify(burst.map((x) => x.json?.result)));
+  check('  others answered repeatIgnored, none failed', burst.every((x) => x.status === 200) && burst.filter((x) => x.json?.result === 'repeatIgnored').length === 5);
+  check('  exactly one daily check-in record', (await prisma.attendanceRecord.count({ where: { participantId: D2.id, eventId: null } })) === 1);
+  burst = await Promise.all([1, 2, 3, 4, 5, 6].map(() => scanA(D3, { direction: 'in' })));
+  check('6 simultaneous explicit entries -> exactly 1 entry written', (await venueScans(D3)) === 1 && burst.filter((x) => x.json?.scanId).length === 1, JSON.stringify(burst.map((x) => x.json?.result)));
+
+  section('organizer read-only lookup (info / sessions tabs)');
+  const before = await prisma.attendanceScan.count();
+  const beforeRec = await prisma.attendanceRecord.count();
+  r = await api(`/api/organizer/lookup?badgeCode=${encodeURIComponent(L.badgeCode.toLowerCase())}`, { cookie: oCk });
+  check('lookup by badge -> 200 details (team, members, sessions)', r.status === 200 && r.json.participant?.id === L.id && r.json.team?.members?.length === 2 && Array.isArray(r.json.bookings), JSON.stringify(r.json && r.json.participant));
+  r = await api(`/api/organizer/lookup?badgeCode=${encodeURIComponent(S.badgeCode)}`, { cookie: oCk });
+  check('  …records NOTHING (scan and check-in counts unchanged)', r.status === 200 && (await prisma.attendanceScan.count()) === before && (await prisma.attendanceRecord.count()) === beforeRec);
+  check('unknown badge -> 404', (await api('/api/organizer/lookup?badgeCode=MIYAHTHONE-NOPE', { cookie: oCk })).status === 404);
+  check('missing badge -> 400', (await api('/api/organizer/lookup', { cookie: oCk })).status === 400);
+  check('participant -> lookup 401', (await api(`/api/organizer/lookup?badgeCode=${L.badgeCode}`, { cookie: sign({ id: L.id, participantId: L.id, role: 'participant' }) })).status === 401);
+
+  section('organizer undo: own scans, 5 minutes');
+  const org2 = await prisma.organizer.create({ data: { username: `${TAG}-org2`, name: 'منظم ٢', passwordHash: 'x' } });
+  made.organizers.push(org2.id);
+  const o2Ck = sign({ id: org2.id, username: org2.username, role: 'organizer' });
+  const U = await mk('undo1', {});
+  const undoO = (scanId, ck = oCk) => api('/api/organizer/scan/undo', { cookie: ck, method: 'POST', body: { scanId } });
+  r = await scanO(U, { direction: 'in' });
+  const uIn = r.json;
+  check('organizer entry created the check-in', uIn.result === 'checkedIn' && uIn.createdCheckin === true);
+  check('another organizer cannot undo it -> 403', (await undoO(uIn.scanId, o2Ck)).status === 403);
+  r = await undoO(uIn.scanId);
+  check('own undo -> 200, check-in reverted by the server', r.status === 200 && r.json.revertedCheckin === true && (await prisma.attendanceScan.count({ where: { participantId: U.id } })) === 0 && (await prisma.attendanceRecord.count({ where: { participantId: U.id } })) === 0, JSON.stringify(r.json));
+  r = await scanA(U, { direction: 'in' });
+  check('organizer cannot undo an admin scan -> 403', (await undoO(r.json.scanId)).status === 403);
+  r = await scanO(U, { direction: 'out' });
+  await prisma.attendanceScan.update({ where: { id: r.json.scanId }, data: { createdAt: new Date(Date.now() - 6 * MIN) } });
+  check('own scan older than 5 min -> 403', (await undoO(r.json.scanId)).status === 403);
+  check('participant -> organizer undo 401', (await api('/api/organizer/scan/undo', { cookie: sign({ id: L.id, participantId: L.id, role: 'participant' }), method: 'POST', body: { scanId: r.json.scanId } })).status === 401);
+
   section('undo one scan');
   r = await scanA(P2, { direction: 'in' });
   const firstIn = r.json;
   check('P2 first entry created the check-in', firstIn.result === 'checkedIn' && firstIn.createdCheckin === true);
-  r = await api('/api/admin/attendance/undo', { cookie: aCk, method: 'POST', body: { scanId: firstIn.scanId, revertCheckin: true } });
-  check('undo that entry -> scan gone, daily check-in gone', r.status === 200 && (await prisma.attendanceScan.count({ where: { participantId: P2.id, day: today } })) === 0 && (await prisma.attendanceRecord.count({ where: { participantId: P2.id, checkinDate: today } })) === 0);
+  r = await api('/api/admin/attendance/undo', { cookie: aCk, method: 'POST', body: { scanId: firstIn.scanId } });
+  check('admin undo that entry -> scan gone, check-in reverted (server-decided)', r.json?.revertedCheckin === true && r.status === 200 && (await prisma.attendanceScan.count({ where: { participantId: P2.id, day: today } })) === 0 && (await prisma.attendanceRecord.count({ where: { participantId: P2.id, checkinDate: today } })) === 0);
   const lastL = await prisma.attendanceScan.findFirst({ where: { participantId: L.id, eventId: null, day: today }, orderBy: { createdAt: 'desc' } });
   r = await api('/api/admin/attendance/undo', { cookie: aCk, method: 'POST', body: { scanId: lastL.id } });
   check('undo L\'s last exit only -> 3 scans left, check-in kept', r.status === 200 && (await venueScans(L)) === 3 && (await prisma.attendanceRecord.count({ where: { participantId: L.id, eventId: null } })) === 1);

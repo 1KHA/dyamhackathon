@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { riyadhToday } from '@/lib/badge-dates';
-import { summarizeScans } from '@/lib/attendance-scans';
+import { scannerNames, summarizeScans } from '@/lib/attendance-scans';
 
 /**
  * Everything an organizer needs at the door about one participant: their own
@@ -52,9 +52,10 @@ export async function participantDetails(participantId: string) {
     prisma.attendanceScan.findMany({
       where: { participantId: p.id, eventId: null, day: riyadhToday() },
       orderBy: { createdAt: 'asc' },
-      select: { direction: true, createdAt: true },
+      select: { direction: true, createdAt: true, scannedBy: true, scannerRole: true },
     }),
   ]);
+  const names = await scannerNames(scans);
 
   const sessions = bookings
     .map((b) => ({
@@ -109,7 +110,7 @@ export async function participantDetails(participantId: string) {
     venueToday: {
       date: riyadhToday(),
       summary: summarizeScans(scans, { now, isToday: true }),
-      scans: scans.map((s) => ({ direction: s.direction, at: s.createdAt })),
+      scans: scans.map((s) => ({ direction: s.direction, at: s.createdAt, byName: names.get(s.scannedBy) ?? '—' })),
     },
   };
 }

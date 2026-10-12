@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 
 interface QrScannerProps {
@@ -8,9 +8,12 @@ interface QrScannerProps {
   onScan: (decodedText: string) => void;
   /** Pause decoding (e.g. while a result banner is showing). Camera keeps running. */
   paused?: boolean;
+  /**
+   * The same code fires again only after it has been OUT of view this long.
+   * Holding a badge in front of the camera therefore never fires twice.
+   */
+  sameCodeCooldownMs?: number;
 }
-
-const CONTAINER_ID = "attendance-qr-scanner";
 
 /**
  * Camera QR scanner built on html5-qrcode.
@@ -19,7 +22,11 @@ const CONTAINER_ID = "attendance-qr-scanner";
  * ref so the second mount does not race the first async start(), and cleanup
  * awaits stop() before clear(). Requires HTTPS or localhost for camera access.
  */
-export default function QrScanner({ onScan, paused = false }: QrScannerProps) {
+export default function QrScanner({ onScan, paused = false, sameCodeCooldownMs = 5000 }: QrScannerProps) {
+  // unique per instance (several scanners can exist on one page); CSS-safe
+  const containerId = `qr-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const cooldownRef = useRef(sameCodeCooldownMs);
+  cooldownRef.current = sameCodeCooldownMs;
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(true);
   const startedRef = useRef(false);
@@ -34,7 +41,7 @@ export default function QrScanner({ onScan, paused = false }: QrScannerProps) {
     if (startedRef.current) return; // StrictMode second mount
     startedRef.current = true;
 
-    const scanner = new Html5Qrcode(CONTAINER_ID);
+    const scanner = new Html5Qrcode(containerId);
     let disposed = false;
 
     scanner
@@ -44,11 +51,11 @@ export default function QrScanner({ onScan, paused = false }: QrScannerProps) {
         (decodedText) => {
           if (pausedRef.current) return;
           const now = Date.now();
-          // throttle: ignore the same code within 3s (camera decodes ~10fps)
-          if (
-            lastScanRef.current.text === decodedText &&
-            now - lastScanRef.current.at < 3000
-          ) {
+          // The camera decodes ~10 times a second. The same code is ignored
+          // while it stays in view: `at` is the LAST time it was seen, so it
+          // only fires again after being away for the cooldown.
+          if (lastScanRef.current.text === decodedText && now - lastScanRef.current.at < cooldownRef.current) {
+            lastScanRef.current.at = now;
             return;
           }
           lastScanRef.current = { text: decodedText, at: now };
@@ -84,12 +91,12 @@ export default function QrScanner({ onScan, paused = false }: QrScannerProps) {
       };
       teardown();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="space-y-2">
       <div
-        id={CONTAINER_ID}
+        id={containerId}
         className="w-full max-w-md mx-auto rounded-lg overflow-hidden border bg-black/90 min-h-[240px]"
       />
       {starting && (

@@ -24,7 +24,14 @@ interface BoardBooking {
  * the board once it has ended (time moves on by itself — no reload needed);
  * the one running now is pinned on top, then the next start time.
  */
-export default function BookingsBoard({ onUnauthorized }: { onUnauthorized: () => void }) {
+export default function BookingsBoard({
+  onUnauthorized,
+  highlight = null,
+}: {
+  onUnauthorized: () => void;
+  /** a scanned team / person: their sessions are highlighted */
+  highlight?: { teamName: string | null; names: string[] } | null;
+}) {
   const [date, setDate] = useState("");
   const [bookings, setBookings] = useState<BoardBooking[]>([]);
   const [skew, setSkew] = useState(0); // server clock - browser clock
@@ -77,6 +84,10 @@ export default function BookingsBoard({ onUnauthorized }: { onUnauthorized: () =
     return Array.from(map.entries());
   }, [visible]);
   const nextStart = groups.find(([start]) => new Date(start).getTime() > serverNow)?.[0];
+  const isHighlighted = (b: BoardBooking) =>
+    !!highlight &&
+    ((!!highlight.teamName && b.teamName === highlight.teamName) ||
+      highlight.names.some((n) => b.bookedBy === n || b.members.includes(n)));
 
   return (
     <Card>
@@ -129,7 +140,10 @@ export default function BookingsBoard({ onUnauthorized }: { onUnauthorized: () =
                 </div>
                 <div className="space-y-1.5">
                   {list.map((b) => (
-                    <div key={b.id} className="rounded bg-white/80 p-2 text-sm shadow-sm">
+                    <div
+                      key={b.id}
+                      className={`rounded p-2 text-sm shadow-sm ${isHighlighted(b) ? "bg-orange-50 ring-2 ring-orange-400" : "bg-white/80"}`}
+                    >
                       <div>
                         <span className="font-semibold">{b.teamName ? `فريق ${b.teamName}` : b.bookedBy}</span>
                         {" ← "}

@@ -2,22 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
+import { undoScan } from '@/lib/attendance-scans';
 
 export const dynamic = 'force-dynamic';
 
 /**
  * POST — undo a mistaken scan.
  *
- * body: { scanId, revertCheckin? }  — undo ONE entry/exit scan. With
- *       revertCheckin (that scan created the day's check-in / event attendance)
- *       and no other entry left for that scope/day, the check-in is undone too.
+ * body: { scanId }  — undo ONE entry/exit scan (src/lib/attendance-scans.ts
+ *       undoScan). If it was the last entry of that scope/day and it created the
+ *       day's check-in / the event attendance, that is undone too (server-decided).
  * body: { participantId, mode: 'event' | 'general', eventId?, date? }  (older form)
  *
  * Event mode: registration status back to 'registered' + delete the audit row.
  * General mode: delete that day's check-in record.
  */
 export async function POST(request: NextRequest) {
-  if (!requireAdmin(cookies().get('token')?.value)) {
+  const adminId = requireAdmin(cookies().get('token')?.value);
+  if (!adminId) {
     return NextResponse.json(
       { error: 'غير مصرح. هذه الخدمة متاحة للمسؤولين فقط.' },
       { status: 401 }
@@ -27,32 +29,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // ---- one scan ------------------------------------------------------------
+    // ---- one scan (the check-in is reverted only if this scan created it) ----
     if (body.scanId) {
-      const scan = await prisma.attendanceScan.findUnique({ where: { id: String(body.scanId) } });
-      if (!scan) return NextResponse.json({ success: true, undone: false });
-      await prisma.attendanceScan.delete({ where: { id: scan.id } });
-      if (body.revertCheckin) {
-        const entriesLeft = await prisma.attendanceScan.count({
-          where: { participantId: scan.participantId, eventId: scan.eventId, day: scan.day, direction: 'in' },
-        });
-        if (entriesLeft === 0) {
-          if (scan.eventId) {
-            await prisma.$transaction([
-              prisma.eventRegistration.updateMany({
-                where: { participantId: scan.participantId, eventId: scan.eventId, status: 'attended' },
-                data: { status: 'registered' },
-              }),
-              prisma.attendanceRecord.deleteMany({ where: { participantId: scan.participantId, eventId: scan.eventId } }),
-            ]);
-          } else {
-            await prisma.attendanceRecord.deleteMany({
-              where: { participantId: scan.participantId, eventId: null, checkinDate: scan.day },
-            });
-          }
-        }
-      }
-      return NextResponse.json({ success: true, undone: true });
+      const r = await undoScan(String(body.scanId), { role: 'admin', id: adminId });
+      if (!r.ok) return NextResponse.json({ error: r.error }, { status: r.status });
+      return NextResponse.json({ success: true, undone: r.undone, revertedCheckin: r.revertedCheckin });
     }
 
     const participantId = String(body.participantId || '');

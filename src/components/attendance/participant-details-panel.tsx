@@ -48,7 +48,7 @@ export interface ParticipantDetails {
   venueToday: {
     date: string;
     summary: { state: "inside" | "outside" | "none"; firstIn: string | null; lastOut: string | null; insideSince: string | null; insideMinutes: number; outsideMinutes: number; exits: number };
-    scans: { direction: string; at: string }[];
+    scans: { direction: string; at: string; byName?: string }[];
   };
 }
 
@@ -118,15 +118,16 @@ export default function ParticipantDetailsPanel({ details, onClose }: { details:
                 {s.state === "inside" ? (
                   <span className="font-semibold text-green-700">داخل الآن منذ {formatTime(s.insideSince)}</span>
                 ) : (
-                  <span className="font-semibold text-blue-700">خرج الساعة {formatTime(s.lastOut)}</span>
+                  <span className="font-semibold text-red-700">خرج الساعة {formatTime(s.lastOut)}</span>
                 )}
                 {" — "}أول دخول {formatTime(s.firstIn)} · مدة التواجد {formatMinutes(s.insideMinutes)} · خرج {s.exits} مرة
                 {s.outsideMinutes > 0 ? ` · وقت الخروج ${formatMinutes(s.outsideMinutes)}` : ""}
               </p>
               <div className="mt-1 flex flex-wrap gap-1">
                 {venueToday.scans.map((x, i) => (
-                  <span key={i} className={`rounded px-1.5 py-0.5 text-xs ${x.direction === "in" ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"}`}>
+                  <span key={i} className={`rounded px-1.5 py-0.5 text-xs ${x.direction === "in" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
                     {x.direction === "in" ? "دخول" : "خروج"} {formatTime(x.at)}
+                    {x.byName ? ` · ${x.byName}` : ""}
                   </span>
                 ))}
               </div>
@@ -146,7 +147,29 @@ export default function ParticipantDetailsPanel({ details, onClose }: { details:
               <Field label="الفكرة" value={team.ideaName} />
               <Field label="المرحلة" value={team.phase} />
             </div>
-            <div className="overflow-x-auto">
+            {/* phones: one block per member, nothing cut off */}
+            <div className="space-y-2 sm:hidden">
+              {team.members.map((m) => (
+                <div key={m.id} className={`rounded-md border p-2 text-sm ${m.id === p.id ? "border-blue-300 bg-blue-50" : "bg-white"}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold">
+                      {m.name}
+                      {m.isLeader && <span className="mr-1 text-xs text-blue-700">(قائد)</span>}
+                    </span>
+                    {m.phone && (
+                      <a href={`tel:${m.phone}`} dir="ltr" className="flex shrink-0 items-center gap-1 rounded border px-2 py-0.5 text-xs text-blue-700">
+                        <Phone className="h-3 w-3" />
+                        {m.phone}
+                      </a>
+                    )}
+                  </div>
+                  <div className="mt-0.5 break-all text-xs text-muted-foreground" dir="ltr" style={{ textAlign: "right" }}>
+                    {m.email}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto sm:block">
               <table className="w-full border-collapse text-sm">
                 <thead>
                   <tr className="bg-muted/50">
