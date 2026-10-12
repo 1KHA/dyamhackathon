@@ -83,6 +83,7 @@ model Participant {
   eventRegistrations   EventRegistration[]
   sentJoinRequests     TeamJoinRequest[]
   attendanceRecords    AttendanceRecord[]
+  attendanceScans      AttendanceScan[]
   
   // DEPRECATED FIELDS - Keep for backward compatibility
   firstName            String?
@@ -410,6 +411,27 @@ model AttendanceRecord {
   @@unique([participantId, checkinDate]) // NULLs distinct: only constrains general rows
   @@index([eventId])
   @@index([checkinDate])
+}
+
+// Every badge scan at the door — entries AND exits, any number per day — so
+// time inside / outside can be measured. eventId null = the venue itself.
+// AttendanceRecord (one check-in per day / per event) is kept as before; this
+// is the full in/out log on top of it. See mdfiles/attendance-inout.md.
+model AttendanceScan {
+  id            String      @id @default(cuid())
+  participantId String
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  eventId       String?     // null = venue (general) scope
+  day           String      // YYYY-MM-DD (Asia/Riyadh)
+  direction     String      // in | out
+  scannedBy     String      // admin or organizer id
+  scannerRole   String      // admin | organizer
+  method        String      // scan | manual
+  createdAt     DateTime    @default(now())
+
+  @@index([participantId, day])
+  @@index([eventId, day])
+  @@index([day])
 }
 
 // Admin-controlled window during which team leaders may add members.

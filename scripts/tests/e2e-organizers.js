@@ -88,8 +88,10 @@ async function api(p, { cookie, method = 'GET', body } = {}) {
   check('first scan -> checkedIn today (code case-insensitive)', r.status === 200 && r.json.result === 'checkedIn' && r.json.date === today && r.json.fullName === lead.fullName && r.json.teamName === team.teamName, JSON.stringify(r.json));
   r = await scan(orgCookie, lead.badgeCode);
   check('same day again -> alreadyCheckedIn', r.status === 200 && r.json.result === 'alreadyCheckedIn', JSON.stringify(r.json));
-  r = await scan(orgCookie, lead.badgeCode, { date: '2099-01-01', mode: 'event', eventId: 'x' });
-  check('client date / event mode are ignored -> still today, general', r.json && r.json.result === 'alreadyCheckedIn' && r.json.date === today, JSON.stringify(r.json));
+  r = await scan(orgCookie, lead.badgeCode, { date: '2099-01-01' });
+  check('client date is ignored -> still today, general', r.json && r.json.result === 'alreadyCheckedIn' && r.json.date === today, JSON.stringify(r.json));
+  r = await scan(orgCookie, lead.badgeCode, { mode: 'event', eventId: 'x' });
+  check('organizer event mode: unknown event -> 404, nothing written', r.status === 404, JSON.stringify(r.json));
   const rec = await prisma.attendanceRecord.findMany({ where: { participantId: lead.id } });
   check('one general record, scannedBy = organizer', rec.length === 1 && rec[0].eventId === null && rec[0].checkinDate === today && rec[0].scannedBy === org.id && rec[0].method === 'scan', JSON.stringify(rec));
   r = await scan(orgCookie, 'MIYAHTHONE-DOESNOTEXIST');
