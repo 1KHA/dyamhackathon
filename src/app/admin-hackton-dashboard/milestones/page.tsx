@@ -2,12 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, Flag, Clock, Loader2, Save, X, Users } from "lucide-react";
+import { Plus, Calendar, Flag, Clock, Loader2, Save, X, Users, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { usePhases } from "@/components/phases/phase-controls";
+import { useToast } from "../../../../components/ui/use-toast";
 import { 
   Dialog, 
   DialogContent, 
@@ -62,9 +63,11 @@ export default function MilestonesPage() {
     dueDate: "",
     requirements: [] as string[],
     phaseId: "",
+    status: "upcoming",
     allowLateSubmission: false,
   });
   const { phases } = usePhases();
+  const { toast } = useToast();
   const [newRequirement, setNewRequirement] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -118,6 +121,7 @@ export default function MilestonesPage() {
       dueDate: localDatetime,
       requirements: [...milestone.requirements],
       phaseId: milestone.phaseId || "",
+      status: milestone.status || "upcoming",
       allowLateSubmission: Boolean(milestone.allowLateSubmission),
     });
     setDialogType("edit");
@@ -182,6 +186,7 @@ export default function MilestonesPage() {
           dueDate: new Date(editForm.dueDate).toISOString(),
           requirements: editForm.requirements,
           phaseId: editForm.phaseId || null,
+          status: editForm.status,
           allowLateSubmission: editForm.allowLateSubmission,
         }),
       });
@@ -237,6 +242,27 @@ export default function MilestonesPage() {
       alert('حدث خطأ أثناء حذف التسليم');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  /** One click: hide from every participant / show again (same group as before). */
+  const toggleHidden = async (milestone: Milestone) => {
+    const status = milestone.status === "hidden" ? "upcoming" : "hidden";
+    try {
+      const response = await fetch("/api/admin/milestones", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: milestone.id, status }),
+      });
+      if (!response.ok) throw new Error();
+      const updated = await response.json();
+      setMilestones((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      toast({
+        title: status === "hidden" ? "تم الإخفاء" : "تم الإظهار",
+        description: status === "hidden" ? `«${milestone.title}» لا يظهر الآن لأي مشارك.` : `«${milestone.title}» ظاهر الآن لمجموعته.`,
+      });
+    } catch {
+      toast({ title: "خطأ", description: "فشل تحديث حالة التسليم.", variant: "destructive" });
     }
   };
 
@@ -315,6 +341,7 @@ export default function MilestonesPage() {
             <SelectContent>
               <SelectItem value="all">كل التسليمات</SelectItem>
               <SelectItem value="everyone">تظهر للجميع</SelectItem>
+              <SelectItem value="hidden">مخفية — لا تظهر لأحد</SelectItem>
               {phases.map((p) => (
                 <SelectItem key={p.id} value={p.id}>تظهر لـ {p.name}</SelectItem>
               ))}
@@ -333,13 +360,25 @@ export default function MilestonesPage() {
         ) : milestones.length > 0 ? (
           <div className="grid grid-cols-1 gap-4">
             {milestones
-              .filter((m) => groupFilter === "all" || (groupFilter === "everyone" ? !m.phaseId : m.phaseId === groupFilter))
+              .filter((m) => {
+                if (groupFilter === "all") return true;
+                if (groupFilter === "hidden") return m.status === "hidden";
+                if (m.status === "hidden") return false;
+                return groupFilter === "everyone" ? !m.phaseId : m.phaseId === groupFilter;
+              })
               .map((milestone) => (
               <Card key={milestone.id} className="overflow-hidden">
                 <div className="p-6">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-lg font-semibold">{milestone.title}</h3>
+                      {milestone.status === "hidden" ? (
+                        <span className="mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs bg-gray-800 text-white">
+                          <EyeOff className="h-3 w-3" />
+                          مخفي — لا يظهر لأحد
+                          {milestone.phaseId ? ` (المجموعة عند الإظهار: ${phases.find((p) => p.id === milestone.phaseId)?.name ?? "مرحلة محذوفة"})` : ""}
+                        </span>
+                      ) : (
                       <span
                         className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${
                           milestone.phaseId ? "bg-purple-100 text-purple-800" : "bg-gray-100 text-gray-700"
@@ -348,6 +387,7 @@ export default function MilestonesPage() {
                         <Users className="h-3 w-3" />
                         يظهر لـ: {milestone.phaseId ? (phases.find((p) => p.id === milestone.phaseId)?.name ?? "مرحلة محذوفة") : "الجميع"}
                       </span>
+                      )}
                       <p className="text-sm text-muted-foreground mt-1">{milestone.description}</p>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
@@ -374,6 +414,16 @@ export default function MilestonesPage() {
                       <span>{milestone.submissionCount || 0}</span>
                     </div>
                     <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1"
+                        onClick={() => toggleHidden(milestone)}
+                        title={milestone.status === "hidden" ? "إظهاره للمشاركين مرة أخرى" : "إخفاؤه عن جميع المشاركين"}
+                      >
+                        {milestone.status === "hidden" ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        {milestone.status === "hidden" ? "إظهار" : "إخفاء"}
+                      </Button>
                       <Button 
                         variant="destructive" 
                         size="sm"
@@ -520,15 +570,24 @@ export default function MilestonesPage() {
             <div className="space-y-2">
               <Label htmlFor="edit-phase">يظهر لـ</Label>
               <Select
-                value={editForm.phaseId || "none"}
-                onValueChange={(v) => setEditForm({ ...editForm, phaseId: v === "none" ? "" : v })}
-                disabled={phases.length === 0}
+                value={editForm.status === "hidden" ? "hidden" : editForm.phaseId || "none"}
+                onValueChange={(v) =>
+                  v === "hidden"
+                    // keep the group, so showing it again restores the same audience
+                    ? setEditForm({ ...editForm, status: "hidden" })
+                    : setEditForm({
+                        ...editForm,
+                        status: editForm.status === "hidden" ? "upcoming" : editForm.status,
+                        phaseId: v === "none" ? "" : v,
+                      })
+                }
               >
                 <SelectTrigger id="edit-phase" className="w-full">
                   <SelectValue placeholder="الجميع" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">الجميع</SelectItem>
+                  <SelectItem value="hidden">مخفي — لا يظهر لأحد</SelectItem>
                   {phases.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
@@ -536,6 +595,7 @@ export default function MilestonesPage() {
               </Select>
               <p className="text-xs text-muted-foreground">
                 اختر «الجميع» ليظهر لكل المشاركين، أو مرحلة ليظهر لأعضائها فقط (فرقها ومشاركيها الأفراد) ويصلهم وحدهم إشعار التسليم الجديد. من سلّم مسبقاً يبقى التسليم ظاهراً له. المراجعة لا تنقل الفرق بين المراحل.
+                {" "}«مخفي» يخفي التسليم عن جميع المشاركين (حتى من سلّم) ويمنع التسليم عليه، ولا يُرسل إشعار. عند إظهاره يعود لنفس المجموعة.
               </p>
             </div>
 

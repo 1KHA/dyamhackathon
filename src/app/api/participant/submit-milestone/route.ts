@@ -5,7 +5,7 @@ import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 import { dispatchNotification } from '@/lib/notify';
 import { requireActiveParticipant, isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status';
-import { evaluateSubmission, groupPhaseId, milestoneVisibleTo } from '@/lib/milestones';
+import { evaluateSubmission, groupPhaseId, isHiddenMilestone, milestoneVisibleTo } from '@/lib/milestones';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -125,6 +125,9 @@ export async function POST(request: NextRequest) {
 
     // A milestone that belongs to another group (phase) is not this team's —
     // unless they already submitted to it (a resubmission after a group move).
+    if (isHiddenMilestone(milestoneRow.status)) {
+      return NextResponse.json({ error: "هذا التسليم غير متاح حالياً" }, { status: 403 });
+    }
     if (!milestoneVisibleTo(milestoneRow.phaseId, groupPhaseId(participant), Boolean(existing))) {
       return NextResponse.json({ error: "هذا التسليم غير متاح لمجموعتك" }, { status: 403 });
     }

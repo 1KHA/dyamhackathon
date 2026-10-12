@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
-import { evaluateSubmission, groupPhaseId, milestoneVisibleTo } from '@/lib/milestones';
+import { evaluateSubmission, groupPhaseId, isHiddenMilestone, milestoneVisibleTo } from '@/lib/milestones';
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
@@ -37,6 +37,8 @@ export async function GET() {
   try {
     // Check if the Milestone model exists in the Prisma client
     const milestones = await prisma.$queryRaw`SELECT * FROM "Milestone" ORDER BY "dueDate" ASC`;
+    // Hidden milestones (status 'hidden') are for admins only.
+    const shown = (milestones as MilestoneFromDB[]).filter((m) => !isHiddenMilestone(m.status));
 
     // Get the participant ID from the JWT token
     const cookieStore = cookies();
@@ -46,7 +48,7 @@ export async function GET() {
     if (!tokenCookie) {
       console.log('No token cookie found in request');
       // Parse the requirements JSON string for each milestone
-      const formattedMilestones = (milestones as MilestoneFromDB[]).map((milestone) => ({
+      const formattedMilestones = shown.map((milestone) => ({
         ...milestone,
         requirements: JSON.parse(milestone.requirements),
         hasSubmitted: false,
@@ -63,7 +65,7 @@ export async function GET() {
     } catch (err) {
       console.error('Token verification failed:', err);
       // If token is invalid, return milestones without hasSubmitted
-      const formattedMilestones = (milestones as MilestoneFromDB[]).map((milestone) => ({
+      const formattedMilestones = shown.map((milestone) => ({
         ...milestone,
         requirements: JSON.parse(milestone.requirements),
         hasSubmitted: false,
@@ -77,8 +79,9 @@ export async function GET() {
     
     // If participantId is undefined, log the issue and return milestones without hasSubmitted
     if (!participantId) {
-      console.error('No participantId found in token:', decoded);
-      const formattedMilestones = (milestones as MilestoneFromDB[]).map((milestone) => ({
+      if (decoded.role !== 'admin') console.error('No participantId found in token:', decoded);
+      const list = decoded.role === 'admin' ? (milestones as MilestoneFromDB[]) : shown;
+      const formattedMilestones = list.map((milestone) => ({
         ...milestone,
         requirements: JSON.parse(milestone.requirements),
         hasSubmitted: false,
@@ -96,7 +99,7 @@ export async function GET() {
     // If no participant is found, return milestones without hasSubmitted
     if (!participant) {
       // Parse the requirements JSON string for each milestone
-      const formattedMilestones = (milestones as MilestoneFromDB[]).map((milestone) => ({
+      const formattedMilestones = shown.map((milestone) => ({
         ...milestone,
         requirements: JSON.parse(milestone.requirements),
         hasSubmitted: false,
@@ -134,7 +137,7 @@ export async function GET() {
         })
       : [];
     const submittedIds = new Set([...submissions, ...teamSubmitted].map((s) => s.milestoneId));
-    const visible = (milestones as MilestoneFromDB[]).filter((m) =>
+    const visible = shown.filter((m) =>
       milestoneVisibleTo(m.phaseId, viewerPhase, submittedIds.has(m.id))
     );
 

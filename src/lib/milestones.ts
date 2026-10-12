@@ -122,3 +122,15 @@ export function groupPhaseId(participant: {
 }): string | null {
   return participant.teamId ? participant.team?.phaseId ?? null : participant.phaseId;
 }
+
+/**
+ * A milestone with this status is shown to NO participant (not even teams that
+ * already submitted to it) and accepts no submission; admins still see it.
+ * Showing it again sets the status back to 'upcoming' and its group (phaseId)
+ * is kept, so it returns to the same audience.
+ */
+export const HIDDEN_MILESTONE_STATUS = 'hidden';
+
+export function isHiddenMilestone(status: string | null | undefined): boolean {
+  return status === HIDDEN_MILESTONE_STATUS;
+}

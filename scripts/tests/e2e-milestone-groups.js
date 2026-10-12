@@ -7,6 +7,8 @@
  *  - submitting to another group's milestone is refused (403)
  *  - a milestone already submitted to stays visible after the team changes group
  *  - reviewing a submission never moves the team between phases
+ *  - status 'hidden': shown to nobody (even submitters), no submission, no
+ *    announcement; admins still see it; showing it again restores its group
  */
 const path = require('path');
 const REPO = path.resolve(__dirname, '..', '..');
@@ -106,6 +108,30 @@ const made = { phases: [], teams: [], participants: [], milestones: [] };
     const t = await prisma.team.findUnique({ where: { id: tR.id } });
     check(`${status}: 200, team stays in its group and is not marked failed`, r.status === 200 && r.json?.phaseAdvanced === false && t.phaseId === riyadh.id && t.phaseStatus !== 'failed', JSON.stringify({ s: r.status, p: t.phaseId === riyadh.id, st: t.phaseStatus }));
   }
+
+  section('hidden: shown to nobody');
+  const rH = await mk('مخفي', riyadh.id);
+  const mH = rH.json?.id;
+  const hidden = await api('/api/admin/milestones', { method: 'POST', cookie: aCk, body: {
+    title: `${TAG} مخفي-من-البداية`, description: 'd', requirements: 'r', status: 'hidden',
+    dueDate: new Date(Date.now() + 3 * 864e5).toISOString(), phaseId: riyadh.id } });
+  if (hidden.json?.id) made.milestones.push(hidden.json.id);
+  check('created hidden (201, status hidden)', hidden.status === 201 && hidden.json?.status === 'hidden', JSON.stringify(hidden.json?.status));
+  check('  …announced to nobody', (await notified(hidden.json.id)).length === 0);
+  check('  …not visible to its own group', !(await seen(leadR.id)).includes(hidden.json.id));
+  check('  …but listed for the admin', ((await api('/api/milestones', { cookie: aCk })).json || []).some((m) => m.id === hidden.json.id));
+  check('  …and not in the anonymous list', !(((await api('/api/milestones')).json) || []).some((m) => m.id === hidden.json.id));
+
+  r = await api('/api/admin/milestones', { method: 'PUT', cookie: aCk, body: { id: mR, status: 'hidden' } });
+  check('hiding an existing milestone (status only) -> 200, group kept', r.status === 200 && r.json?.status === 'hidden' && r.json?.phaseId === riyadh.id, JSON.stringify({ s: r.json?.status, p: r.json?.phaseId === riyadh.id }));
+  check('  even the team that submitted no longer sees it', !(await seen(leadR.id)).includes(mR) && !(await seen(mateR.id)).includes(mR));
+  r = await submit(leadR.id, mR);
+  check('  submitting to it -> 403', r.status === 403, `status=${r.status} ${JSON.stringify(r.json)}`);
+  r = await submit(leadR.id, mH);
+  check('  another (visible) milestone of the group still accepts submissions', r.status >= 200 && r.status < 300, `status=${r.status}`);
+  r = await api('/api/admin/milestones', { method: 'PUT', cookie: aCk, body: { id: mR, status: 'upcoming' } });
+  s = await seen(leadR.id);
+  check('showing it again -> back for its group only', r.status === 200 && s.includes(mR) && !(await seen(leadB.id)).includes(mR));
 })()
   .catch((e) => { fail++; console.error('\nSCRIPT ERROR:', e.stack); })
   .finally(async () => {

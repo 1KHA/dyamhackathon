@@ -70,9 +70,10 @@ export async function POST(request: NextRequest) {
     `;
 
     // Announce the new milestone to the participants who will see it: its
-    // group (phase) only, or everyone when it has no group.
+    // group (phase) only, or everyone when it has no group. A milestone
+    // created hidden is announced to nobody.
     // Use a non-blocking approach to avoid Vercel timeout
-    try {
+    if (statusValue !== 'hidden') try {
       // Bulk fan-out (BCC-batched on the email side)
       await dispatchNotification({
         templateKey: 'newMilestoneAvailable',

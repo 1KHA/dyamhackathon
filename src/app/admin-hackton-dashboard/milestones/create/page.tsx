@@ -31,6 +31,8 @@ export default function CreateMilestonePage() {
   // advance the team automatically. Leaving it empty keeps the old behaviour.
   const { phases } = usePhases();
   const [phaseId, setPhaseId] = useState("");
+  // "مخفي": created with status 'hidden' — shown to nobody, announced to nobody.
+  const [hidden, setHidden] = useState(false);
   const [allowLateSubmission, setAllowLateSubmission] = useState(false);
   
   // State for individual requirements
@@ -81,7 +83,7 @@ export default function CreateMilestonePage() {
           title: milestone.title,
           description: milestone.description,
           dueDate: formattedDate,
-          status: "upcoming",
+          status: hidden ? "hidden" : "upcoming",
           requirements: requirements,
           phaseId: phaseId || null,
           allowLateSubmission,
@@ -161,15 +163,18 @@ export default function CreateMilestonePage() {
             <div className="space-y-2">
               <Label htmlFor="milestone-phase">يظهر لـ</Label>
               <Select
-                value={phaseId || "none"}
-                onValueChange={(v) => setPhaseId(v === "none" ? "" : v)}
-                disabled={phases.length === 0}
+                value={hidden ? "hidden" : phaseId || "none"}
+                onValueChange={(v) => {
+                  setHidden(v === "hidden");
+                  if (v !== "hidden") setPhaseId(v === "none" ? "" : v);
+                }}
               >
                 <SelectTrigger id="milestone-phase" className="w-full">
                   <SelectValue placeholder="الجميع" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">الجميع</SelectItem>
+                  <SelectItem value="hidden">مخفي — لا يظهر لأحد</SelectItem>
                   {phases.map((p) => (
                     <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                   ))}
@@ -177,6 +182,7 @@ export default function CreateMilestonePage() {
               </Select>
               <p className="text-xs text-muted-foreground">
                 اختر «الجميع» ليظهر لكل المشاركين، أو مرحلة ليظهر لأعضائها فقط (فرقها ومشاركيها الأفراد) ويصلهم وحدهم إشعار التسليم الجديد. من سلّم مسبقاً يبقى التسليم ظاهراً له. المراجعة لا تنقل الفرق بين المراحل.
+                {" "}«مخفي» يخفي التسليم عن جميع المشاركين (حتى من سلّم) ويمنع التسليم عليه، ولا يُرسل إشعار. عند إظهاره يعود لنفس المجموعة.
               </p>
             </div>
 
