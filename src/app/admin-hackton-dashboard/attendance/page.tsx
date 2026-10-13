@@ -339,7 +339,7 @@ export default function AttendancePage() {
               {
                 participantId: payload.participantId,
                 name: payload.fullName,
-                time: new Date().toLocaleTimeString("ar-SA"),
+                time: new Date().toLocaleTimeString("ar-SA", { timeZone: "Asia/Riyadh" }),
                 date: savedDate,
                 scanId: payload.scanId,
                 direction: payload.direction,
@@ -450,9 +450,9 @@ export default function AttendancePage() {
       المجموعة: r.group || "-",
       الحالة: STATUS_LABELS[r.status ?? ""] ?? r.status ?? "-",
       "وقت التسجيل": r.scannedAt
-        ? new Date(r.scannedAt).toLocaleString("ar-SA")
+        ? new Date(r.scannedAt).toLocaleString("ar-SA", { timeZone: "Asia/Riyadh" })
         : (r as any).time
-          ? new Date((r as any).time).toLocaleString("ar-SA")
+          ? new Date((r as any).time).toLocaleString("ar-SA", { timeZone: "Asia/Riyadh" })
           : "-",
       الطريقة: r.method === "scan" ? "مسح" : r.method === "manual" ? "يدوي" : "-",
     }));
@@ -603,7 +603,7 @@ export default function AttendancePage() {
                 <SelectContent>
                   {events.map((e) => (
                     <SelectItem key={e.id} value={e.id}>
-                      {e.title} — {new Date(e.startDate).toLocaleDateString("ar-SA")}
+                      {e.title} — {new Date(e.startDate).toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh" })}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -989,9 +989,9 @@ export default function AttendancePage() {
                           </td>
                           <td className="border p-2 text-sm">
                             {r.scannedAt
-                              ? new Date(r.scannedAt).toLocaleString("ar-SA")
+                              ? new Date(r.scannedAt).toLocaleString("ar-SA", { timeZone: "Asia/Riyadh" })
                               : (r as any).time
-                                ? new Date((r as any).time).toLocaleString("ar-SA")
+                                ? new Date((r as any).time).toLocaleString("ar-SA", { timeZone: "Asia/Riyadh" })
                                 : "-"}
                           </td>
                           <td className="border p-2 text-sm">

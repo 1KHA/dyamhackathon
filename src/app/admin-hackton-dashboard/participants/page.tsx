@@ -391,7 +391,7 @@ export default function ParticipantsPage() {
           'المؤهل التعليمي': participant.education || '',
           'الحالة': participant.status === "approved" ? "معتمد" : 
                    participant.status === "rejected" ? "مرفوض" : "قيد المراجعة",
-          'تاريخ التسجيل': new Date(participant.createdAt).toLocaleDateString('ar-SA'),
+          'تاريخ التسجيل': new Date(participant.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' }),
         }))
       );
 
@@ -601,7 +601,7 @@ export default function ParticipantsPage() {
                         </div>
                       </td>
                       <td className="border p-2">
-                        {new Date(participant.createdAt).toLocaleDateString('ar-SA')}
+                        {new Date(participant.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' })}
                       </td>
                       <td className="border p-2">
                         <div className="flex gap-2 justify-center">
@@ -735,7 +735,7 @@ export default function ParticipantsPage() {
                 <p><strong>طالب جامعي؟</strong> {selectedParticipant.isUniversityStudent !== undefined ? (selectedParticipant.isUniversityStudent ? 'نعم' : 'لا') : 'غير متوفر'}</p>
                 <p><strong>يمكنه الحضور؟</strong> {selectedParticipant.canAttendHackathon !== undefined ? (selectedParticipant.canAttendHackathon ? 'نعم' : 'لا') : (selectedParticipant.canAttend !== undefined ? (selectedParticipant.canAttend ? 'نعم' : 'لا') : 'غير متوفر')}</p>
                 <p><strong>الحالة:</strong> {getStatusBadge(selectedParticipant.status)}</p>
-                <p><strong>تاريخ التسجيل:</strong> {new Date(selectedParticipant.createdAt).toLocaleDateString('ar-SA')}</p>
+                <p><strong>تاريخ التسجيل:</strong> {new Date(selectedParticipant.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' })}</p>
                 {selectedParticipant.nationalId && <p><strong>رقم الهوية:</strong> {selectedParticipant.nationalId}</p>}
                 {selectedParticipant.dob && <p><strong>تاريخ الميلاد:</strong> {selectedParticipant.dob}</p>}
                 {selectedParticipant.nationality && <p><strong>الجنسية:</strong> {selectedParticipant.nationality}</p>}

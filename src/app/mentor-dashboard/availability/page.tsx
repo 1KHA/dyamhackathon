@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
-import 'moment/locale/ar'; // Import Arabic locale
+// Riyadh-time moment (Arabic locale): the calendar shows Saudi time on every device
+import moment from '@/lib/riyadh-moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { SLOT_BREAK_MINUTES, SLOT_DURATION_MINUTES, SLOT_GRID_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
 import { Button } from '../../../../components/ui/button';
@@ -13,7 +13,6 @@ import { Label } from '../../../../components/ui/label';
 import { useToast } from "../../../../components/ui/use-toast"
 import { CalendarPlus, Clock, Loader2, Trash2 } from 'lucide-react';
 
-moment.locale('ar'); // Set moment to use Arabic
 const localizer = momentLocalizer(moment);
 
 // Arabic labels for the calendar toolbar (it rendered English otherwise)
@@ -35,9 +34,10 @@ const messages = {
 
 // Working-hours window for the grid: with 5-minute rows a full 24h day is
 // 288 rows — unreadable. 07:00–23:00 keeps every realistic slot visible.
-const DAY_START = new Date(1970, 0, 1, 7, 0, 0);
-const DAY_END = new Date(1970, 0, 1, 23, 0, 0);
-const SCROLL_TO = new Date(1970, 0, 1, 9, 0, 0);
+// (built with the Riyadh moment: only the time of day is used)
+const DAY_START = moment({ hour: 7 }).toDate();
+const DAY_END = moment({ hour: 23 }).toDate();
+const SCROLL_TO = moment({ hour: 9 }).toDate();
 
 interface Availability {
   id: string;
@@ -275,7 +275,7 @@ const AvailabilityPage = () => {
       .sort((a, b) => a.start.getTime() - b.start.getTime());
     const groups: { day: string; slots: Availability[] }[] = [];
     for (const e of upcoming) {
-      const day = e.start.toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const day = e.start.toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       const last = groups[groups.length - 1];
       if (last && last.day === day) last.slots.push(e);
       else groups.push({ day, slots: [e] });
@@ -283,7 +283,7 @@ const AvailabilityPage = () => {
     return groups;
   }, [events]);
 
-  const fmtTime = (d: Date) => d.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+  const fmtTime = (d: Date) => d.toLocaleTimeString('ar-SA', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit' });
 
   return (
     <div className="container mx-auto p-0 sm:p-4" dir="rtl">

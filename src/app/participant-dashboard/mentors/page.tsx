@@ -35,18 +35,17 @@ import {
 } from '../../../../components/ui/dialog';
 import { useToast } from '../../../../components/ui/use-toast';
 import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
-import 'moment/locale/ar'; // Import Arabic locale
+// Riyadh-time moment (Arabic locale): the calendar shows Saudi time on every device
+import moment from '@/lib/riyadh-moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { SLOT_GRID_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
 import { Alert, AlertDescription } from '../../../../components/ui/alert';
 
-moment.locale('ar'); // Set moment to use Arabic
 const localizer = momentLocalizer(moment);
 
 // ---- mobile slot-list helpers (the week calendar is unusable on phones) ----
 const fmtSlotTime = (d: Date | string) =>
-  new Date(d).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' });
+  new Date(d).toLocaleTimeString('ar-SA', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit' });
 
 function groupSlotsByDay(events: AvailabilityEvent[]) {
   const sorted = [...events].sort(
@@ -55,6 +54,7 @@ function groupSlotsByDay(events: AvailabilityEvent[]) {
   const groups: { day: string; slots: AvailabilityEvent[] }[] = [];
   for (const e of sorted) {
     const day = new Date(e.start).toLocaleDateString('ar-SA', {
+      timeZone: 'Asia/Riyadh',
       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
     });
     const last = groups[groups.length - 1];
@@ -424,7 +424,7 @@ export default function MentorsPage() {
     setSelectedEvent(event);
     toast({
       title: "تم اختيار الموعد",
-      description: `${event.start.toLocaleString()} - ${event.end.toLocaleString()}`,
+      description: `${event.start.toLocaleString(undefined, { timeZone: 'Asia/Riyadh' })} - ${event.end.toLocaleString(undefined, { timeZone: 'Asia/Riyadh' })}`,
     });
   };
   
@@ -532,16 +532,19 @@ export default function MentorsPage() {
                 const startDate = new Date(booking.startTime);
                 const endDate = new Date(booking.endTime);
                 const formattedDate = startDate.toLocaleDateString('ar-SA', {
+                  timeZone: 'Asia/Riyadh',
                   weekday: 'long',
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
                 });
                 const formattedStartTime = startDate.toLocaleTimeString('ar-SA', {
+                  timeZone: 'Asia/Riyadh',
                   hour: '2-digit',
                   minute: '2-digit',
                 });
                 const formattedEndTime = endDate.toLocaleTimeString('ar-SA', {
+                  timeZone: 'Asia/Riyadh',
                   hour: '2-digit',
                   minute: '2-digit',
                 });

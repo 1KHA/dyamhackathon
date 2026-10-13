@@ -440,7 +440,7 @@ export default function BroadcastComposer() {
                     return (
                       <tr key={b.id} className="hover:bg-muted/50">
                         <td className="border p-2 text-sm">
-                          {new Date(b.createdAt).toLocaleDateString("ar-SA")}
+                          {new Date(b.createdAt).toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh" })}
                         </td>
                         <td className="border p-2 text-sm font-medium">{b.title}</td>
                         <td className="border p-2 text-sm">{audienceLabel}</td>

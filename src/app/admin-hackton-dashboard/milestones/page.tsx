@@ -6,6 +6,7 @@ import { Plus, Calendar, Flag, Clock, Loader2, Save, X, Users, Eye, EyeOff } fro
 import Link from "next/link";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { asRiyadhWallClock, fromRiyadhInput, toRiyadhInput } from "@/lib/riyadh-time";
 import { useEffect, useState } from "react";
 import { usePhases } from "@/components/phases/phase-controls";
 import { useToast } from "../../../../components/ui/use-toast";
@@ -97,8 +98,7 @@ export default function MilestonesPage() {
 
   // Format date to Arabic format
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, "d MMMM yyyy", { locale: ar });
+    return format(asRiyadhWallClock(dateString), "d MMMM yyyy", { locale: ar });
   };
 
   // Open dialog handlers
@@ -109,11 +109,8 @@ export default function MilestonesPage() {
   
   const openEditDialog = (milestone: Milestone) => {
     setSelectedMilestone(milestone);
-    // Convert ISO date string to local datetime format for input
-    const date = new Date(milestone.dueDate);
-    const localDatetime = new Date(date.getTime() - (date.getTimezoneOffset() * 60000))
-      .toISOString()
-      .slice(0, 16); // Format: "YYYY-MM-DDTHH:MM"
+    // The deadline is edited in Riyadh time ("YYYY-MM-DDTHH:MM"), whatever the device's timezone
+    const localDatetime = toRiyadhInput(milestone.dueDate);
     
     setEditForm({
       title: milestone.title,
@@ -165,7 +162,7 @@ export default function MilestonesPage() {
     
     try {
       // Check if due date is in the past
-      const selectedDate = new Date(editForm.dueDate);
+      const selectedDate = fromRiyadhInput(editForm.dueDate);
       const currentDate = new Date();
       
       if (selectedDate < currentDate) {
@@ -183,7 +180,7 @@ export default function MilestonesPage() {
           id: selectedMilestone.id,
           title: editForm.title,
           description: editForm.description,
-          dueDate: new Date(editForm.dueDate).toISOString(),
+          dueDate: selectedDate.toISOString(),
           requirements: editForm.requirements,
           phaseId: editForm.phaseId || null,
           status: editForm.status,

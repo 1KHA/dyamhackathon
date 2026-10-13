@@ -149,6 +149,7 @@ export default function MentorSessionsPage() {
     filteredBookings.forEach(booking => {
       const startDate = new Date(booking.availability.startTime);
       const dateKey = startDate.toLocaleDateString('ar-SA', {
+        timeZone: 'Asia/Riyadh',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
@@ -344,10 +345,12 @@ export default function MentorSessionsPage() {
                       const startDate = new Date(booking.availability.startTime);
                       const endDate = new Date(booking.availability.endTime);
                       const formattedStartTime = startDate.toLocaleTimeString('ar-SA', {
+                        timeZone: 'Asia/Riyadh',
                         hour: '2-digit',
                         minute: '2-digit',
                       });
                       const formattedEndTime = endDate.toLocaleTimeString('ar-SA', {
+                        timeZone: 'Asia/Riyadh',
                         hour: '2-digit',
                         minute: '2-digit',
                       });
@@ -481,6 +484,7 @@ export default function MentorSessionsPage() {
                     <span className="text-gray-500">التاريخ:</span>
                     <span className="font-medium">
                       {new Date(selectedBooking.availability.startTime).toLocaleDateString('ar-SA', {
+                        timeZone: 'Asia/Riyadh',
                         weekday: 'long',
                         year: 'numeric',
                         month: 'long',
@@ -492,9 +496,11 @@ export default function MentorSessionsPage() {
                     <span className="text-gray-500">الوقت:</span>
                     <span>
                       {new Date(selectedBooking.availability.startTime).toLocaleTimeString('ar-SA', {
+                        timeZone: 'Asia/Riyadh',
                         hour: '2-digit',
                         minute: '2-digit',
                       })} - {new Date(selectedBooking.availability.endTime).toLocaleTimeString('ar-SA', {
+                        timeZone: 'Asia/Riyadh',
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
@@ -515,7 +521,7 @@ export default function MentorSessionsPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-gray-500">تاريخ الحجز:</span>
                     <span>
-                      {new Date(selectedBooking.createdAt).toLocaleDateString('ar-SA')}
+                      {new Date(selectedBooking.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' })}
                     </span>
                   </div>
                 </div>

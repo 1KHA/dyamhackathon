@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fromRiyadhInput, toRiyadhInput } from "@/lib/riyadh-time";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -13,12 +14,9 @@ interface WindowState {
   message?: string;
 }
 
-/** ISO string → value usable in <input type="datetime-local"> (local time). */
+/** ISO string → value usable in <input type="datetime-local"> (Riyadh time). */
 function toLocalInput(iso: string | null): string {
-  if (!iso) return "";
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return iso ? toRiyadhInput(iso) : "";
 }
 
 /**
@@ -83,10 +81,10 @@ export default function MemberWindowSettings() {
 
   const handleSave = () =>
     save({
-      // datetime-local values are in the admin's local timezone; Date() parses
-      // them as such and toISOString() sends UTC to the server.
-      memberAddStart: start ? new Date(start).toISOString() : null,
-      memberAddEnd: end ? new Date(end).toISOString() : null,
+      // datetime-local values are Riyadh time, whatever the admin's device
+      // timezone; toISOString() sends UTC to the server.
+      memberAddStart: start ? fromRiyadhInput(start).toISOString() : null,
+      memberAddEnd: end ? fromRiyadhInput(end).toISOString() : null,
     });
 
   const handleClear = () => save({ memberAddStart: null, memberAddEnd: null });

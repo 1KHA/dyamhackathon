@@ -405,7 +405,7 @@ export default function TeamManagementPage() {
             <CardTitle>أعضاء الفريق <span className="text-sm font-normal text-muted-foreground">({teamData.participants.length}/{TEAM_MAX_MEMBERS})</span></CardTitle>
             {addWindow?.allowed && addWindow.memberAddEnd && (
               <p className="text-xs text-muted-foreground mt-1">
-                إضافة الأعضاء متاحة حتى {new Date(addWindow.memberAddEnd).toLocaleString('ar-SA', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                إضافة الأعضاء متاحة حتى {new Date(addWindow.memberAddEnd).toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
             {addWindow && !addWindow.allowed && (

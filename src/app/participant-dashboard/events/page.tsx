@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, MapPin, Users, Loader2, Building, Video, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { asRiyadhWallClock, riyadhDayKey, riyadhHHMM } from "@/lib/riyadh-time";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 // No toast import needed
 
@@ -52,12 +53,10 @@ const convertEventForDisplay = (event: EventFromAPI): EventForDisplay => {
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
   
-  // Format date as YYYY-MM-DD
-  const date = startDate.toISOString().split('T')[0];
-  
-  // Format times as HH:MM
-  const startTime = startDate.toTimeString().substring(0, 5);
-  const endTime = endDate.toTimeString().substring(0, 5);
+  // Date (YYYY-MM-DD) and times (HH:MM) in Riyadh time, whatever the device's timezone
+  const date = riyadhDayKey(startDate);
+  const startTime = riyadhHHMM(startDate);
+  const endTime = riyadhHHMM(endDate);
   
   // Determine location type based on location string
   let locationType = "physical";
@@ -264,8 +263,7 @@ export default function ParticipantEventsPage() {
   
   // Format date to Arabic format
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, "d MMMM yyyy", { locale: ar });
+    return format(asRiyadhWallClock(dateString), "d MMMM yyyy", { locale: ar });
   };
   
   // Get event type color

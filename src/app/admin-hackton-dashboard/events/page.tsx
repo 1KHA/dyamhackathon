@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { fromRiyadh, riyadhDayKey, riyadhHHMM } from "@/lib/riyadh-time";
 import {
   Select,
   SelectContent,
@@ -109,12 +110,10 @@ const convertEventForDisplay = (event: EventFromAPI): EventForDisplay => {
   const startDate = new Date(event.startDate);
   const endDate = new Date(event.endDate);
   
-  // Format date as YYYY-MM-DD
-  const date = startDate.toISOString().split('T')[0];
-  
-  // Format times as HH:MM
-  const startTime = startDate.toTimeString().substring(0, 5);
-  const endTime = endDate.toTimeString().substring(0, 5);
+  // Date (YYYY-MM-DD) and times (HH:MM) in Riyadh time, whatever the device's timezone
+  const date = riyadhDayKey(startDate);
+  const startTime = riyadhHHMM(startDate);
+  const endTime = riyadhHHMM(endDate);
   
   // Determine location type based on location string
   let locationType = "physical";
@@ -502,7 +501,7 @@ export default function EventsPage() {
       reg.participant.phone,
       reg.participant.isLeader ? "نعم" : "لا",
       reg.status === "registered" ? "مسجل" : reg.status === "attended" ? "حضر" : reg.status === "absent" ? "لم يحضر" : "ملغي",
-      new Date(reg.registeredAt).toLocaleDateString("ar-SA")
+      new Date(reg.registeredAt).toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh" })
     ]);
     
     // Add UTF-8 BOM to ensure Excel correctly displays Arabic text
@@ -617,7 +616,7 @@ export default function EventsPage() {
               reg.status === "registered" ? "مسجل" : 
                 reg.status === "attended" ? "حضر" : 
                 reg.status === "absent" ? "لم يحضر" : "ملغي",
-              new Date(reg.registeredAt).toLocaleDateString("ar-SA")
+              new Date(reg.registeredAt).toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh" })
             ]);
           }
         }
@@ -666,8 +665,9 @@ export default function EventsPage() {
         id: eventToEdit.id,
         title: eventToEdit.name,
         description: eventToEdit.description,
-        startDate: new Date(`${eventToEdit.date}T${eventToEdit.startTime || '00:00'}`).toISOString(),
-        endDate: new Date(`${eventToEdit.date}T${eventToEdit.endTime || '23:59'}`).toISOString(),
+        // the typed date/times are Riyadh time
+        startDate: fromRiyadh(eventToEdit.date, eventToEdit.startTime || '00:00').toISOString(),
+        endDate: fromRiyadh(eventToEdit.date, eventToEdit.endTime || '23:59').toISOString(),
         location: eventToEdit.location,
         capacity: eventToEdit.maxAttendees,
         type: eventToEdit.type,
@@ -776,8 +776,9 @@ export default function EventsPage() {
       const eventData = {
         title: newEvent.title,
         description: newEvent.description,
-        startDate: new Date(`${newEvent.startDate}T${newEvent.startTime || '00:00'}`).toISOString(),
-        endDate: new Date(`${newEvent.endDate || newEvent.startDate}T${newEvent.endTime || '23:59'}`).toISOString(),
+        // the typed date/times are Riyadh time
+        startDate: fromRiyadh(newEvent.startDate, newEvent.startTime || '00:00').toISOString(),
+        endDate: fromRiyadh(newEvent.endDate || newEvent.startDate, newEvent.endTime || '23:59').toISOString(),
         location: newEvent.location,
         capacity: parseInt(newEvent.capacity.toString()) || 0,
         type: newEvent.type,
@@ -1790,7 +1791,7 @@ export default function EventsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(registration.registeredAt).toLocaleDateString("ar-SA")}
+                        {new Date(registration.registeredAt).toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh" })}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -1871,7 +1872,7 @@ export default function EventsPage() {
                 {reminderPreview.lastReminderAt && (
                   <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-800">
                     سبق إرسال تذكير لهذه الفعالية بتاريخ{' '}
-                    {new Date(reminderPreview.lastReminderAt).toLocaleString('ar-SA')}. إرسال تذكير
+                    {new Date(reminderPreview.lastReminderAt).toLocaleString('ar-SA', { timeZone: 'Asia/Riyadh' })}. إرسال تذكير
                     آخر سيصل للمشاركين مرة ثانية.
                   </div>
                 )}

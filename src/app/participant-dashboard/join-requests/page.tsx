@@ -223,7 +223,7 @@ export default function JoinRequestsPage() {
                         {request.participant.city || request.participant.residence || 'غير متوفر'}
                       </td>
                       <td className="border p-2 hidden sm:table-cell">
-                        {new Date(request.createdAt).toLocaleDateString('ar-SA')}
+                        {new Date(request.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' })}
                       </td>
                       <td className="border p-2 hidden sm:table-cell">
                         {request.message ? (
@@ -295,7 +295,7 @@ export default function JoinRequestsPage() {
                       <td className="border p-2 hidden sm:table-cell">{request.participant.email}</td>
                       <td className="border p-2">{getStatusBadge(request.status)}</td>
                       <td className="border p-2 hidden sm:table-cell">
-                        {new Date(request.createdAt).toLocaleDateString('ar-SA')}
+                        {new Date(request.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' })}
                       </td>
                       <td className="border p-2">
                         <div className="flex gap-2 justify-center">
@@ -355,7 +355,7 @@ export default function JoinRequestsPage() {
                 <p><strong>طالب جامعي؟</strong> {selectedRequest.participant.isUniversityStudent !== undefined ? (selectedRequest.participant.isUniversityStudent ? 'نعم' : 'لا') : 'غير متوفر'}</p>
                 <p><strong>يمكنه الحضور؟</strong> {selectedRequest.participant.canAttendHackathon !== undefined ? (selectedRequest.participant.canAttendHackathon ? 'نعم' : 'لا') : (selectedRequest.participant.canAttend !== undefined ? (selectedRequest.participant.canAttend ? 'نعم' : 'لا') : 'غير متوفر')}</p>
                 <p><strong>حالة الطلب:</strong> {getStatusBadge(selectedRequest.status)}</p>
-                <p><strong>تاريخ الطلب:</strong> {new Date(selectedRequest.createdAt).toLocaleDateString('ar-SA')}</p>
+                <p><strong>تاريخ الطلب:</strong> {new Date(selectedRequest.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' })}</p>
               </div>
               {selectedRequest.message && (
                 <div className="mt-4">

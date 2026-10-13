@@ -65,12 +65,11 @@ import OrganizationsManager from '@/components/admin/OrganizationsManager';
 import { Building2 } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
-import 'moment/locale/ar'; // Import Arabic locale
+// Riyadh-time moment (Arabic locale): the calendar shows Saudi time on every device
+import moment from '@/lib/riyadh-moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { SLOT_GRID_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
 
-moment.locale('ar'); // Set moment to use Arabic
 const localizer = momentLocalizer(moment);
 
 const messages = {
@@ -1311,10 +1310,10 @@ export default function MentorsPage() {
                     <TableCell>{booking.participant.phoneNumber}</TableCell>
                     <TableCell>{booking.mentor.specialty}</TableCell>
                     <TableCell>
-                      {new Date(booking.availability.startTime).toLocaleDateString('ar-EG')}
+                      {new Date(booking.availability.startTime).toLocaleDateString('ar-EG', { timeZone: 'Asia/Riyadh' })}
                     </TableCell>
                     <TableCell>
-                      {`${new Date(booking.availability.startTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} - ${new Date(booking.availability.endTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}`}
+                      {`${new Date(booking.availability.startTime).toLocaleTimeString('ar-EG', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit' })} - ${new Date(booking.availability.endTime).toLocaleTimeString('ar-EG', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit' })}`}
                     </TableCell>
                     <TableCell>
                       <Badge className={
@@ -1437,7 +1436,7 @@ export default function MentorsPage() {
                         availableSlots.length > 0 ? (
                           availableSlots.map(slot => (
                             <SelectItem key={slot.id} value={slot.id}>
-                              {new Date(slot.startTime).toLocaleDateString('ar-EG')} - {new Date(slot.startTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })} إلى {new Date(slot.endTime).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                              {new Date(slot.startTime).toLocaleDateString('ar-EG', { timeZone: 'Asia/Riyadh' })} - {new Date(slot.startTime).toLocaleTimeString('ar-EG', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit' })} إلى {new Date(slot.endTime).toLocaleTimeString('ar-EG', { timeZone: 'Asia/Riyadh', hour: '2-digit', minute: '2-digit' })}
                             </SelectItem>
                           ))
                         ) : (
@@ -1636,21 +1635,21 @@ export default function MentorsPage() {
           {showDatePicker && (
             <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-4 p-4 bg-gray-100 rounded-md">
               <Select
-                value={String(calendarDate.getFullYear())}
-                onValueChange={(value) => handleDateChange(new Date(parseInt(value), calendarDate.getMonth(), calendarDate.getDate()))}
+                value={String(moment(calendarDate).year())}
+                onValueChange={(value) => handleDateChange(moment(calendarDate).year(parseInt(value)).toDate())}
               >
                 <SelectTrigger className="w-[120px]">
                   <SelectValue placeholder="السنة" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 5 + i).map(year => (
+                  {Array.from({ length: 10 }, (_, i) => moment().year() - 5 + i).map(year => (
                     <SelectItem key={year} value={String(year)}>{year}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <Select
-                value={String(calendarDate.getMonth())}
-                onValueChange={(value) => handleDateChange(new Date(calendarDate.getFullYear(), parseInt(value), calendarDate.getDate()))}
+                value={String(moment(calendarDate).month())}
+                onValueChange={(value) => handleDateChange(moment(calendarDate).month(parseInt(value)).toDate())}
               >
                 <SelectTrigger className="w-[120px]">
                   <SelectValue placeholder="الشهر" />
@@ -1662,8 +1661,8 @@ export default function MentorsPage() {
                 </SelectContent>
               </Select>
               <Select
-                value={String(calendarDate.getDate())}
-                onValueChange={(value) => handleDateChange(new Date(calendarDate.getFullYear(), calendarDate.getMonth(), parseInt(value)))}
+                value={String(moment(calendarDate).date())}
+                onValueChange={(value) => handleDateChange(moment(calendarDate).date(parseInt(value)).toDate())}
               >
                 <SelectTrigger className="w-[120px]">
                   <SelectValue placeholder="اليوم" />
@@ -1713,9 +1712,9 @@ export default function MentorsPage() {
             <DialogDescription>
               هل أنت متأكد أنك تريد إضافة فترة التوفر هذه؟
               <br />
-              <strong>من:</strong> {slotToAdd?.start.toLocaleString()}
+              <strong>من:</strong> {slotToAdd?.start.toLocaleString(undefined, { timeZone: 'Asia/Riyadh' })}
               <br />
-              <strong>إلى:</strong> {slotToAdd?.end.toLocaleString()}
+              <strong>إلى:</strong> {slotToAdd?.end.toLocaleString(undefined, { timeZone: 'Asia/Riyadh' })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1735,9 +1734,9 @@ export default function MentorsPage() {
             <DialogDescription>
               هل أنت متأكد أنك تريد إزالة فترة التوفر هذه؟
               <br />
-              <strong>من:</strong> {eventToDelete?.start.toLocaleString()}
+              <strong>من:</strong> {eventToDelete?.start.toLocaleString(undefined, { timeZone: 'Asia/Riyadh' })}
               <br />
-              <strong>إلى:</strong> {eventToDelete?.end.toLocaleString()}
+              <strong>إلى:</strong> {eventToDelete?.end.toLocaleString(undefined, { timeZone: 'Asia/Riyadh' })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

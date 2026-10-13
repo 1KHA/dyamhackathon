@@ -330,10 +330,12 @@ export default function DashboardPage() {
                           <h4 className="text-sm font-medium truncate">{event.title}</h4>
                           <p className="text-xs text-muted-foreground">
                             {new Date(event.startDate).toLocaleDateString('ar-SA', {
+                              timeZone: 'Asia/Riyadh',
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric'
                             })} - {new Date(event.startDate).toLocaleTimeString('ar-SA', {
+                              timeZone: 'Asia/Riyadh',
                               hour: '2-digit',
                               minute: '2-digit'
                             })}

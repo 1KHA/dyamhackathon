@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { fromRiyadhInput } from "@/lib/riyadh-time";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,7 +61,7 @@ export default function CreateMilestonePage() {
     setError(null);
     
     // Check if the due date is in the past
-    const selectedDate = new Date(milestone.dueDate);
+    const selectedDate = fromRiyadhInput(milestone.dueDate); // typed in Riyadh time
     const currentDate = new Date();
     
     if (selectedDate < currentDate) {

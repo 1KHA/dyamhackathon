@@ -39,7 +39,8 @@ async function main() {
   const team = await prisma.team.create({ data: { teamName: `${TAG} فريق`, status: 'approved', isTeamRegistration: true } });
   made.teams.push(team.id);
   const mk = async (n, teamId = null) => {
-    const p = await prisma.participant.create({ data: { email: `${TAG}-${n}@t.test`, fullName: `مشارك ${n}`, teamId } });
+    // approved: the attendance page lists approved participants only (2026-10-13)
+    const p = await prisma.participant.create({ data: { email: `${TAG}-${n}@t.test`, fullName: `مشارك ${n}`, teamId, status: 'approved' } });
     made.participants.push(p.id);
     return p;
   };

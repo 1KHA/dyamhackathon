@@ -266,14 +266,14 @@ function MentorProfile() {
               <Calendar className="h-6 w-6 text-gray-500" />
               <div>
                 <p className="text-sm text-muted-foreground">تاريخ الإنشاء</p>
-                <p className="font-medium">{new Date(mentor.createdAt).toLocaleDateString('ar-SA')}</p>
+                <p className="font-medium">{new Date(mentor.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' })}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <Clock className="h-6 w-6 text-gray-500" />
               <div>
                 <p className="text-sm text-muted-foreground">آخر تحديث</p>
-                <p className="font-medium">{new Date(mentor.updatedAt).toLocaleDateString('ar-SA')}</p>
+                <p className="font-medium">{new Date(mentor.updatedAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' })}</p>
               </div>
             </div>
           </div>

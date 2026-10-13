@@ -28,6 +28,7 @@ export default function UpcomingMilestonesPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("ar-SA", {
+      timeZone: "Asia/Riyadh",
       year: "numeric",
       month: "long",
       day: "numeric",

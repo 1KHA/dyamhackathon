@@ -510,8 +510,8 @@ export default function TeamsPage() {
             'مسار المرفقات': team.attachmentPath || '',
             'الحالة': team.status === "approved" ? "معتمد" : 
                      team.status === "rejected" ? "مرفوض" : "قيد الانتظار",
-            'تاريخ الإنشاء': new Date(team.createdAt).toLocaleDateString('ar-SA'),
-            'تاريخ التحديث': team.updatedAt ? new Date(team.updatedAt).toLocaleDateString('ar-SA') : new Date(team.createdAt).toLocaleDateString('ar-SA'),
+            'تاريخ الإنشاء': new Date(team.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' }),
+            'تاريخ التحديث': team.updatedAt ? new Date(team.updatedAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' }) : new Date(team.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' }),
             'عدد الأعضاء': team.participants.length,
             'قائد الفريق': leader?.fullName || `${leader?.firstName || ''} ${leader?.secondName || ''} ${leader?.familyName || ''}`.trim() || '',
             'بريد قائد الفريق': leader?.email || '',
@@ -549,8 +549,8 @@ export default function TeamsPage() {
           // Core fields
           'البريد الإلكتروني': p.email || '',
           'الجامعة': p.university || '',
-          'تاريخ التسجيل': p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-SA') : '',
-          'تاريخ التحديث': p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('ar-SA') : (p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-SA') : ''),
+          'تاريخ التسجيل': p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' }) : '',
+          'تاريخ التحديث': p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' }) : (p.createdAt ? new Date(p.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' }) : ''),
           
           // Legacy fields
           'الاسم الأول': p.firstName || '',
@@ -877,7 +877,7 @@ export default function TeamsPage() {
                         </div>
                       </td>
                       <td className="border p-2">
-                        {new Date(team.createdAt).toLocaleDateString('ar-SA')}
+                        {new Date(team.createdAt).toLocaleDateString('ar-SA', { timeZone: 'Asia/Riyadh' })}
                       </td>
                       <td className="border p-2">
                         <div className="flex gap-2 justify-center">

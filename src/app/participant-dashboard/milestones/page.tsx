@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, FileText, CheckCircle, AlertCircle, XCircle, Loader2, Upload, X } from "lucide-react";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
+import { asRiyadhWallClock } from "@/lib/riyadh-time";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -84,8 +85,7 @@ export default function ParticipantMilestonesPage() {
 
   // Format date to Arabic format
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return format(date, "d MMMM yyyy", { locale: ar });
+    return format(asRiyadhWallClock(dateString), "d MMMM yyyy", { locale: ar });
   };
 
   // Get days remaining until due date

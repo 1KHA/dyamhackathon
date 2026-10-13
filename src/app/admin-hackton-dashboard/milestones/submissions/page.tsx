@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { fromRiyadhInput } from "@/lib/riyadh-time";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, Calendar, Download, FileText, Flag, User, Loader2, CheckCircle, X } from "lucide-react";
@@ -140,7 +141,7 @@ export default function MilestoneSubmissionsPage() {
             reviewComment,
             resubmissionDeadline:
               reviewStatus === 'needs_resubmission' && resubmissionDeadline
-                ? new Date(resubmissionDeadline).toISOString()
+                ? fromRiyadhInput(resubmissionDeadline).toISOString() // typed in Riyadh time
                 : undefined,
           }),
         }
@@ -190,6 +191,7 @@ export default function MilestoneSubmissionsPage() {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("ar-SA", {
+      timeZone: "Asia/Riyadh",
       year: "numeric",
       month: "long",
       day: "numeric",

@@ -110,6 +110,7 @@ export default function MentorDashboardPage() {
 
   const fmt = (iso: string) =>
     new Date(iso).toLocaleString("ar-SA", {
+      timeZone: "Asia/Riyadh",
       weekday: "long",
       year: "numeric",
       month: "long",
