@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
 import { riyadhToday } from '@/lib/badge-dates';
 import { riyadhDayOf, scannerNames, summarizeScans } from '@/lib/attendance-scans';
+import { attendanceAudience, GROUP_SELECT, groupName } from '@/lib/attendance-audience';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +13,7 @@ export const dynamic = 'force-dynamic';
  *
  *   ?mode=general&date=YYYY-MM-DD          venue, that day (default today)
  *   ?mode=event&eventId=…&date=YYYY-MM-DD  one event (default: the event's day)
+ *   &phaseId=…                             only that group; approved accounts only
  *
  * One row per participant who has at least one scan in that scope/day, with
  * the summary (first entry, last exit, minutes inside / outside, exits; for an
@@ -24,6 +26,7 @@ export async function GET(request: NextRequest) {
   try {
     const sp = new URL(request.url).searchParams;
     const mode = sp.get('mode') === 'event' ? 'event' : 'general';
+    const audience = attendanceAudience(sp.get('phaseId') || null);
     let eventId: string | null = null;
     let window: { start: Date; end: Date } | undefined;
     let eventTitle: string | undefined;
@@ -42,11 +45,11 @@ export async function GET(request: NextRequest) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return NextResponse.json({ error: 'تاريخ غير صالح' }, { status: 400 });
 
     const scans = await prisma.attendanceScan.findMany({
-      where: { eventId, day },
+      where: { eventId, day, participant: audience },
       orderBy: { createdAt: 'asc' },
       select: {
         id: true, participantId: true, direction: true, createdAt: true, scannedBy: true, scannerRole: true, method: true,
-        participant: { select: { fullName: true, firstName: true, secondName: true, familyName: true, email: true, team: { select: { teamName: true } } } },
+        participant: { select: { fullName: true, firstName: true, secondName: true, familyName: true, email: true, ...GROUP_SELECT } },
       },
     });
 
@@ -67,6 +70,7 @@ export async function GET(request: NextRequest) {
         name: p.fullName || `${p.firstName ?? ''} ${p.secondName ?? ''} ${p.familyName ?? ''}`.trim() || p.email,
         email: p.email,
         teamName: p.team?.teamName ?? null,
+        group: groupName(p),
         summary: summarizeScans(list, { now, isToday, window }),
         scans: list.map((s) => ({ id: s.id, direction: s.direction, at: s.createdAt, by: s.scannerRole, byName: names.get(s.scannedBy) ?? '—', method: s.method })),
       };

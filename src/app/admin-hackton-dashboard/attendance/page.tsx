@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatMinutes, formatTime } from "@/components/attendance/time-format";
 import ScanModeToggle, { useRememberedDirection } from "@/components/attendance/scan-mode-toggle";
+import { usePhases } from "@/components/phases/phase-controls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -64,6 +65,8 @@ interface AttendanceRow {
   name: string;
   email: string;
   teamName: string | null;
+  /** the participant's group (phase): team's phase, or their own */
+  group?: string | null;
   status?: string;
   scannedAt?: string | null;
   time?: string;
@@ -99,6 +102,7 @@ interface PresenceRow {
   name: string;
   email: string;
   teamName: string | null;
+  group?: string | null;
   summary: PresenceSummary;
   scans: { id: string; direction: string; at: string; by: string; byName: string; method: string }[];
 }
@@ -137,6 +141,9 @@ const STATUS_PILL: Record<string, string> = {
 
 export default function AttendancePage() {
   const [mode, setMode] = useState<"event" | "general">("event");
+  // "" = every group; otherwise a phase id (مرحلة الرياض / مرحلة رابغ …)
+  const [groupFilter, setGroupFilter] = useState("");
+  const { phases } = usePhases();
   const [events, setEvents] = useState<EventOption[]>([]);
   const [eventId, setEventId] = useState<string>("");
   // General mode: `date` only picks which day's list is shown. A check-in is
@@ -199,9 +206,9 @@ export default function AttendancePage() {
     }
     try {
       const qs =
-        mode === "event"
+        (mode === "event"
           ? `mode=event&eventId=${encodeURIComponent(eventId)}`
-          : `mode=general${date ? `&date=${date}` : ""}`;
+          : `mode=general${date ? `&date=${date}` : ""}`) + (groupFilter ? `&phaseId=${encodeURIComponent(groupFilter)}` : "");
       const res = await fetch(`/api/admin/attendance?${qs}`, { credentials: "include" });
       fetch(`/api/admin/attendance/presence?${qs}`, { credentials: "include" })
         .then((r) => (r.ok ? r.json() : null))
@@ -222,7 +229,7 @@ export default function AttendancePage() {
     } catch {
       /* keep last data */
     }
-  }, [mode, eventId, date]);
+  }, [mode, eventId, date, groupFilter]);
 
   useEffect(() => {
     fetchData();
@@ -440,6 +447,7 @@ export default function AttendancePage() {
       الاسم: r.name,
       "البريد الإلكتروني": r.email,
       الفريق: r.teamName || "بدون فريق",
+      المجموعة: r.group || "-",
       الحالة: STATUS_LABELS[r.status ?? ""] ?? r.status ?? "-",
       "وقت التسجيل": r.scannedAt
         ? new Date(r.scannedAt).toLocaleString("ar-SA")
@@ -487,6 +495,7 @@ export default function AttendancePage() {
     const rows = presence.rows.map((r) => ({
       الاسم: r.name,
       الفريق: r.teamName || "بدون فريق",
+      المجموعة: r.group || "-",
       الحالة: r.summary.state === "inside" ? "داخل الآن" : r.summary.state === "outside" ? "خارج" : "-",
       "أول دخول": formatTime(r.summary.firstIn),
       "آخر خروج": formatTime(r.summary.lastOut),
@@ -564,6 +573,24 @@ export default function AttendancePage() {
             >
               تسجيل حضور عام
             </Button>
+          </div>
+
+          <div className="grid gap-2 md:max-w-md">
+            <Label>المجموعة</Label>
+            <Select value={groupFilter || "all"} onValueChange={(v) => setGroupFilter(v === "all" ? "" : v)} dir="rtl">
+              <SelectTrigger>
+                <SelectValue placeholder="كل المجموعات" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">كل المجموعات (المقبولون فقط)</SelectItem>
+                {phases.map((p) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              تُعرض الفرق والمشاركون المقبولون فقط (الحسابات المعطلة وغير المقبولة لا تظهر).
+            </p>
           </div>
 
           {mode === "event" ? (
@@ -734,6 +761,12 @@ export default function AttendancePage() {
       {/* stats + table */}
       {data && (
         <>
+          {(data.counts.hidden ?? 0) > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {data.counts.hidden} {data.mode === "event" ? "تسجيل" : "تسجيل حضور"} لحسابات غير مقبولة
+              {groupFilter ? " أو من مجموعات أخرى" : ""} غير معروض.
+            </p>
+          )}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {countCards.map((c) => (
               <Card key={c.label}>
@@ -831,7 +864,10 @@ export default function AttendancePage() {
                             >
                               <td className="border p-2">
                                 <div className="font-medium">{r.name}</div>
-                                <div className="text-xs text-muted-foreground">{r.teamName || "بدون فريق"}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {r.teamName || "بدون فريق"}
+                                  {r.group ? ` · ${r.group}` : ""}
+                                </div>
                               </td>
                               <td className="border p-2">
                                 {r.summary.state === "inside" ? (
@@ -942,7 +978,10 @@ export default function AttendancePage() {
                               {r.email}
                             </div>
                           </td>
-                          <td className="border p-2 text-sm">{r.teamName || "بدون فريق"}</td>
+                          <td className="border p-2 text-sm">
+                            {r.teamName || "بدون فريق"}
+                            {r.group && <div className="text-xs text-muted-foreground">{r.group}</div>}
+                          </td>
                           <td className="border p-2">
                             <span className={`px-2 py-1 rounded-full text-xs ${STATUS_PILL[r.status ?? ""] ?? "bg-gray-100 text-gray-600"}`}>
                               {STATUS_LABELS[r.status ?? ""] ?? r.status}

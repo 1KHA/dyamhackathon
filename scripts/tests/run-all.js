@@ -49,6 +49,7 @@ const SUITES = [
   'e2e-att-2',
   'e2e-organizers',
   'e2e-attendance-inout',
+  'e2e-attendance-groups',
   'e2e-golden-path',
   'e2e-admin-auth-fix',
   'e2e-passwordhash-leak',

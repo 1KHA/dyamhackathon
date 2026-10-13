@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/notification-auth';
 import { riyadhToday } from '@/lib/badge-dates';
+import { attendanceAudience, GROUP_SELECT, groupName } from '@/lib/attendance-audience';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,7 +28,7 @@ const participantSelect = {
   firstName: true,
   secondName: true,
   familyName: true,
-  team: { select: { teamName: true } },
+  ...GROUP_SELECT,
 } as const;
 
 /**
@@ -35,6 +36,10 @@ const participantSelect = {
  *
  *   ?mode=event&eventId=…  every registration with name/team/status/scan info + counts
  *   ?mode=general&date=…   checked-in list + absentee diff + counts (date defaults to today)
+ *   &phaseId=…             only that group (phase); omitted = every group
+ *
+ * Only approved, active participants are listed (src/lib/attendance-audience.ts);
+ * `counts.hidden` says how many rows of other accounts were left out.
  */
 export async function GET(request: NextRequest) {
   if (!requireAdmin(cookies().get('token')?.value)) {
@@ -47,18 +52,21 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const mode = searchParams.get('mode') === 'general' ? 'general' : 'event';
+    const phaseId = searchParams.get('phaseId') || null;
+    const audience = attendanceAudience(phaseId);
 
     // ---- general venue check-in ---------------------------------------------
     if (mode === 'general') {
       const date = searchParams.get('date') || riyadhToday();
 
-      const [records, allParticipants] = await Promise.all([
+      const [records, allParticipants, allRecords] = await Promise.all([
         prisma.attendanceRecord.findMany({
-          where: { eventId: null, checkinDate: date },
+          where: { eventId: null, checkinDate: date, participant: audience },
           include: { participant: { select: participantSelect } },
           orderBy: { createdAt: 'desc' },
         }),
-        prisma.participant.findMany({ select: participantSelect }),
+        prisma.participant.findMany({ where: audience, select: participantSelect }),
+        prisma.attendanceRecord.count({ where: { eventId: null, checkinDate: date } }),
       ]);
 
       const checkedInIds = new Set(records.map((r) => r.participantId));
@@ -70,12 +78,15 @@ export async function GET(request: NextRequest) {
           total: allParticipants.length,
           checkedIn: records.length,
           notCheckedIn: allParticipants.length - records.length,
+          // check-ins of accounts outside the list (not approved / other group)
+          hidden: allRecords - records.length,
         },
         checkedIn: records.map((r) => ({
           participantId: r.participantId,
           name: displayName(r.participant),
           email: r.participant.email,
           teamName: r.participant.team?.teamName ?? null,
+          group: groupName(r.participant),
           time: r.createdAt,
           method: r.method,
           scannedBy: r.scannedBy,
@@ -87,6 +98,7 @@ export async function GET(request: NextRequest) {
             name: displayName(p),
             email: p.email,
             teamName: p.team?.teamName ?? null,
+            group: groupName(p),
           })),
       });
     }
@@ -105,13 +117,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'الفعالية غير موجودة' }, { status: 404 });
     }
 
-    const [registrations, scanRecords] = await Promise.all([
+    const [registrations, scanRecords, allRegistrations] = await Promise.all([
       prisma.eventRegistration.findMany({
-        where: { eventId },
+        where: { eventId, participant: audience },
         include: { participant: { select: participantSelect } },
         orderBy: { createdAt: 'asc' },
       }),
       prisma.attendanceRecord.findMany({ where: { eventId } }),
+      prisma.eventRegistration.count({ where: { eventId } }),
     ]);
 
     const scanByParticipant = new Map(scanRecords.map((r) => [r.participantId, r]));
@@ -124,6 +137,7 @@ export async function GET(request: NextRequest) {
         name: displayName(reg.participant),
         email: reg.participant.email,
         teamName: reg.participant.team?.teamName ?? null,
+        group: groupName(reg.participant),
         status: reg.status,
         scannedAt: scan?.createdAt ?? null,
         method: scan?.method ?? null,
@@ -139,6 +153,7 @@ export async function GET(request: NextRequest) {
       absent: rows.filter((r) => r.status === 'absent').length,
       cancelled: rows.filter((r) => r.status === 'cancelled').length,
       remaining: rows.filter((r) => r.status === 'registered').length,
+      hidden: allRegistrations - rows.length,
     };
 
     return NextResponse.json({
