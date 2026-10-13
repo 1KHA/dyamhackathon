@@ -159,6 +159,8 @@ const made = { participants: [], teams: [], events: [], mentors: [], organizers:
   check('only non-cancelled sessions of that day, sorted by start', mine.length === todaysSlots.length && mine.every((b, i) => i === 0 || new Date(b.startTime) >= new Date(mine[i - 1].startTime)) && !mine.some((b) => new Date(b.startTime).getTime() === sCancel.startTime.getTime()), JSON.stringify(mine.map((b) => b.startTime)));
   const nowRow = mine.find((b) => new Date(b.startTime).getTime() === sNow.startTime.getTime());
   check('row shows team, booker, members and mentor', !nowRow || (nowRow.teamName === team.teamName && nowRow.members.length === 2 && nowRow.mentorName === mentor.name), JSON.stringify(nowRow));
+  check('row carries the leader\'s phone (one-tap call) and every member\'s phone, leader first', !nowRow || (nowRow.leader && nowRow.leader.phone === '0500000001' && nowRow.leader.name === L.fullName && nowRow.members[0].isLeader === true && nowRow.members[0].phone === '0500000001' && nowRow.members[1].phone === '0500000002' && nowRow.booker && typeof nowRow.booker.isLeader === 'boolean'), JSON.stringify(nowRow && { leader: nowRow.leader, members: nowRow.members, booker: nowRow.booker }));
+  check('  never national ID / badge code / email in the board', !JSON.stringify(r.json).includes('1234567890') && !JSON.stringify(r.json).includes(L.badgeCode) && !JSON.stringify(r.json).includes(L.email));
 
   section('access');
   const pCk = sign({ id: L.id, participantId: L.id, role: 'participant' });
