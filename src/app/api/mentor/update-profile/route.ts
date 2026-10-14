@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizeEmail } from '@/lib/email-lookup';
 import jwt from 'jsonwebtoken';
 import { requireActiveMentor } from '@/lib/account-status';
 
@@ -36,7 +37,7 @@ export async function PUT(request: NextRequest) {
       where: { id: decoded.id },
       data: {
         name,
-        email,
+        email: typeof email === 'string' ? normalizeEmail(email) : email,
         specialty,
         phone,
       },

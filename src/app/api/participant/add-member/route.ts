@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizeEmail, participantIdsByEmail } from '@/lib/email-lookup';
 import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
@@ -76,18 +77,16 @@ export async function POST(request: NextRequest) {
     }
 
     const newMemberData = await request.json();
+    // stored trimmed + lowercased so the login always finds it
+    if (typeof newMemberData.email === 'string') newMemberData.email = normalizeEmail(newMemberData.email);
 
     // Validation
     if (!newMemberData.email || !newMemberData.firstName || !newMemberData.nationalId) {
         return NextResponse.json({ error: 'Required fields are missing.' }, { status: 400 });
     }
 
-    // Check if email already exists
-    const existingParticipant = await prisma.participant.findUnique({
-        where: { email: newMemberData.email },
-    });
-
-    if (existingParticipant) {
+    // Check if email already exists (ignoring case and spaces in older rows)
+    if ((await participantIdsByEmail(newMemberData.email)).length > 0) {
         return NextResponse.json({ error: 'This email is already registered.' }, { status: 409 });
     }
 

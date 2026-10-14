@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import { prisma } from '@/lib/prisma';
+import { participantIdsByEmail, mentorIdsByEmail } from '@/lib/email-lookup';
 import { getEmailSettings, toSmtpConfig, sendEmail } from '@/lib/mailer';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -48,6 +49,17 @@ export async function POST(request: Request) {
       if (mentor) {
         account = { userType: 'mentor', id: mentor.id };
         break;
+      }
+    }
+
+    if (!account) {
+      // stored with other casing / surrounding spaces (older registrations);
+      // only an unambiguous single match gets a reset link
+      const pIds = await participantIdsByEmail(email);
+      if (pIds.length === 1) account = { userType: 'participant', id: pIds[0] };
+      else if (pIds.length === 0) {
+        const mIds = await mentorIdsByEmail(email);
+        if (mIds.length === 1) account = { userType: 'mentor', id: mIds[0] };
       }
     }
 

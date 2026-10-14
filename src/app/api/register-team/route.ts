@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { normalizeEmail, participantIdsByEmail } from '@/lib/email-lookup'
 import { PrismaClient } from '@prisma/client'
 import { dispatchNotification } from '@/lib/notify'
 import { uploadToStorage } from '@/lib/supabase-storage'
@@ -81,14 +82,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if any email already exists
-    const allEmails = [leaderInfo.email, ...members.map((m: any) => m.email)].filter(Boolean)
-    if (allEmails.length > 0) {
-      const existingParticipants = await prisma.participant.findMany({
-        where: { email: { in: allEmails } },
-      })
+    // Emails are stored trimmed + lowercased so the login always finds them
+    leaderInfo.email = normalizeEmail(String(leaderInfo.email))
+    for (const m of members) if (typeof m?.email === 'string') m.email = normalizeEmail(m.email)
+    if (!leaderInfo.email) {
+      return NextResponse.json({ error: 'Required participant fields are missing.' }, { status: 400 })
+    }
 
-      if (existingParticipants.length > 0) {
+    // Check if any email already exists (ignoring case and spaces in older rows)
+    const allEmails: string[] = [leaderInfo.email, ...members.map((m: any) => m.email)].filter(Boolean)
+    if (new Set(allEmails).size !== allEmails.length) {
+      return NextResponse.json(
+        { error: 'The same email address is used more than once in this registration.' },
+        { status: 400 }
+      )
+    }
+    for (const address of allEmails) {
+      if ((await participantIdsByEmail(address)).length > 0) {
         return NextResponse.json(
           { error: 'One or more email addresses are already registered.' },
           { status: 400 }

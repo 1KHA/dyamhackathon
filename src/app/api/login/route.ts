@@ -4,16 +4,36 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 import { isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status'
 import jwt from 'jsonwebtoken'
+import type { Prisma } from '@prisma/client'
+import { participantIdsByEmail, mentorIdsByEmail } from '@/lib/email-lookup'
 
 // Ensure this route is dynamic
 export const dynamic = 'force-dynamic';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
+// team.phase is needed by isEffectivelyDisabled — a member of a team in
+// a disabled PHASE must not be able to log in either.
+const PARTICIPANT_INCLUDE = {
+  team: { include: { phase: { select: { isDisabled: true } } } },
+  phase: { select: { isDisabled: true } },
+} satisfies Prisma.ParticipantInclude
+
+/** Several rows share an address that differs only in case/spaces: the one whose password matches wins. */
+async function pickByPassword<T extends { passwordHash: string | null }>(rows: T[], password: string): Promise<T | null> {
+  if (rows.length === 1) return rows[0]
+  const matching: T[] = []
+  for (const row of rows) {
+    if (row.passwordHash && (await bcrypt.compare(password, row.passwordHash))) matching.push(row)
+  }
+  return matching.length === 1 ? matching[0] : null
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password } = body
+    const { password } = body
+    const email = typeof body.email === 'string' ? body.email.trim() : ''
 
     console.log(`🔐 Login attempt for email: ${email}`);
 
@@ -25,16 +45,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Try to find a participant first
-    const participant = await prisma.participant.findUnique({
+    // Try to find a participant first — exact address, then ignoring case and
+    // surrounding spaces (older registrations stored emails exactly as typed)
+    let participant = await prisma.participant.findUnique({
       where: { email },
-      include: {
-        // team.phase is needed by isEffectivelyDisabled — a member of a team in
-        // a disabled PHASE must not be able to log in either.
-        team: { include: { phase: { select: { isDisabled: true } } } },
-        phase: { select: { isDisabled: true } },
-      },
+      include: PARTICIPANT_INCLUDE,
     });
+    if (!participant) {
+      const ids = await participantIdsByEmail(email);
+      if (ids.length > 0) {
+        const rows = await prisma.participant.findMany({ where: { id: { in: ids } }, include: PARTICIPANT_INCLUDE });
+        participant = await pickByPassword(rows, password);
+      }
+    }
 
     if (participant) {
       console.log(`👤 Participant found: ${participant.email}`);
@@ -146,9 +169,15 @@ export async function POST(request: NextRequest) {
 
     // If not a participant, check if it's a mentor
     console.log(`🔍 Participant not found, checking for mentor: ${email}`);
-    const mentor = await prisma.mentor.findUnique({
+    let mentor = await prisma.mentor.findUnique({
       where: { email },
     });
+    if (!mentor) {
+      const ids = await mentorIdsByEmail(email);
+      if (ids.length > 0) {
+        mentor = await pickByPassword(await prisma.mentor.findMany({ where: { id: { in: ids } } }), password);
+      }
+    }
 
     if (!mentor || !mentor.passwordHash) {
       console.log(`❌ No mentor found or no password hash for ${email}`);

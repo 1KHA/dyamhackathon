@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { normalizeEmail } from '@/lib/email-lookup';
 import bcrypt from 'bcryptjs';
 import { dispatchNotification } from '@/lib/notify';
 import { generatePassword, getLoginUrl } from '@/lib/credentials';
@@ -204,7 +205,7 @@ export async function POST(request: Request) {
     const newMentor = await prisma.mentor.create({
       data: {
         name,
-        email,
+        email: normalizeEmail(String(email)),
         specialty,
         phone,
         passwordHash,
@@ -264,7 +265,7 @@ export async function PUT(request: Request) {
       where: { id },
       data: {
         name,
-        email,
+        email: typeof email === 'string' ? normalizeEmail(email) : email,
         specialty,
         phone,
         status,

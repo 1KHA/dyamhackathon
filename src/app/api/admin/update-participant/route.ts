@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
+import { normalizeEmail } from '@/lib/email-lookup';
 import { verifyToken } from '@/lib/notification-auth';
 import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import { notifyEmailChanged } from '@/lib/reactivation';
@@ -78,7 +79,7 @@ export async function POST(req: Request) {
       }
     }
     if (typeof dataToUpdate.email === 'string') {
-      const email = dataToUpdate.email.toLowerCase();
+      const email = normalizeEmail(dataToUpdate.email);
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         return NextResponse.json({ error: 'صيغة البريد الإلكتروني غير صالحة' }, { status: 400 });
       }
@@ -101,7 +102,7 @@ export async function POST(req: Request) {
     // The login email changed: send fresh credentials to the new address and a
     // notice to the old one (see src/lib/reactivation.ts). Never fails the edit.
     let emailChange: { credentialsSent: boolean } | undefined;
-    if (typeof dataToUpdate.email === 'string' && dataToUpdate.email !== before.email.toLowerCase()) {
+    if (typeof dataToUpdate.email === 'string' && dataToUpdate.email !== normalizeEmail(before.email)) {
       emailChange = await notifyEmailChanged(id, before.email);
     }
 

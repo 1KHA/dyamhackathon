@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
+import { normalizeEmail, participantIdsByEmail } from '@/lib/email-lookup'
 import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import { dispatchNotification } from '@/lib/notify'
 import jwt from 'jsonwebtoken'
@@ -38,12 +39,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Required participant fields are missing.' }, { status: 400 })
     }
 
-    // Check if email already exists
-    const existingParticipant = await prisma.participant.findUnique({
-      where: { email: participantData.email.toLowerCase() }
-    });
-
-    if (existingParticipant) {
+    // Check if email already exists (ignoring case and spaces in older rows)
+    if ((await participantIdsByEmail(participantData.email)).length > 0) {
       return NextResponse.json(
         { error: 'A participant with this email already exists.' },
         { status: 400 }
@@ -56,7 +53,7 @@ export async function POST(request: NextRequest) {
         // Use NEW CSV-based fields (primary)
         fullName: participantData.fullName || '',
         contactNumber: participantData.contactNumber || '',
-        email: participantData.email.toLowerCase(),
+        email: normalizeEmail(participantData.email),
         gender: participantData.gender || '',
         isUniversityStudent: participantData.isUniversityStudent || false,
         universityMajor: participantData.universityMajor || '',
