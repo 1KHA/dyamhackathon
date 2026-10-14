@@ -73,6 +73,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         mode: 'general',
+        serverNow: new Date().toISOString(),
         date,
         counts: {
           total: allParticipants.length,
@@ -158,6 +159,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       mode: 'event',
+      serverNow: new Date().toISOString(),
       event: { id: event.id, title: event.title, startDate: event.startDate, capacity: event.capacity },
       counts,
       rows,

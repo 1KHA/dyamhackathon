@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { formatMinutes, formatTime } from "@/components/attendance/time-format";
 import ScanModeToggle, { useRememberedDirection } from "@/components/attendance/scan-mode-toggle";
+import { RiyadhClock, useServerClock } from "@/components/attendance/server-clock";
 import { usePhases } from "@/components/phases/phase-controls";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -157,6 +158,8 @@ export default function AttendancePage() {
   // «تلقائي» (auto) is hidden for now (several doors / scanners); the API still accepts it
   // remembered per device, so an exit door stays in «خروج» after a reload
   const [direction, setDirection] = useRememberedDirection("miyahthone-scan-direction-admin");
+  // the server's clock (Riyadh): the device's own time may be set wrong
+  const { now: clockNow, sync: syncClock } = useServerClock();
   const [presence, setPresence] = useState<PresenceData | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   // Audible scan feedback (preference remembered per browser)
@@ -220,6 +223,7 @@ export default function AttendancePage() {
         .catch(() => {});
       if (res.ok) {
         const payload = await res.json();
+        syncClock(payload.serverNow);
         // a slow reply for a day that is no longer selected must not
         // overwrite the list of the day now on screen
         if (mode === "general" && dateRef.current && payload.date !== dateRef.current) return;
@@ -229,7 +233,7 @@ export default function AttendancePage() {
     } catch {
       /* keep last data */
     }
-  }, [mode, eventId, date, groupFilter]);
+  }, [mode, eventId, date, groupFilter, syncClock]);
 
   useEffect(() => {
     fetchData();
@@ -293,6 +297,7 @@ export default function AttendancePage() {
           }),
         });
         const payload = await res.json();
+        syncClock(payload.serverNow);
 
         if (res.ok && payload.success) {
           const kindMap: Record<string, ScanResult["kind"]> = {
@@ -339,7 +344,8 @@ export default function AttendancePage() {
               {
                 participantId: payload.participantId,
                 name: payload.fullName,
-                time: new Date().toLocaleTimeString("ar-SA", { timeZone: "Asia/Riyadh" }),
+                // the server's time of the scan, not the device's clock
+                time: new Date(payload.scannedAt ?? clockNow()).toLocaleTimeString("ar-SA", { timeZone: "Asia/Riyadh" }),
                 date: savedDate,
                 scanId: payload.scanId,
                 direction: payload.direction,
@@ -368,7 +374,7 @@ export default function AttendancePage() {
         scanBusyRef.current = false;
       }
     },
-    [mode, eventId, fetchData, direction]
+    [mode, eventId, fetchData, direction, syncClock, clockNow]
   );
 
   const handleDecoded = useCallback(
@@ -658,6 +664,7 @@ export default function AttendancePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <RiyadhClock now={clockNow} />
           <ScanModeToggle value={direction} onChange={setDirection} />
           {result && (
             <div className={`border-r-4 rounded-md p-4 ${resultStyles[result.kind]}`}>

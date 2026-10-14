@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import BadgeScanner, { type ScanFlash } from "@/components/attendance/badge-scanner";
 import ParticipantDetailsPanel, { type ParticipantDetails } from "@/components/attendance/participant-details-panel";
 import BookingsBoard from "@/components/attendance/bookings-board";
+import { RiyadhClock, useServerClock } from "@/components/attendance/server-clock";
 import { formatMinutes, formatRange, formatTime } from "@/components/attendance/time-format";
 import ScanModeToggle, { useRememberedDirection, type ScanDirection } from "@/components/attendance/scan-mode-toggle";
 
@@ -101,6 +102,8 @@ function presenceLine(p: any): string | undefined {
 export default function OrganizerDashboardPage() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
+  // the server's clock (Riyadh): never trust the phone's own time for what is shown
+  const { now: clockNow, sync: syncClock } = useServerClock();
   const [tab, setTab] = useState<"attendance" | "info" | "sessions">("attendance");
 
   // ---- session ---------------------------------------------------------------
@@ -111,10 +114,11 @@ export default function OrganizerDashboardPage() {
       .then(async (res) => {
         if (!res.ok) return goToLogin();
         const data = await res.json();
+        syncClock(data.serverNow);
         setMe({ name: data.name, username: data.username, today: data.today });
       })
       .catch(goToLogin);
-  }, [goToLogin]);
+  }, [goToLogin, syncClock]);
 
   const logout = async () => {
     await fetch("/api/logout", { method: "POST", credentials: "include" }).catch(() => {});
@@ -223,6 +227,7 @@ export default function OrganizerDashboardPage() {
         });
         if (res.status === 401) return goToLogin(); // session expired or account disabled
         const payload = await res.json();
+        syncClock(payload.serverNow);
         if (res.ok && payload.success) {
           if (payload.result === "repeatIgnored") {
             showResult({
@@ -249,7 +254,8 @@ export default function OrganizerDashboardPage() {
             });
             if (payload.scanId) {
               setRecent((prev) => [
-                { scanId: payload.scanId, name: payload.fullName, where: payload.eventTitle ?? "الحضور العام", time: formatTime(new Date()), at: Date.now(), direction: payload.direction },
+                // time: the server's time of the scan (Riyadh), not the phone's clock
+                { scanId: payload.scanId, name: payload.fullName, where: payload.eventTitle ?? "الحضور العام", time: formatTime(payload.scannedAt ?? new Date(clockNow())), at: Date.now(), direction: payload.direction },
                 ...prev.slice(0, 29),
               ]);
             }
@@ -265,7 +271,7 @@ export default function OrganizerDashboardPage() {
         setScanBusy(false);
       }
     },
-    [goToLogin, direction, scope, eventId]
+    [goToLogin, direction, scope, eventId, syncClock, clockNow]
   );
 
   const undo = async (scan: RecentScan) => {
@@ -346,7 +352,7 @@ export default function OrganizerDashboardPage() {
 
   // event picker: today's first (running one marked), then upcoming, then past
   const evDay = (d: string) => new Date(d).toLocaleDateString("en-CA", { timeZone: "Asia/Riyadh" });
-  const nowMs = Date.now();
+  const nowMs = clockNow();
   const isRunning = (e: EventOption) => new Date(e.startDate).getTime() <= nowMs && nowMs < new Date(e.endDate).getTime();
   const rank = (e: EventOption) => (evDay(e.startDate) === me.today ? 0 : new Date(e.startDate).getTime() > nowMs ? 1 : 2);
   const sortedEvents = [...events].sort(
@@ -416,6 +422,7 @@ export default function OrganizerDashboardPage() {
             <p className="truncate text-xs text-muted-foreground sm:text-sm">
               {me.name} · <span dir="ltr">{me.today}</span>
             </p>
+            <RiyadhClock now={clockNow} />
           </div>
           {/* not «خروج» alone: that word is the exit scan mode on this page */}
           <Button variant="ghost" size="sm" className="shrink-0 text-muted-foreground" onClick={logout}>
@@ -555,7 +562,7 @@ export default function OrganizerDashboardPage() {
             </Card>
             {attendanceDetails && (
               <div ref={detailsRef} className="scroll-mt-16">
-                <ParticipantDetailsPanel details={attendanceDetails} onClose={() => setAttendanceDetails(null)} />
+                <ParticipantDetailsPanel details={attendanceDetails} nowMs={clockNow()} onClose={() => setAttendanceDetails(null)} />
               </div>
             )}
           </>
@@ -658,7 +665,7 @@ export default function OrganizerDashboardPage() {
             </Card>
             {infoDetails && (
               <div ref={detailsRef} className="scroll-mt-16">
-                <ParticipantDetailsPanel details={infoDetails} onClose={() => setInfoDetails(null)} />
+                <ParticipantDetailsPanel details={infoDetails} nowMs={clockNow()} onClose={() => setInfoDetails(null)} />
               </div>
             )}
           </>
@@ -699,7 +706,7 @@ export default function OrganizerDashboardPage() {
                     ) : (
                       <div className="mt-2 space-y-1">
                         {todaysSessions.map((b, i) => {
-                          const isNow = new Date(b.startTime).getTime() <= Date.now();
+                          const isNow = new Date(b.startTime).getTime() <= clockNow();
                           return (
                             <div key={b.id} className="text-sm">
                               <span className={`ml-1 rounded px-1.5 py-0.5 text-xs text-white ${isNow ? "bg-green-600" : i === 0 ? "bg-blue-600" : "bg-gray-500"}`}>

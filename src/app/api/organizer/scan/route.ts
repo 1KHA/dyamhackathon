@@ -47,7 +47,8 @@ export async function POST(request: NextRequest) {
       mode === 'event'
         ? await scanEvent({ ...params, eventId: eventId! })
         : await scanVenue({ ...params, eventId: null });
-    return NextResponse.json({ ...outcome.body, ...identity }, { status: outcome.status });
+    // serverNow: scan screens keep time by the server, not the phone's clock
+    return NextResponse.json({ ...outcome.body, ...identity, serverNow: new Date().toISOString() }, { status: outcome.status });
   } catch (error) {
     console.error('Error recording organizer scan:', error);
     return NextResponse.json({ error: 'خطأ في الخادم' }, { status: 500 });

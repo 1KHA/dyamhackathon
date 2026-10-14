@@ -11,5 +11,5 @@ export async function GET() {
   if (!organizer) {
     return NextResponse.json({ error: 'غير مصرح' }, { status: 401 });
   }
-  return NextResponse.json({ success: true, role: 'organizer', ...organizer, today: riyadhToday() });
+  return NextResponse.json({ success: true, role: 'organizer', ...organizer, today: riyadhToday(), serverNow: new Date().toISOString() });
 }

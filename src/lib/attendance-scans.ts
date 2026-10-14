@@ -291,7 +291,8 @@ export async function scanVenue(p: ScanParams): Promise<ScanOutcome> {
       result: decided.result,
       direction: decided.direction,
       date: day,
-      ...(decided.kind === 'written' ? { scanId: decided.scan.id, createdCheckin: decided.createdCheckin, ...(decided.recordId ? { recordId: decided.recordId } : {}) } : {}),
+      // scannedAt: the server time the scan was saved — screens show this, never the phone's clock
+      ...(decided.kind === 'written' ? { scanId: decided.scan.id, scannedAt: decided.scan.createdAt, createdCheckin: decided.createdCheckin, ...(decided.recordId ? { recordId: decided.recordId } : {}) } : {}),
       presence: await presenceNow(p.participantId, null, day),
     },
   };
@@ -388,7 +389,7 @@ export async function scanEvent(p: ScanParams & { eventId: string }): Promise<Sc
       ...(decided.kind === 'written' && decided.autoRegistered ? { autoRegistered: true } : {}),
       ...(decided.kind === 'written' && decided.reactivated ? { reactivated: true } : {}),
       ...base,
-      ...(decided.kind === 'written' ? { scanId: decided.scan.id, createdCheckin: decided.createdCheckin } : {}),
+      ...(decided.kind === 'written' ? { scanId: decided.scan.id, scannedAt: decided.scan.createdAt, createdCheckin: decided.createdCheckin } : {}),
       presence: await presenceNow(p.participantId, event.id, day, window),
     },
   };

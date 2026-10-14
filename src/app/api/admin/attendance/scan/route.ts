@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
       mode === 'general'
         ? await scanVenue({ ...params, eventId: null })
         : await scanEvent({ ...params, eventId: eventId! });
-    return NextResponse.json({ ...outcome.body, ...identity }, { status: outcome.status });
+    // serverNow: scan screens keep time by the server, not the phone's clock
+    return NextResponse.json({ ...outcome.body, ...identity, serverNow: new Date().toISOString() }, { status: outcome.status });
   } catch (error) {
     console.error('Error recording attendance:', error);
     return NextResponse.json({ error: 'خطأ في الخادم' }, { status: 500 });

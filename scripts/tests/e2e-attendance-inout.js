@@ -162,6 +162,22 @@ const made = { participants: [], teams: [], events: [], mentors: [], organizers:
   check('row carries the leader\'s phone (one-tap call) and every member\'s phone, leader first', !nowRow || (nowRow.leader && nowRow.leader.phone === '0500000001' && nowRow.leader.name === L.fullName && nowRow.members[0].isLeader === true && nowRow.members[0].phone === '0500000001' && nowRow.members[1].phone === '0500000002' && nowRow.booker && typeof nowRow.booker.isLeader === 'boolean'), JSON.stringify(nowRow && { leader: nowRow.leader, members: nowRow.members, booker: nowRow.booker }));
   check('  never national ID / badge code / email in the board', !JSON.stringify(r.json).includes('1234567890') && !JSON.stringify(r.json).includes(L.badgeCode) && !JSON.stringify(r.json).includes(L.email));
 
+  section('scan screens keep the server clock (Riyadh), never the phone\'s');
+  {
+    const me = await api('/api/organizer/me', { cookie: oCk });
+    const skew = Math.abs(new Date(me.json?.serverNow).getTime() - Date.now());
+    check('organizer/me carries serverNow', me.status === 200 && !!me.json.serverNow && skew < 60_000, JSON.stringify(me.json && me.json.serverNow));
+    const T = await mk('clock', {});
+    const t0 = Date.now();
+    const sc = await scanA(T, { direction: 'in' });
+    const at = new Date(sc.json?.scannedAt).getTime();
+    check('scan answer carries scannedAt (the saved scan\'s server time) and serverNow', sc.status === 200 && !!sc.json.scanId && Number.isFinite(at) && Math.abs(at - t0) < 60_000 && !!sc.json.serverNow, JSON.stringify(sc.json && { scannedAt: sc.json.scannedAt, serverNow: sc.json.serverNow }));
+    const row = await prisma.attendanceScan.findUnique({ where: { id: sc.json.scanId }, select: { createdAt: true, day: true } });
+    check('  scannedAt is exactly the stored scan time, and its day is the Riyadh day', row && row.createdAt.getTime() === at && row.day === riyadhDay(row.createdAt), JSON.stringify(row));
+    const rej = await scanA(T, { direction: 'out' }); // allowed (inside) — then a second out is "alreadyOut"
+    check('  every answer (incl. no-op) carries serverNow', !!rej.json?.serverNow);
+  }
+
   section('access');
   const pCk = sign({ id: L.id, participantId: L.id, role: 'participant' });
   check('participant -> organizer details 401', (await api(`/api/organizer/participants/${L.id}`, { cookie: pCk })).status === 401);

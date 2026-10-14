@@ -61,10 +61,19 @@ const Field = ({ label, value }: { label: string; value: string | null | undefin
   ) : null;
 
 /** Read-only participant card for organizers: person, today's entries/exits, team, members, bookings. */
-export default function ParticipantDetailsPanel({ details, onClose }: { details: ParticipantDetails; onClose?: () => void }) {
+export default function ParticipantDetailsPanel({
+  details,
+  onClose,
+  nowMs,
+}: {
+  details: ParticipantDetails;
+  onClose?: () => void;
+  /** the server's time (scan screens pass it); the phone's clock may be wrong */
+  nowMs?: number;
+}) {
   const { participant: p, team, bookings, venueToday } = details;
   const s = venueToday.summary;
-  const now = Date.now();
+  const now = nowMs ?? Date.now();
 
   return (
     <Card className="border-blue-200">
