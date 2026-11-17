@@ -150,7 +150,15 @@ export async function POST(request: Request) {
 
     // First row at the top level keeps older callers working; `slots` has them all.
     return NextResponse.json(
-      { ...(result.created[0] ?? {}), created: result.created.length, skipped: result.skipped, slots: result.created },
+      {
+        ...(result.created[0] ?? {}),
+        created: result.created.length,
+        skipped: result.skipped,
+        skippedOwn: result.skippedOwn,
+        skippedOrganization: result.skippedOrganization,
+        alignedToOrganization: result.alignedToOrganization,
+        slots: result.created,
+      },
       { status: 201 }
     );
   } catch (error) {

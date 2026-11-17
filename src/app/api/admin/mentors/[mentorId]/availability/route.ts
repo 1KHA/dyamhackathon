@@ -56,7 +56,15 @@ export async function POST(
       return NextResponse.json({ message: result.error }, { status: 400 });
     }
     return NextResponse.json(
-      { ...(result.created[0] ?? {}), created: result.created.length, skipped: result.skipped, slots: result.created },
+      {
+        ...(result.created[0] ?? {}),
+        created: result.created.length,
+        skipped: result.skipped,
+        skippedOwn: result.skippedOwn,
+        skippedOrganization: result.skippedOrganization,
+        alignedToOrganization: result.alignedToOrganization,
+        slots: result.created,
+      },
       { status: 201 }
     );
   } catch (error) {

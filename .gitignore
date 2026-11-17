@@ -91,3 +91,25 @@ Milestone_Upload_4MB_Issue.md
 motion_reel_prompt.md
 motion_files
 Milestone_Groups_Report.md
+# certificate mailer (scripts/send-certificates.js): personal data, PDFs, secrets, logs
+/cert_names/*.pdf
+/cert_names/*.xlsx
+/cert_names/certs/
+/cert_names/.env.mandrill
+/cert_names/send-log.jsonl
+/cert_names/send-report.csv
+/cert_names/preview/
+/finals_names/
+/cert_names# team message mailer (scripts/send-team-messages.js): personal data, secrets, logs
+/final_final/*.xlsx
+/final_final/.env.mandrill
+/final_final/send-log.jsonl
+/final_final/send-report.csv
+/final_final/recipients.csv
+/final_final/preview/
+مقدمين الورش والمرشدين لمياهثون - معسكر رقمي - معسكر الرياض - معسكر رابغ.xlsx
+
+cert_names
+final_final
+scripts/send-certificates.js
+scripts/send-team-messages.js

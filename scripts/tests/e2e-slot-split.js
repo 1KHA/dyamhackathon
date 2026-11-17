@@ -105,16 +105,30 @@ let mentor, admin, org, m1, m2, originalMode;
   r = await api('/api/mentor/availability', { cookie: c2, method: 'POST', body: { startTime: at(4020), endTime: at(4040) } });
   check('individual mode: colleague may add right after (own calendar only)', r.status === 201 && r.json.created === 1);
   check('set organization mode -> 200', (await setMode('organization')).status === 200);
+  const starts = (json) => (json?.slots || []).map((x) => (new Date(x.startTime) - base) / MIN);
   r = await api('/api/mentor/availability', { cookie: c2, method: 'POST', body: { startTime: at(4100), endTime: at(4120) } });
   check('  baseline: m2 adds 4100', r.json.created === 1);
+  // new rule: an organization member's range is re-cut on the organization's times (no more silent "0 added")
   r = await api('/api/mentor/availability', { cookie: c1, method: 'POST', body: { startTime: at(4120), endTime: at(4140) } });
-  check('organization mode: back-to-back with a colleague -> skipped', r.status === 201 && r.json.created === 0 && r.json.skipped === 1, JSON.stringify(r.json).slice(0, 120));
-  r = await api('/api/mentor/availability', { cookie: c1, method: 'POST', body: { startTime: at(4110), endTime: at(4130) } });
-  check('organization mode: overlapping a colleague -> skipped', r.json.created === 0);
+  check('organization mode: back-to-back with a colleague -> moved onto the org rhythm (4125), never packed against it', r.status === 201 && r.json.created === 1 && r.json.alignedToOrganization === true && JSON.stringify(starts(r.json)) === '[4125]', JSON.stringify(r.json).slice(0, 200));
   r = await api('/api/mentor/availability', { cookie: c1, method: 'POST', body: { startTime: at(4100), endTime: at(4120) } });
-  check('organization mode: the exact same window is allowed (merges into one org slot)', r.json.created === 1);
-  r = await api('/api/mentor/availability', { cookie: c1, method: 'POST', body: { startTime: at(4125), endTime: at(4145) } });
-  check('organization mode: 5 minutes after a colleague is allowed', r.json.created === 1);
+  check('organization mode: the exact same window is allowed (merges into one org slot)', r.json.created === 1 && JSON.stringify(starts(r.json)) === '[4100]', JSON.stringify(r.json).slice(0, 200));
+  r = await api('/api/mentor/availability', { cookie: c1, method: 'POST', body: { startTime: at(4205), endTime: at(4210) } });
+  check('organization mode: a click is snapped to the org slot it falls in (4200)', r.json.created === 1 && r.json.alignedToOrganization === true && JSON.stringify(starts(r.json)) === '[4200]', JSON.stringify(r.json).slice(0, 200));
+  r = await api('/api/mentor/availability', { cookie: c1, method: 'POST', body: { startTime: at(4310), endTime: at(4400) } });
+  check('organization mode: an off-rhythm range is cut on the org times, inside the range (4325 4350 4375)', r.json.created === 3 && JSON.stringify(starts(r.json)) === '[4325,4350,4375]', JSON.stringify(r.json).slice(0, 200));
+  // a colleague slot off the rhythm still blocks what would sit too close to it — and the answer says so
+  for (const m of [4800, 4825]) await prisma.mentorAvailability.create({ data: { mentorId: m2.id, startTime: at(m), endTime: at(m + 20) } });
+  await prisma.mentorAvailability.create({ data: { mentorId: m2.id, startTime: at(4860), endTime: at(4880) } });
+  r = await api('/api/mentor/availability', { cookie: c1, method: 'POST', body: { startTime: at(4850), endTime: at(4870) } });
+  check('organization mode: clash with a colleague\'s non-identical slot -> 0 added, reported as an organization clash', r.status === 201 && r.json.created === 0 && r.json.skippedOrganization === 1 && r.json.skippedOwn === 0, JSON.stringify(r.json).slice(0, 200));
+  const m1rows = await rows(m1.id);
+  check('  m1 rows: all 20 min, 5-min grid, breaks kept', all20(m1rows) && gapsOk(m1rows), hm(m1rows));
+  r = await api(`/api/admin/mentors/${m1.id}/availability`, { cookie: aCookie, method: 'POST', body: { start: at(5010), end: at(5060) } });
+  check('admin add follows the same organization rule (5025 5050 -> 5025 only fits)', r.status === 201 && r.json.alignedToOrganization === true && JSON.stringify(starts(r.json)) === '[5025]', JSON.stringify(r.json).slice(0, 200));
+  check('set individual mode -> no alignment (own calendar only)', (await setMode('individual')).status === 200);
+  r = await api('/api/mentor/availability', { cookie: c1, method: 'POST', body: { startTime: at(5410), endTime: at(5430) } });
+  check('  individual mode: range kept as typed (5410)', r.json.created === 1 && !r.json.alignedToOrganization && JSON.stringify(starts(r.json)) === '[5410]', JSON.stringify(r.json).slice(0, 200));
 })()
   .catch((e) => { fail++; console.error('\nSCRIPT ERROR:', e.stack); })
   .finally(async () => {

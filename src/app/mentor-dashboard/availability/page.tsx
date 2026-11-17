@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 // Riyadh-time moment (Arabic locale): the calendar shows Saudi time on every device
 import moment from '@/lib/riyadh-moment';
+import { slotResultMessage } from '@/lib/slot-result-message';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { SLOT_BREAK_MINUTES, SLOT_DURATION_MINUTES, SLOT_GRID_MINUTES, SLOT_TIMESLOTS_PER_HOUR } from '@/lib/constants';
 import { Button } from '../../../../components/ui/button';
@@ -176,15 +177,9 @@ const AvailabilityPage = () => {
       const data = await response.json().catch(() => ({}));
       if (response.ok) {
         fetchAvailabilities();
-        const created = Number(data.created ?? 1);
-        const skipped = Number(data.skipped ?? 0);
-        toast({
-          title: "تم بنجاح",
-          description:
-            created === 0
-              ? `لم تُضف أي فترة: هذه الأوقات مضافة مسبقاً أو قريبة جداً من فترات موجودة (يجب ترك ${SLOT_BREAK_MINUTES} دقائق بين الفترات).`
-              : `تمت إضافة ${created} فترة (${SLOT_DURATION_MINUTES} دقيقة لكل فترة، تليها استراحة ${SLOT_BREAK_MINUTES} دقائق)${skipped ? ` — تم تجاوز ${skipped} فترة لتداخلها مع أوقات موجودة أو قربها منها` : ''}.`,
-        })
+        // what was added (on the organization's times for its members), or why nothing was
+        const msg = slotResultMessage(data, "mentor");
+        toast({ title: msg.title, description: msg.description, ...(msg.nothingAdded ? { variant: "destructive" as const } : {}) })
       } else {
         toast({
           title: "خطأ",
