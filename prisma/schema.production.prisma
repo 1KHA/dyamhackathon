@@ -33,6 +33,7 @@ model Team {
   participants         Participant[]
   receivedJoinRequests TeamJoinRequest[]
   publicVotes          PublicVote[]
+  ratings              TeamRating[]
   
   // DEPRECATED FIELDS - Keep for backward compatibility
   challenge            String?
@@ -533,4 +534,60 @@ model VoteOtp {
 
   @@index([email, createdAt])
   @@index([ipHash, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Consultant rating (تقييم المستشارين) — see mdfiles/consultant-rating.md
+// ---------------------------------------------------------------------------
+
+/// External evaluator account (/consultant-login). Can only read teams of the
+/// rating phase and write their own rating per team.
+model Consultant {
+  id           String       @id @default(cuid())
+  username     String       @unique
+  name         String
+  email        String?
+  passwordHash String
+  isDisabled   Boolean      @default(false)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  ratings      TeamRating[]
+}
+
+/// Single admin-controlled row: which phase is rated, whether rating is open,
+/// and the weight of the consultants' score in the final result (35 by default).
+model RatingSettings {
+  id          String   @id @default(cuid())
+  enabled     Boolean  @default(true) // false = consultants can read but not save
+  phaseId     String?  // teams of this phase are rated
+  finalWeight Float    @default(35)   // team final share = average(0..100) × finalWeight ÷ 100
+  updatedAt   DateTime @updatedAt
+}
+
+/// One rating per (consultant, team); updated in place when the consultant
+/// changes their mind. Criterion values live in TeamRatingScore.
+model TeamRating {
+  id           String             @id @default(cuid())
+  consultantId String
+  consultant   Consultant         @relation(fields: [consultantId], references: [id], onDelete: Cascade)
+  teamId       String
+  team         Team               @relation(fields: [teamId], references: [id])
+  notes        String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  scores       TeamRatingScore[]
+
+  @@unique([consultantId, teamId])
+  @@index([teamId])
+}
+
+/// 1..5 for one criterion (key from RATING_CRITERIA in src/lib/rating.ts).
+model TeamRatingScore {
+  id           String     @id @default(cuid())
+  ratingId     String
+  rating       TeamRating @relation(fields: [ratingId], references: [id], onDelete: Cascade)
+  criterionKey String
+  value        Int
+
+  @@unique([ratingId, criterionKey])
 }

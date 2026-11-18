@@ -310,7 +310,7 @@ export default function PublicVotePage() {
               >
                 <div className="mb-3 flex items-start justify-between gap-2">
                   {team.hackathonTrack ? (
-                    <span className={`inline-flex h-6 max-w-full items-center rounded-full border px-2.5 text-[11px] font-medium ${trackColor(team.hackathonTrack)}`}>
+                    <span className={`inline-flex h-6 min-w-0 max-w-full items-center rounded-full border px-2.5 text-[11px] font-medium ${trackColor(team.hackathonTrack)}`}>
                       <span className="truncate leading-6">{team.hackathonTrack}</span>
                     </span>
                   ) : <span />}
