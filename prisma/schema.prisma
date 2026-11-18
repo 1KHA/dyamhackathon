@@ -32,6 +32,7 @@ model Team {
   updatedAt            DateTime  @updatedAt
   participants         Participant[]
   receivedJoinRequests TeamJoinRequest[]
+  publicVotes          PublicVote[]
   
   // DEPRECATED FIELDS - Keep for backward compatibility
   challenge            String?
@@ -469,4 +470,67 @@ model Phase {
   milestones   Milestone[]
 
   @@index([order])
+}
+
+// ---------------------------------------------------------------------------
+// Public voting ("التصويت الجماهيري") — see mdfiles/public-voting.md.
+// Visitors (no account) vote once per verified email for one team of the
+// voting phase. Nothing here touches existing tables beyond the Team relation.
+// ---------------------------------------------------------------------------
+
+/// Single admin-controlled row: which phase is being voted on, the window, and
+/// the weight of the public vote in the final score (5 by default).
+model VoteSettings {
+  id          String    @id @default(cuid())
+  enabled     Boolean   @default(false) // master switch — nobody can vote while false
+  phaseId     String?   // teams of this phase are listed; null = page shows nothing
+  votingStart DateTime? // null = open as soon as enabled
+  votingEnd   DateTime? // voting closes automatically at this instant
+  maxScore    Float     @default(5) // top team gets this; others get votes/topVotes × maxScore
+  updatedAt   DateTime  @updatedAt
+}
+
+/// One row per verified email address. `email` is stored normalized
+/// (trimmed, lowercased), which is what makes "one vote per email" hold.
+model PublicVoter {
+  id         String      @id @default(cuid())
+  email      String      @unique
+  firstName  String
+  lastName   String
+  verifiedAt DateTime
+  createdAt  DateTime    @default(now())
+  vote       PublicVote?
+}
+
+/// The vote itself — exactly one per voter (voterId is unique).
+model PublicVote {
+  id        String      @id @default(cuid())
+  voterId   String      @unique
+  voter     PublicVoter @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  teamId    String
+  team      Team        @relation(fields: [teamId], references: [id])
+  createdAt DateTime    @default(now())
+
+  @@index([teamId])
+  @@index([createdAt])
+}
+
+/// Email one-time codes. Only an HMAC of the code is stored; a code expires,
+/// is consumed on successful verification and is burned after too many
+/// wrong attempts. Rate limits are computed from rows in this table.
+model VoteOtp {
+  id         String    @id @default(cuid())
+  email      String    // normalized
+  firstName  String
+  lastName   String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  verifiedAt DateTime? // set when the right code was entered
+  usedAt     DateTime? // set when the vote was cast with this code
+  ipHash     String?   // sha256 of the requester IP — abuse limits only
+  createdAt  DateTime  @default(now())
+
+  @@index([email, createdAt])
+  @@index([ipHash, createdAt])
 }

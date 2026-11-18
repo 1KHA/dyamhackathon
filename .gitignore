@@ -113,3 +113,5 @@ cert_names
 final_final
 scripts/send-certificates.js
 scripts/send-team-messages.js
+new_req
+.claude
