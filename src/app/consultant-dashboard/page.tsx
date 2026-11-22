@@ -13,7 +13,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
-  LogOut, Search, User, Users, CheckCircle2, Loader2, FileText, ExternalLink, Lock, Save, Star, ClipboardCheck, AlertCircle,
+  LogOut, Search, Users, CheckCircle2, Loader2, FileText, ExternalLink, Lock, Save, Star, ClipboardCheck, AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -210,7 +210,7 @@ export default function ConsultantDashboardPage() {
                 onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpenId(team.id); } }}
                 className={`group relative flex min-h-[210px] cursor-pointer flex-col rounded-2xl border bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg ${team.myRating ? "border-green-200" : "border-slate-200"}`}
               >
-                <div className="mb-3 flex items-start justify-between gap-2">
+                <div className="mb-6 flex items-start justify-between gap-2">
                   {team.hackathonTrack ? (
                     <span className="inline-flex h-6 min-w-0 max-w-full items-center rounded-full border border-[#2F44DC]/20 bg-[#2F44DC]/10 px-2.5 text-[11px] font-medium text-[#2F44DC]">
                       <span className="truncate leading-6">{team.hackathonTrack}</span>
@@ -222,14 +222,8 @@ export default function ConsultantDashboardPage() {
                     <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">بانتظار تقييمك</span>
                   )}
                 </div>
-                <h3 className="line-clamp-2 text-lg font-bold leading-snug text-[#001742]">{team.teamName}</h3>
-                {team.ideaName && <p className="mt-1 line-clamp-1 text-sm text-slate-600">{team.ideaName}</p>}
-                <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
-                  <User className="h-4 w-4 shrink-0 text-[#2F44DC]" />
-                  <span className="truncate">{team.leaderName ? `قائد الفريق: ${team.leaderName}` : "قائد الفريق غير محدد"}</span>
-                </p>
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500"><Users className="h-3.5 w-3.5" /> {team.membersCount} أعضاء</p>
-                <div className="mt-auto grid grid-cols-2 gap-2 pt-4 text-center text-xs">
+                <h3 className="line-clamp-3 text-xl font-bold leading-snug text-[#001742]">{team.teamName}</h3>
+                <div className="mt-auto grid grid-cols-2 gap-2 pt-6 text-center text-xs">
                   <div className={`rounded-xl border px-2 py-1.5 ${team.myRating ? scoreColor(team.myRating.total) : "border-slate-200 bg-slate-50 text-slate-500"}`}>
                     <div className="text-[10px]">تقييمك</div>
                     <div className="text-base font-bold tabular-nums">{team.myRating ? `${team.myRating.total}` : "—"}<span className="text-[10px] font-normal"> /100</span></div>
@@ -335,7 +329,6 @@ function TeamDialog({ teamId, criteria, enabled, onClose, onSaved }: {
             <DialogTitle className="text-xl text-[#001742]">{team?.teamName || "…"}</DialogTitle>
             <DialogDescription className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
               {team?.hackathonTrack && <span className="rounded-full border border-[#2F44DC]/20 bg-[#2F44DC]/10 px-2 py-0.5 text-[#2F44DC]">{team.hackathonTrack}</span>}
-              {team?.phaseName && <span>المرحلة: {team.phaseName}</span>}
               {team && <span>{team.members.length} أعضاء</span>}
             </DialogDescription>
           </DialogHeader>
