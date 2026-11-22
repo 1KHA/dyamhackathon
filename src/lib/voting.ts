@@ -84,6 +84,8 @@ export interface BallotTeam {
   id: string;
   teamName: string;
   leaderName: string;
+  /** Display names of every enabled member, leader first. Names only — no contact data. */
+  members: string[];
   hackathonTrack: string | null;
   ideaDescription: string;
 }
@@ -95,8 +97,9 @@ function displayName(p: { fullName: string | null; firstName: string | null; fam
 }
 
 /**
- * Approved, enabled teams of the voting phase with their leader's name and
- * idea text. Public data only — no emails, phones or ids of people.
+ * Approved, enabled teams of the voting phase with their leader's name, the
+ * names of their (enabled) members and the idea text. Public data only — no
+ * emails, phones or ids of people.
  */
 export async function getBallotTeams(phaseId: string): Promise<BallotTeam[]> {
   const teams = await prisma.team.findMany({
@@ -107,21 +110,25 @@ export async function getBallotTeams(phaseId: string): Promise<BallotTeam[]> {
       hackathonTrack: true,
       ideaDescription: true,
       participants: {
-        where: { isLeader: true },
-        select: { fullName: true, firstName: true, familyName: true },
-        take: 1,
+        where: { isDisabled: false },
+        orderBy: [{ isLeader: 'desc' }, { createdAt: 'asc' }],
+        select: { isLeader: true, fullName: true, firstName: true, familyName: true },
       },
     },
   });
   const collator = new Intl.Collator('ar');
   return teams
-    .map((t) => ({
-      id: t.id,
-      teamName: (t.teamName || '').trim() || 'فريق بدون اسم',
-      leaderName: t.participants[0] ? displayName(t.participants[0]) : '',
-      hackathonTrack: t.hackathonTrack,
-      ideaDescription: (t.ideaDescription || '').trim(),
-    }))
+    .map((t) => {
+      const leader = t.participants.find((p) => p.isLeader);
+      return {
+        id: t.id,
+        teamName: (t.teamName || '').trim() || 'فريق بدون اسم',
+        leaderName: leader ? displayName(leader) : '',
+        members: t.participants.map(displayName).filter(Boolean),
+        hackathonTrack: t.hackathonTrack,
+        ideaDescription: (t.ideaDescription || '').trim(),
+      };
+    })
     .sort((a, b) => collator.compare(a.teamName, b.teamName));
 }
 

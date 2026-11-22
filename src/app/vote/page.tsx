@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import {
-  Search, User, CheckCircle2, Clock, Lock, Mail, KeyRound, Vote, ChevronLeft, Loader2, AlertCircle, X, Eye, RefreshCw,
+  Search, User, Users, Crown, CheckCircle2, Clock, Lock, Mail, KeyRound, Vote, ChevronLeft, Loader2, AlertCircle, X, Eye, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,8 @@ interface BallotTeam {
   id: string;
   teamName: string;
   leaderName: string;
+  /** Every member's name, leader first (older ballots may omit it). */
+  members?: string[];
   hackathonTrack: string | null;
   ideaDescription: string;
 }
@@ -56,6 +58,46 @@ const fmtDateTime = new Intl.DateTimeFormat("ar-SA-u-ca-gregory-nu-latn", {
 /** One style for every track chip (brand tint). */
 function trackColor(_track: string | null): string {
   return "bg-[#2F44DC]/10 text-[#2F44DC] border-[#2F44DC]/20";
+}
+
+/**
+ * Members block of the «الفكرة كاملة» dialog: the leader first (marked), then
+ * every other member. The API sends names only, leader first.
+ */
+function TeamMembers({ team }: { team: BallotTeam }) {
+  const members = team.members || [];
+  const leader = team.leaderName;
+  const leaderIdx = leader ? members.indexOf(leader) : -1;
+  const others = leaderIdx >= 0 ? members.filter((_, i) => i !== leaderIdx) : members;
+  const total = others.length + (leader ? 1 : 0);
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-4">
+      <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-[#001742]">
+        <Users className="h-4 w-4 text-[#2F44DC]" />
+        أعضاء الفريق
+        <span className="text-xs font-normal text-slate-500">({total})</span>
+      </p>
+      {total === 0 ? (
+        <p className="text-sm text-slate-500">لم تُسجَّل أسماء الأعضاء.</p>
+      ) : (
+        <ul className="flex flex-wrap gap-2">
+          {leader && (
+            <li className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#2F44DC]/30 bg-[#2F44DC]/10 px-3 py-1 text-sm font-semibold text-[#2F44DC]">
+              <Crown className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">{leader}</span>
+              <span className="shrink-0 text-[11px] font-normal">قائد الفريق</span>
+            </li>
+          )}
+          {others.map((name, i) => (
+            <li key={`${name}-${i}`} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-700">
+              <User className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+              <span className="truncate">{name}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function pad(n: number) {
@@ -129,6 +171,7 @@ export default function PublicVotePage() {
       return (
         t.teamName.toLowerCase().includes(q) ||
         t.leaderName.toLowerCase().includes(q) ||
+        (t.members || []).some((m) => m.toLowerCase().includes(q)) ||
         t.ideaDescription.toLowerCase().includes(q)
       );
     });
@@ -257,7 +300,7 @@ export default function PublicVotePage() {
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="ابحث باسم الفريق أو قائد الفريق أو كلمة من الفكرة…"
+                placeholder="ابحث باسم الفريق أو اسم أحد الأعضاء أو كلمة من الفكرة…"
                 className="h-11 rounded-xl bg-white pr-[44px] pl-[16px]"
               />
             </div>
@@ -321,10 +364,6 @@ export default function PublicVotePage() {
                   )}
                 </div>
                 <h3 className="line-clamp-2 text-lg font-bold leading-snug text-[#001742]">{team.teamName}</h3>
-                <p className="mt-2 flex items-center gap-1.5 text-sm text-slate-600">
-                  <User className="h-4 w-4 shrink-0 text-[#2F44DC]" />
-                  <span className="truncate">{team.leaderName ? `قائد الفريق: ${team.leaderName}` : "قائد الفريق غير محدد"}</span>
-                </p>
                 <p className="mt-auto pt-4 text-xs text-slate-400 group-hover:opacity-0 group-data-[active]:opacity-0">
                   مرّر المؤشر أو اضغط لقراءة الفكرة
                 </p>
@@ -405,7 +444,8 @@ export default function PublicVotePage() {
                   {detailsTeam.leaderName ? `قائد الفريق: ${detailsTeam.leaderName}` : "قائد الفريق غير محدد"}
                 </DialogDescription>
               </DialogHeader>
-              <div className="max-h-[50vh] overflow-y-auto rounded-xl bg-slate-50 p-4 text-[15px] leading-relaxed text-slate-800 whitespace-pre-wrap" dir="auto">
+              <TeamMembers team={detailsTeam} />
+              <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-slate-50 p-4 text-[15px] leading-relaxed text-slate-800 whitespace-pre-wrap" dir="auto">
                 {detailsTeam.ideaDescription || "لا يوجد وصف للفكرة."}
               </div>
               <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
