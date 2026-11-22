@@ -219,7 +219,7 @@ export default function ConsultantDashboardPage() {
                   {team.myRating ? (
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-600 px-2 py-0.5 text-[11px] font-semibold text-white"><CheckCircle2 className="h-3 w-3" /> تم التقييم</span>
                   ) : (
-                    <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">بانتظار تقييمك</span>
+                    <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">بانتظار التقييم</span>
                   )}
                 </div>
                 <h3 className="line-clamp-3 text-xl font-bold leading-snug text-[#001742]">{team.teamName}</h3>
