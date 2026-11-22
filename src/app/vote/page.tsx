@@ -351,7 +351,7 @@ export default function PublicVotePage() {
                 }`}
                 style={{ animation: `vote-fade-in .4s ease both`, animationDelay: `${Math.min(i, 24) * 25}ms` }}
               >
-                <div className="mb-3 flex items-start justify-between gap-2">
+                <div className="mb-6 flex items-start justify-between gap-2">
                   {team.hackathonTrack ? (
                     <span className={`inline-flex h-6 min-w-0 max-w-full items-center rounded-full border px-2.5 text-[11px] font-medium ${trackColor(team.hackathonTrack)}`}>
                       <span className="truncate leading-6">{team.hackathonTrack}</span>
@@ -363,8 +363,8 @@ export default function PublicVotePage() {
                     </span>
                   )}
                 </div>
-                <h3 className="line-clamp-2 text-lg font-bold leading-snug text-[#001742]">{team.teamName}</h3>
-                <p className="mt-auto pt-4 text-xs text-slate-400 group-hover:opacity-0 group-data-[active]:opacity-0">
+                <h3 className="line-clamp-3 text-xl font-bold leading-snug text-[#001742]">{team.teamName}</h3>
+                <p className="mt-auto pt-6 text-xs text-slate-400 group-hover:opacity-0 group-data-[active]:opacity-0">
                   مرّر المؤشر أو اضغط لقراءة الفكرة
                 </p>
 
@@ -439,10 +439,8 @@ export default function PublicVotePage() {
                   </span>
                 )}
                 <DialogTitle className="text-2xl text-[#001742]">{detailsTeam.teamName}</DialogTitle>
-                <DialogDescription className="flex items-center gap-1.5">
-                  <User className="h-4 w-4 text-[#2F44DC]" />
-                  {detailsTeam.leaderName ? `قائد الفريق: ${detailsTeam.leaderName}` : "قائد الفريق غير محدد"}
-                </DialogDescription>
+                {/* kept for screen readers only; the leader is shown in the members block below */}
+                <DialogDescription className="sr-only">أعضاء الفريق والفكرة كاملة</DialogDescription>
               </DialogHeader>
               <TeamMembers team={detailsTeam} />
               <div className="max-h-[40vh] overflow-y-auto rounded-xl bg-slate-50 p-4 text-[15px] leading-relaxed text-slate-800 whitespace-pre-wrap" dir="auto">
