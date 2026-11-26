@@ -35,3 +35,12 @@ export const TEAM_MAX_MEMBERS = 30;
 // to /login, and every "سجل فريقك" entry point is hidden). Flip to false to
 // bring registration back. The API route itself is untouched.
 export const TEAM_REGISTRATION_HIDDEN = true;
+
+/**
+ * May a team leader remove members from their own team (participant dashboard →
+ * فريقي → «إزالة العضو» + POST /api/participant/remove-member)?
+ * Switched OFF on 2026-11-26 at the organisers' request; admins can still remove
+ * members from the admin dashboard. Adding members / accepting join requests is
+ * not affected. Flip to `true` to bring the buttons and the API back.
+ */
+export const LEADER_CAN_REMOVE_MEMBERS = false;

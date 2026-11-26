@@ -18,7 +18,7 @@ import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
 import { Checkbox } from "../../../../components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../../components/ui/tabs";
-import { TEAM_MAX_MEMBERS } from "@/lib/constants";
+import { TEAM_MAX_MEMBERS, LEADER_CAN_REMOVE_MEMBERS } from "@/lib/constants";
 import { Alert, AlertDescription } from "../../../../components/ui/alert";
 import { Progress } from "../../../../components/ui/progress";
 import { Textarea } from "../../../../components/ui/textarea";
@@ -423,7 +423,7 @@ export default function TeamManagementPage() {
           {/* Card view: phones, tablets and small laptops (below xl) */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4 xl:hidden">
             {teamData.participants.map((participant) => {
-              const canDelete = currentUser.isLeader && currentUser.id !== participant.id;
+              const canDelete = LEADER_CAN_REMOVE_MEMBERS && currentUser.isLeader && currentUser.id !== participant.id;
               
               return (
                 <Card key={participant.id} className="overflow-hidden min-w-0">
@@ -516,7 +516,7 @@ export default function TeamManagementPage() {
               <tbody>
                 {teamData.participants.map((participant) => {
                   const canEdit = currentUser.isLeader;
-                  const canDelete = currentUser.isLeader && currentUser.id !== participant.id;
+                  const canDelete = LEADER_CAN_REMOVE_MEMBERS && currentUser.isLeader && currentUser.id !== participant.id;
 
                   return (
                     <tr key={participant.id} className="border-t hover:bg-muted/10 transition-colors">

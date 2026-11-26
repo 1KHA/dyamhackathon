@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { PARTICIPANT_PUBLIC_FIELDS } from '@/lib/participant-fields';
 import jwt from "jsonwebtoken";
 import { requireActiveParticipant, isEffectivelyDisabled, DISABLED_ACCOUNT_MESSAGE } from '@/lib/account-status';
+import { LEADER_CAN_REMOVE_MEMBERS } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,15 @@ export async function POST(request: Request) {
     const currentParticipantId = decodedToken.participantId;
     const blocked_ = await requireActiveParticipant(currentParticipantId);
     if (blocked_) return blocked_;
+
+    // Member removal by team leaders is switched off (see src/lib/constants.ts).
+    // Admins still can, via /api/admin/remove-member.
+    if (!LEADER_CAN_REMOVE_MEMBERS) {
+      return NextResponse.json(
+        { error: "إزالة الأعضاء من قِبل قائد الفريق غير متاحة حالياً. للتعديل على أعضاء الفريق تواصل مع إدارة الهاكاثون." },
+        { status: 403 }
+      );
+    }
 
 
     // Get the request body
